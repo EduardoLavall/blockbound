@@ -20,6 +20,7 @@ import type {
   RunModifiers,
   Structure,
   Upgrade,
+  ResourceNode,
   Vec2,
   Wallet,
   WeaponKind
@@ -298,7 +299,7 @@ export class Game {
   }
 
   private findAimedResource(range: number) {
-    let best: { score: number; node: typeof this.world.resources[number] } | undefined;
+    let best: { score: number; node: ResourceNode } | undefined;
     for (const node of this.world.resources) {
       const dx = node.pos.x - this.player.pos.x;
       const dy = node.pos.y - this.player.pos.y;
