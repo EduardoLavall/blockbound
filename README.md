@@ -1,5 +1,7 @@
 # Blockfall
 
+> **Direction update:** Blockfall is being redesigned as a **3D first-person voxel survival + tower defense + roguelite**. The current top-down implementation is preserved at `legacy/topdown-prototype`. See [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md) and Epic #2 for the rewrite roadmap.
+
 Blockfall é um jogo browser-based de sobrevivência, construção, roguelike e tower defense feito com **HTML, CSS, TypeScript e Vite**.
 
 ## Loop principal
