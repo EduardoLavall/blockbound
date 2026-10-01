@@ -218,6 +218,20 @@ Não precisamos de uma engine enorme escondendo esses sistemas.
 
 Three.js deve funcionar como **render layer**, não como arquitetura inteira do jogo.
 
+### Babylon.js foi considerado?
+
+Sim. Babylon.js é uma ótima alternativa e já oferece câmera FPS, colisão, física integrada por plugins, Inspector e suporte forte a WebGPU.
+
+Mesmo assim, para Blockfall a recomendação permanece Three.js porque:
+
+- o voxel engine já será majoritariamente customizado;
+- queremos separar simulação/renderização de forma rígida;
+- Rapier atende diretamente o character controller e colisão;
+- Three.js funciona bem como camada fina sobre BufferGeometry/meshes de chunks;
+- o projeto não precisa depender da arquitetura de uma engine completa para UI, física e gameplay.
+
+Se no futuro a equipe preferir tooling integrado a controle fino, Babylon.js continua sendo uma alternativa tecnicamente válida — mas trocar depois que o voxel engine existir teria custo alto, então a decisão deve ser fechada na Fase 0.
+
 ### Por que Rapier
 
 O personagem FPS precisa de:
