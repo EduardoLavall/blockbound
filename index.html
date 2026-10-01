@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111814" />
+    <title>Blockfall</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game" aria-label="Blockfall game canvas"></canvas>
+
+      <div id="hud" class="hud">
+        <section class="hud__panel hud__status">
+          <div class="brand">BLOCKFALL <span id="seed-label"></span></div>
+          <div class="meter"><span>VIDA</span><div><i id="hp-bar"></i></div><b id="hp-text"></b></div>
+          <div class="meter core"><span>NÚCLEO</span><div><i id="core-bar"></i></div><b id="core-text"></b></div>
+        </section>
+
+        <section class="hud__panel hud__phase">
+          <strong id="phase-label">DIA 1</strong>
+          <span id="phase-timer">00:55</span>
+          <small id="wave-label">Explore, colete e construa.</small>
+        </section>
+
+        <section class="hud__panel hud__resources">
+          <span>🪵 <b id="wood-count">0</b></span>
+          <span>🪨 <b id="stone-count">0</b></span>
+          <span>⛓️ <b id="iron-count">0</b></span>
+        </section>
+      </div>
+
+      <div id="hotbar" class="hotbar">
+        <button data-build="wall"><kbd>1</kbd><span>Muralha</span><small>4🪵</small></button>
+        <button data-build="tower"><kbd>2</kbd><span>Torre</span><small>6🪵 5🪨</small></button>
+        <button data-build="spike"><kbd>3</kbd><span>Espinhos</span><small>3🪵 2🪨</small></button>
+        <button data-build="gate"><kbd>4</kbd><span>Portão</span><small>5🪵 2🪨</small></button>
+        <button data-build="none" class="weapon"><kbd>Q</kbd><span id="weapon-label">Espada</span><small>arma</small></button>
+      </div>
+
+      <div id="toast" class="toast"></div>
+
+      <div id="start-overlay" class="overlay overlay--visible">
+        <div class="card start-card">
+          <p class="eyebrow">SURVIVAL · BUILDING · ROGUELIKE</p>
+          <h1>BLOCKFALL</h1>
+          <p>Construa durante o dia. Aguente a noite. Escolha upgrades. Descubra até onde sua base consegue sobreviver.</p>
+          <div class="controls">
+            <span><kbd>WASD</kbd> mover</span>
+            <span><kbd>Mouse</kbd> mirar</span>
+            <span><kbd>Click</kbd> atacar/coletar</span>
+            <span><kbd>Right click</kbd> construir</span>
+            <span><kbd>1–4</kbd> construção</span>
+            <span><kbd>Q</kbd> trocar arma</span>
+          </div>
+          <button id="start-button" class="primary">INICIAR RUN</button>
+        </div>
+      </div>
+
+      <div id="upgrade-overlay" class="overlay">
+        <div class="card upgrade-card">
+          <p class="eyebrow">NOITE SOBREVIVIDA</p>
+          <h2>Escolha um upgrade</h2>
+          <p>Essa escolha dura até o fim da run.</p>
+          <div id="upgrade-options" class="upgrade-options"></div>
+        </div>
+      </div>
+
+      <div id="gameover-overlay" class="overlay">
+        <div class="card gameover-card">
+          <p class="eyebrow">A RUN ACABOU</p>
+          <h2 id="gameover-title">O núcleo caiu.</h2>
+          <p id="gameover-stats"></p>
+          <button id="restart-button" class="primary">TENTAR DE NOVO</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
