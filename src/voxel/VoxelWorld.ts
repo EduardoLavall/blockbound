@@ -7,8 +7,17 @@ export interface VoxelEditResult {
   dirtyChunkKeys: string[];
 }
 
+export interface VoxelEditEvent {
+  x: number;
+  y: number;
+  z: number;
+  before: BlockId;
+  after: BlockId;
+}
+
 export class VoxelWorld {
   private readonly chunks = new Map<string, Chunk>();
+  private readonly editListeners = new Set<(event: VoxelEditEvent) => void>();
 
   ensureChunk(cx: number, cz: number): Chunk {
     const key = Chunk.key(cx, cz);
@@ -56,6 +65,7 @@ export class VoxelWorld {
 
     const localX = x - cx * CHUNK_SIZE;
     const localZ = z - cz * CHUNK_SIZE;
+    const before = chunk.get(localX, y, localZ);
     const changed = chunk.set(localX, y, localZ, block);
     if (!changed) return { changed: false, dirtyChunkKeys: [] };
 
@@ -65,7 +75,15 @@ export class VoxelWorld {
     if (localZ === 0) this.addIfLoaded(dirty, cx, cz - 1);
     if (localZ === CHUNK_SIZE - 1) this.addIfLoaded(dirty, cx, cz + 1);
 
+    const event: VoxelEditEvent = { x, y, z, before, after: block };
+    for (const listener of this.editListeners) listener(event);
+
     return { changed: true, dirtyChunkKeys: [...dirty] };
+  }
+
+  subscribeEdits(listener: (event: VoxelEditEvent) => void): () => void {
+    this.editListeners.add(listener);
+    return () => this.editListeners.delete(listener);
   }
 
   setGeneratedBlock(x: number, y: number, z: number, block: BlockId): boolean {
