@@ -317,6 +317,7 @@ export class GameApp {
       this.renderer.camera,
       this.input,
       this.mode,
+      this.world,
       this.enemies,
       this.projectiles,
       this.playerStatus,
@@ -412,6 +413,7 @@ export class GameApp {
 
     this.enemies.subscribeDamage((event) => {
       if (
+        event.source === "player-tool" ||
         event.source === "player-melee" ||
         event.source === "player-projectile"
       ) {
@@ -426,7 +428,7 @@ export class GameApp {
 
     this.bindPointerLock();
     this.options.loadingLabel.textContent =
-      "Prepare a defesa. Q alterna Tool, Blade e Repeater.";
+      "Prepare a defesa. Q alterna Pickaxe, Blade e Repeater.";
 
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
@@ -522,6 +524,12 @@ export class GameApp {
         this.hordeHud.update();
         this.playerCombat.renderUpdate(frameMs);
         this.playerStatusPanel.update();
+        const mining = this.interaction.miningState;
+        this.hand.setMiningState(
+          mining.active,
+          mining.progress,
+          mining.duration,
+        );
         this.hand.update(frameMs);
 
         const phaseLabel =

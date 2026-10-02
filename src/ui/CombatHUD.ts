@@ -42,7 +42,7 @@ export class CombatHUD {
     const health = this.vitals.health;
     const modeLabel =
       mode === PlayerActionMode.Tool
-        ? "TOOL"
+        ? "PICKAXE"
         : mode === PlayerActionMode.Blade
           ? "BLADE"
           : "REPEATER";

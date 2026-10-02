@@ -54,5 +54,9 @@ export class RunRuleEffects {
 }
 
 function isPlayerSource(source: EnemyDamageEvent["source"]): boolean {
-  return source === "player-melee" || source === "player-projectile";
+  return (
+    source === "player-tool" ||
+    source === "player-melee" ||
+    source === "player-projectile"
+  );
 }

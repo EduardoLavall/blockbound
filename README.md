@@ -398,6 +398,48 @@ Wall/Gate/Turret possuem custos finitos de travessia. A IA pode:
 - atacar;
 - ou, no caso do Burrower, ignorar o blocker.
 
+## Pickaxe / Mining Tool
+
+Tool Mode agora usa uma **picareta física em primeira pessoa**.
+
+Baseline v1:
+
+```text
+mining power    1.0×
+combat damage   10
+combat cooldown 0.55s
+combat range    2.1m
+combat DPS      ~18.18
+durability      none
+```
+
+A mineração agora separa explicitamente:
+
+```text
+block hardness
+  ÷ pickaxe mining power
+  ÷ Player Status mining speed
+  -> mining duration final
+```
+
+Os valores de hardness foram derivados dos tempos anteriores, então esta fase não altera silenciosamente o pacing de mineração.
+
+Comportamento:
+
+- Tool Mode mostra a Pickaxe;
+- HUD exibe `PICKAXE`;
+- o swing usa o progresso/duração reais do MiningSystem;
+- blocos mais duros produzem mais ciclos visuais de swing;
+- upgrades e equipamentos continuam modificando mining speed via Player Status;
+- se um inimigo está realmente na frente e antes do voxel atingido, LMB usa a picareta como melee de emergência;
+- se o voxel está na frente, LMB continua minerando;
+- dano de Pickaxe usa source `player-tool`;
+- kills contam como kills do jogador;
+- Pickaxe não aplica automaticamente Burn/Shock/Mark;
+- não existe durability na v1.
+
+Crack progressivo, debris e partículas continuam planejados para **Block Breaking Feedback / Juicy Mining**.
+
 ## Lane System v1
 
 A run agora possui uma **lane principal estrutural**.
@@ -575,7 +617,7 @@ Depois do vertical slice:
 3. Game Design — análise crítica de balanceamento ✅ baseline;
 4. Rapid / Machine Gun Turret ✅;
 5. Lane System v1 — 1 lane indestrutível ✅;
-6. Pickaxe / Mining Tool;
+6. Pickaxe / Mining Tool ✅;
 7. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling;
 8. Inventory 2.0;
 9. Crafting contextual v1;
