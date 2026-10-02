@@ -73,9 +73,17 @@ export function createStructureVisual(
     addBox(group, material, [0.34, 2.4, 0.46], [-0.95, 1.2, 0]);
     addBox(group, material, [0.34, 2.4, 0.46], [0.95, 1.2, 0]);
     addBox(group, material, [2.24, 0.34, 0.46], [0, 2.23, 0]);
-    addBox(group, material, [1.62, 1.45, 0.2], [0, 0.78, 0]);
-    for (const x of [-0.54, 0, 0.54]) {
-      addBox(group, material, [0.12, 1.3, 0.3], [x, 0.78, 0]);
+
+    const door = new THREE.Group();
+    door.name = "gate-door";
+    door.position.set(-0.8, 0, 0);
+    door.userData.gateDoor = true;
+    group.add(door);
+
+    addBox(door, material, [1.6, 0.14, 0.2], [0.8, 0.2, 0]);
+    addBox(door, material, [1.6, 0.14, 0.2], [0.8, 1.35, 0]);
+    for (const x of [0.24, 0.8, 1.36]) {
+      addBox(door, material, [0.12, 1.28, 0.28], [x, 0.78, 0]);
     }
   }
 
