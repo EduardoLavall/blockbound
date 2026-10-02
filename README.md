@@ -560,6 +560,20 @@ A iluminação será deliberadamente leve: Core, cristais, tochas e emissives co
 
 Juicy Effects entram depois dessa base visual para melhorar recoil, impacto, partículas, mineração, construção, torres, cartas e Boss sem sacrificar legibilidade ou performance.
 
+### Novos planos estruturais
+
+Também foram adicionados ao roadmap:
+
+- **Lane System v1** — começar com uma única lane estrutural e indestrutível;
+- **Pickaxe / Mining Tool** — picareta física em primeira pessoa;
+- **Voxel Texture Pipeline** — texturas originais reais 16×16 por bloco;
+- **Greedy Meshing per-block tiling** — manter quads mesclados sem esticar a textura;
+- **Inventory 2.0** — ergonomia inspirada no Minecraft, com design próprio;
+- **Crafting v1** — receitas contextuais junto do inventário, inspirado no fluxo do Terraria;
+- **Block Breaking Feedback** — crack progressivo, swing da picareta, partículas/debris e impacto.
+
+A textura procedural via Canvas permanece apenas como protótipo temporário. O objetivo final é um atlas original construído com assets 16×16 e repetição visual de um tile por voxel mesmo dentro de um greedy quad.
+
 A regra central continua:
 
 **construir → sobreviver → melhorar → tentar novamente**
