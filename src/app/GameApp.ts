@@ -7,8 +7,21 @@ import { Hotbar } from "../player/Hotbar";
 import { PlayerController } from "../player/PlayerController";
 import { VoxelInteractionController } from "../player/VoxelInteractionController";
 import { DebugOverlay } from "../ui/DebugOverlay";
-import { VoxelWorld } from "../voxel/VoxelWorld";
+import { BiomeId } from "../voxel/generation/Biomes";
+import {
+  createRandomRunSeed,
+  createRunSeed,
+  type RunSeed,
+} from "../voxel/generation/Seed";
+import {
+  generateWorld,
+  type WorldGenerationResult,
+} from "../voxel/generation/WorldGenerator";
+import type { WorldMetadata } from "../voxel/generation/WorldMetadata";
 import { ChunkManager } from "../voxel/render/ChunkManager";
+import type { VoxelWorld } from "../voxel/VoxelWorld";
+import { createWorldBoundary } from "../world/WorldBoundary";
+import { createWorldLandmarks } from "../world/WorldLandmarks";
 
 interface GameAppOptions {
   canvas: HTMLCanvasElement;
@@ -18,6 +31,7 @@ interface GameAppOptions {
   debug: HTMLDivElement;
   hotbar: HTMLDivElement;
   targetInfo: HTMLDivElement;
+  status: HTMLDivElement;
 }
 
 export class GameApp {
@@ -29,6 +43,7 @@ export class GameApp {
   private physics!: PhysicsWorld;
   private player!: PlayerController;
   private world!: VoxelWorld;
+  private metadata!: WorldMetadata;
   private chunks!: ChunkManager;
   private interaction!: VoxelInteractionController;
   private loop!: GameLoop;
@@ -44,14 +59,39 @@ export class GameApp {
     this.options.loadingLabel.textContent = "Inicializando Rapier...";
     this.physics = await PhysicsWorld.create();
 
-    this.options.loadingLabel.textContent = "Construindo chunks nos Web Workers...";
-    this.world = VoxelWorld.createTestWorld(1);
-    this.chunks = new ChunkManager(this.world, this.renderer.scene, this.physics);
+    const seed = this.resolveRunSeed();
+    this.options.loadingLabel.textContent =
+      "Gerando mundo finito · seed " + seed.text + "...";
+
+    const generation = generateWorld(seed);
+    this.applyGeneration(generation);
+
+    this.options.loadingLabel.textContent =
+      "Construindo " + this.world.getChunks().length + " chunks...";
+    this.chunks = new ChunkManager(
+      this.world,
+      this.renderer.scene,
+      this.physics,
+    );
     await this.chunks.initialize();
 
-    const spawnX = 0.5;
-    const spawnZ = 8.5;
-    const surfaceY = this.world.highestSolidY(Math.floor(spawnX), Math.floor(spawnZ));
+    createWorldBoundary(
+      this.renderer.scene,
+      this.physics,
+      this.metadata.bounds,
+    );
+    createWorldLandmarks(
+      this.renderer.scene,
+      this.world,
+      this.metadata,
+    );
+
+    const spawnX = this.metadata.playerSpawn.x + 0.5;
+    const spawnZ = this.metadata.playerSpawn.z + 0.5;
+    const surfaceY = this.world.highestSolidY(
+      this.metadata.playerSpawn.x,
+      this.metadata.playerSpawn.z,
+    );
 
     this.player = new PlayerController(
       this.renderer.camera,
@@ -76,8 +116,14 @@ export class GameApp {
       this.options.targetInfo,
     );
 
+    const size =
+      this.metadata.bounds.maxXExclusive - this.metadata.bounds.minX;
+    this.options.status.textContent =
+      "FINITE WORLD " + size + "×" + size + " · SEED " + seed.text;
+
     this.bindPointerLock();
-    this.options.loadingLabel.textContent = "Voxel engine pronta.";
+    this.options.loadingLabel.textContent =
+      "Mundo procedural pronto. Use ?seed=" + seed.text + " para reproduzir.";
 
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
@@ -97,9 +143,16 @@ export class GameApp {
           player: this.player,
           locked: this.controls.isLocked,
           extraLines: [
-            `CHUNKS    ${chunkStats.chunks}`,
-            `DIRTY     ${chunkStats.dirty}`,
-            `WORKERS   ${chunkStats.workersBusy} busy / ${chunkStats.workersPending} queued`,
+            "SEED      " + this.metadata.seed.text,
+            "WORLD     " + size + "x" + size + " finite",
+            "BIOMES    P" + this.metadata.biomeCounts[BiomeId.Plains] +
+              " F" + this.metadata.biomeCounts[BiomeId.Forest] +
+              " R" + this.metadata.biomeCounts[BiomeId.Rocky],
+            "POIS      " + this.metadata.pois.length,
+            "CHUNKS    " + chunkStats.chunks,
+            "DIRTY     " + chunkStats.dirty,
+            "WORKERS   " + chunkStats.workersBusy +
+              " busy / " + chunkStats.workersPending + " queued",
             ...this.interaction.getDebugLines(),
           ],
         });
@@ -107,6 +160,27 @@ export class GameApp {
     });
 
     this.loop.start();
+  }
+
+  private applyGeneration(generation: WorldGenerationResult): void {
+    this.world = generation.world;
+    this.metadata = generation.metadata;
+  }
+
+  private resolveRunSeed(): RunSeed {
+    const params = new URLSearchParams(window.location.search);
+    const explicit = params.get("seed");
+    if (explicit) return createRunSeed(explicit);
+
+    const seed = createRandomRunSeed();
+    params.set("seed", seed.text);
+    const query = params.toString();
+    const nextUrl =
+      window.location.pathname +
+      (query ? "?" + query : "") +
+      window.location.hash;
+    window.history.replaceState(null, "", nextUrl);
+    return seed;
   }
 
   private bindPointerLock(): void {
