@@ -116,8 +116,9 @@ describe("RunInventory", () => {
     expect(held).toBeNull();
 
     expect(inventory.consolidate(1)).toBe(true);
-    expect(inventory.slot(1)?.quantity).toBe(38);
-    expect(inventory.slot(2)).toBeNull();
+    expect(inventory.slot(1)?.quantity).toBe(64);
+    expect(inventory.slot(0)).toBeNull();
+    expect(inventory.slot(2)?.quantity).toBe(6);
   });
 
   it("rejects new equipment when all 36 slots are occupied", () => {
