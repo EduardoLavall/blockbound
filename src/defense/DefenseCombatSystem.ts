@@ -8,6 +8,9 @@ import type {
   StructureSystem,
 } from "../building/StructureSystem";
 import { StructureType } from "../building/StructureRegistry";
+import { EnemyStatus } from "../combat/CombatTypes";
+import type { RuleEngine } from "../roguelite/RuleEngine";
+import { SeededRandom } from "../voxel/generation/SeededRandom";
 
 interface Bolt {
   mesh: THREE.Mesh;
@@ -25,12 +28,17 @@ export class DefenseCombatSystem {
   private readonly boltMaterial = new THREE.MeshBasicMaterial({
     color: 0x77eee5,
   });
+  private readonly random: SeededRandom;
 
   constructor(
+    seed: number,
     private readonly scene: THREE.Scene,
     private readonly structures: StructureSystem,
     private readonly enemies: EnemySystem,
-  ) {}
+    private readonly rules: RuleEngine,
+  ) {
+    this.random = new SeededRandom(seed ^ 0x39af1d2c);
+  }
 
   fixedUpdate(dt: number): void {
     this.tickCooldowns(dt);
@@ -54,9 +62,14 @@ export class DefenseCombatSystem {
       );
       if (!target) continue;
 
-      this.enemies.damage(target, 21);
+      const damage = this.rules.modifyTurretDamage(21, target);
+      this.enemies.damage(target, damage, "turret");
+      this.applyTurretStatuses(target);
       this.spawnBolt(structure, target);
-      this.turretCooldowns.set(structure.id, 0.72);
+      this.turretCooldowns.set(
+        structure.id,
+        0.72 * this.rules.turretCooldownMultiplier,
+      );
     }
   }
 
@@ -74,9 +87,22 @@ export class DefenseCombatSystem {
         const key = `${structure.id}:${enemy.id}`;
         if ((this.spikeCooldowns.get(key) ?? 0) > 0) continue;
 
-        this.enemies.damage(enemy, 24);
-        this.spikeCooldowns.set(key, 0.62);
+        const damage = this.rules.modifySpikeDamage(24, enemy);
+        this.enemies.damage(enemy, damage, "spike");
+        this.spikeCooldowns.set(
+          key,
+          0.62 * this.rules.spikeCooldownMultiplier,
+        );
       }
+    }
+  }
+
+  private applyTurretStatuses(enemy: EnemyInstance): void {
+    if (this.random.range(0, 1) < this.rules.turretBurnChance) {
+      this.enemies.applyStatus(enemy, EnemyStatus.Burn, 3.5, 1);
+    }
+    if (this.random.range(0, 1) < this.rules.turretShockChance) {
+      this.enemies.applyStatus(enemy, EnemyStatus.Shock, 2.6, 1);
     }
   }
 
