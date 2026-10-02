@@ -30,6 +30,9 @@ export async function bootstrap(): Promise<void> {
   const defeatText = required<HTMLParagraphElement>("defeat-text");
   const runSummary = required<HTMLDivElement>("run-summary");
   const restartButton = required<HTMLButtonElement>("restart-button");
+  const settingsVolume = required<HTMLInputElement>("settings-volume");
+  const settingsEffects = required<HTMLInputElement>("settings-effects");
+  const settingsDebug = required<HTMLInputElement>("settings-debug");
   const status = required<HTMLDivElement>("status");
 
   const app = new GameApp({
@@ -56,6 +59,9 @@ export async function bootstrap(): Promise<void> {
     defeatText,
     runSummary,
     restartButton,
+    settingsVolume,
+    settingsEffects,
+    settingsDebug,
     status,
   });
 
