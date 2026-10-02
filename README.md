@@ -537,28 +537,31 @@ Depois do vertical slice:
 2. Inventário + Equipamento ✅;
 3. Game Design — análise crítica de balanceamento ✅ baseline;
 4. Rapid / Machine Gun Turret ✅;
-5. Sniper Turret;
-6. Electric / Tesla Turret;
-7. Explosive / Mortar Turret;
-8. Slow / Cryo Turret;
-9. Flamethrower Turret;
-10. Progressão e níveis das Torres;
-11. Crafting expandido;
-12. Shop;
-13. Level + Árvore de Talentos;
-14. Nível do Cristal/Core;
-15. Shaders + tochas + iluminação leve;
-16. Juicy Effects / Game Feel.
+5. Lane System v1 — 1 lane indestrutível;
+6. Pickaxe / Mining Tool;
+7. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling;
+8. Inventory 2.0;
+9. Crafting contextual v1;
+10. Shop;
+11. Level + Árvore de Talentos;
+12. Nível do Cristal/Core;
+13. Shaders + tochas + iluminação leve;
+14. Block Breaking Feedback / Juicy Mining;
+15. Juicy Effects / Game Feel;
+16. Sniper Turret;
+17. Electric / Tesla Turret;
+18. Explosive / Mortar Turret;
+19. Slow / Cryo Turret;
+20. Flamethrower Turret;
+21. Progressão e níveis das Torres.
 
-**Player Status vem primeiro** para centralizar e expor os atributos reais da build. **Inventário + Equipamento vem em seguida** porque itemização altera DPS, sobrevivência e outras métricas que precisam existir antes de um balance pass sério.
+A Rapid já prova que o sistema suporta torres especializadas. As demais variedades foram movidas deliberadamente para a **finaleira**, depois dos sistemas estruturais, progressões e game feel.
 
-A análise crítica de balanceamento acontece então com uma build de jogador mais completa, considerando stats, equipamentos, cartas, economia, defesas, inimigos e Boss em conjunto.
+A prioridade imediata agora é consolidar a identidade do jogo: lane, mineração com ferramenta física, arte voxel 16×16, inventário/crafting e progressões. Isso evita criar cinco torres novas para depois precisar rebalancear todas após mudanças fundamentais.
 
-Depois entram as novas torres **uma por vez**, cada uma com função própria. A Rapid já está implementada; seguem Sniper, Tesla, Mortar, Cryo e Flamethrower. Só depois dos seis arquétipos básicos vem o sistema de níveis/especializações das torres.
+A iluminação continua deliberadamente leve: Core, cristais, tochas e emissives com budget controlado.
 
-A iluminação será deliberadamente leve: Core, cristais, tochas e emissives com budget controlado, sem depender de iluminação dinâmica pesada.
-
-Juicy Effects entram depois dessa base visual para melhorar recoil, impacto, partículas, mineração, construção, torres, cartas e Boss sem sacrificar legibilidade ou performance.
+Depois do Juicy Effects geral voltamos ao bloco de expansão de torres: Sniper → Tesla → Mortar → Cryo → Flamethrower → níveis/especializações.
 
 ### Novos planos estruturais
 
