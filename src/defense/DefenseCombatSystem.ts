@@ -99,10 +99,22 @@ export class DefenseCombatSystem {
 
   private applyTurretStatuses(enemy: EnemyInstance): void {
     if (this.random.range(0, 1) < this.rules.turretBurnChance) {
-      this.enemies.applyStatus(enemy, EnemyStatus.Burn, 3.5, 1);
+      this.enemies.applyStatus(
+        enemy,
+        EnemyStatus.Burn,
+        3.5,
+        1,
+        "turret",
+      );
     }
     if (this.random.range(0, 1) < this.rules.turretShockChance) {
-      this.enemies.applyStatus(enemy, EnemyStatus.Shock, 2.6, 1);
+      this.enemies.applyStatus(
+        enemy,
+        EnemyStatus.Shock,
+        2.6,
+        1,
+        "turret",
+      );
     }
   }
 
