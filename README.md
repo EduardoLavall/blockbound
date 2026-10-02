@@ -182,7 +182,7 @@ BASE
   -> FINAL
 ```
 
-A camada de equipamento já existe como contrato neutro (`EquipmentStatModifiers`) e será preenchida pela próxima fase.
+A camada de equipamento usa `EquipmentStatModifiers` e agora é preenchida pelo `EquipmentSystem` a partir dos itens equipados.
 
 O painel mostra:
 
@@ -210,6 +210,67 @@ Sistemas que já consomem o Player Status diretamente:
 - reparo manual.
 
 Isso impede o painel de virar uma calculadora separada do gameplay.
+
+## Inventário + Equipamento
+
+`I` abre o inventário da run.
+
+Esse inventário é separado do inventário de recursos usado por construção/mineração.
+
+Fluxo atual:
+
+```text
+enemy dies
+  -> deterministic loot roll
+  -> physical item drop
+  -> pickup magnetism
+  -> ItemInventory
+  -> select / compare
+  -> equip Weapon / Armor / Charm
+  -> EquipmentSystem
+  -> EquipmentStatModifiers
+  -> PlayerStatus
+  -> gameplay changes immediately
+```
+
+A primeira kill da run garante um equipamento comum para que o sistema possa ser testado sem depender de sorte. Depois disso, cada arquétipo possui uma chance própria de drop; Brute, Support e Burrower possuem chances maiores e o Boss usa rarity epic quando rola item.
+
+Slots atuais:
+
+- **Weapon** — especializa Blade ou Repeater;
+- **Armor** — sobrevivência/mobilidade;
+- **Charm** — utility, status e build interactions.
+
+Pool inicial: **12 equipamentos**.
+
+Weapon:
+- Serrated Grip;
+- Duelist Guard;
+- Tension Module;
+- Rail Coupler;
+- Ember Chamber.
+
+Armor:
+- Scrap Plating;
+- Runner Mesh;
+- Shockweave Coat.
+
+Charm:
+- Miner Sigil;
+- Repair Servo;
+- Hunter Lens;
+- Berserker Core.
+
+A UI permite:
+
+- selecionar item;
+- ver rarity/slot/tags;
+- ler modificadores;
+- comparar com o equipamento atual do mesmo slot;
+- equipar;
+- unequipar.
+
+Abrir o inventário pausa a simulação e libera Pointer Lock.
 
 ## Roguelite
 
@@ -353,6 +414,7 @@ Passes já presentes:
 | Shift | correr |
 | Q | Tool / Blade / Repeater |
 | Hold Tab | Player Status / Live Build Sheet |
+| I | Inventory + Equipment |
 | LMB | minerar / atacar |
 | RMB | colocar bloco / construir |
 | 1–5 | escolher material |
@@ -406,7 +468,7 @@ A CI valida:
 Depois do vertical slice:
 
 1. Player Status ✅;
-2. Inventário + Equipamento;
+2. Inventário + Equipamento ✅;
 3. Game Design — análise crítica de balanceamento;
 4. Rapid / Machine Gun Turret;
 5. Sniper Turret;
