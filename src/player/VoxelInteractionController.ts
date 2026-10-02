@@ -169,6 +169,18 @@ export class VoxelInteractionController {
       return;
     }
 
+    if (
+      this.world.isLaneColumn(
+        target.voxel.x,
+        target.voxel.z,
+      )
+    ) {
+      this.feedback = "LANE IS INDESTRUCTIBLE";
+      this.feedbackTime = 0.8;
+      this.resetMining();
+      return;
+    }
+
     const definition = blockDefinition(target.block);
     if (!definition.destructible) {
       this.resetMining();
@@ -228,6 +240,11 @@ export class VoxelInteractionController {
     if (!target) return;
 
     const { x, y, z } = target.adjacent;
+    if (this.world.isLaneColumn(x, z)) {
+      this.feedback = "LANE MUST REMAIN OPEN";
+      this.feedbackTime = 1.1;
+      return;
+    }
     if (this.world.getBlock(x, y, z) !== BlockId.Air) return;
     if (this.intersectsPlayer(x, y, z)) return;
 
