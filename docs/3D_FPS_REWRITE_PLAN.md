@@ -1098,7 +1098,7 @@ Esse é o primeiro **Blockfall moment** obrigatório.
 
 ---
 
-## Fase 6 — FPS combat
+## Fase 6 ✅ implementação base concluída — FPS combat
 
 - melee;
 - ranged projectile;
@@ -1113,9 +1113,23 @@ Esse é o primeiro **Blockfall moment** obrigatório.
 
 O jogador consegue participar ativamente da mesma batalha que suas torres.
 
+### Implementação atual
+
+- Tool / Blade / Repeater via `Q`;
+- Blade melee;
+- Repeater projectile;
+- critical hits;
+- pierce;
+- Burn / Shock / Mark;
+- player HP e morte;
+- inimigo pode atacar o jogador;
+- hit marker / critical / kill feedback;
+- damage flash;
+- viewmodels FPS para Blade e Repeater.
+
 ---
 
-## Fase 7 — Roguelite
+## Fase 7 ✅ implementação base concluída — Roguelite
 
 - RunManager;
 - UpgradeRegistry;
@@ -1129,6 +1143,21 @@ O jogador consegue participar ativamente da mesma batalha que suas torres.
 ### Aceite
 
 Duas runs podem produzir estilos de jogo claramente diferentes.
+
+### Implementação atual
+
+- RunManager;
+- RuleEngine central;
+- UpgradeRegistry com 38 upgrades;
+- UpgradeDraft determinístico por seed;
+- exatamente 3 escolhas após cada noite;
+- common / rare / epic;
+- famílias Player / Defense / Economy / System;
+- cards pausam a simulação;
+- upgrades afetam jogador, Turret, Spike, estruturas, Core, mineração, recursos e kills;
+- sinergias Mark→Turret, Shock→Spike e Burn→defenses;
+- run summary básico em derrota;
+- testes de draft determinístico e regras cruzadas.
 
 ---
 
