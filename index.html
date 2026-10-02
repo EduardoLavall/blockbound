@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10170f" />
     <meta name="description" content="Blockfall — 3D voxel FPS tower defense roguelite." />
-    <title>Blockfall — FPS Roguelite</title>
+    <title>Blockfall — Five Night Siege</title>
   </head>
   <body>
     <div id="app">
@@ -17,7 +17,7 @@
       </div>
 
       <div id="debug"></div>
-      <div id="status">FPS + ROGUELITE · ISSUE #8</div>
+      <div id="status">FIVE NIGHT SIEGE · ISSUE #9</div>
 
       <div id="combat-hud"></div>
       <div id="core-hud"></div>
@@ -48,9 +48,9 @@
 
       <div id="start-overlay" class="overlay">
         <div class="panel">
-          <div class="eyebrow">BLOCKFALL · FIGHT WITH YOUR DEFENSE</div>
-          <h1>FPS ROGUELITE</h1>
-          <p>Minere e construa durante o dia. À noite, lute junto das defesas. Sobreviva para escolher 1 de 3 upgrades e transformar a build da run.</p>
+          <div class="eyebrow">BLOCKFALL · FIVE NIGHT SIEGE</div>
+          <h1>DEFEND THE CORE</h1>
+          <p>Construa durante o dia, lute durante a noite e sobreviva a cinco cercos. A quinta noite termina apenas quando o Siege Warden e sua horda forem derrotados.</p>
           <div class="controls">
             <span><b>WASD</b> mover</span>
             <span><b>Mouse</b> olhar</span>
@@ -66,8 +66,23 @@
             <span><b>Shift</b> correr</span>
             <span><b>Esc</b> soltar mouse</span>
           </div>
-          <button id="play-button">ENTRAR NA RUN</button>
-          <small id="loading-label">Preparando combate e regras da run...</small>
+          <div class="settings-panel">
+            <div class="settings-title">SETTINGS</div>
+            <label>
+              <span>Volume</span>
+              <input id="settings-volume" type="range" min="0" max="1" step="0.05" />
+            </label>
+            <label>
+              <span>Effects</span>
+              <input id="settings-effects" type="checkbox" />
+            </label>
+            <label>
+              <span>Debug overlay</span>
+              <input id="settings-debug" type="checkbox" />
+            </label>
+          </div>
+          <button id="play-button">ENTRAR / CONTINUAR</button>
+          <small id="loading-label">Preparando o cerco de cinco noites...</small>
         </div>
       </div>
     </div>
