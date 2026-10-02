@@ -23,6 +23,19 @@ import {
   setGhostValidity,
 } from "./StructureVisuals";
 
+export interface StructureNavCell {
+  structureId: number;
+  traversalCost: number;
+  hazard: boolean;
+}
+
+export interface StructureChangeBounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
 export interface StructureInstance {
   id: number;
   type: StructureType;
@@ -54,6 +67,8 @@ export class StructureSystem {
   private placement: Placement | null = null;
   private feedback = "";
   private feedbackTime = 0;
+  private readonly navigationListeners =
+    new Set<(bounds: StructureChangeBounds) => void>();
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -146,6 +161,51 @@ export class StructureSystem {
 
   get all(): readonly StructureInstance[] {
     return this.instances;
+  }
+
+  getById(id: number): StructureInstance | undefined {
+    return this.instances.find((instance) => instance.id === id);
+  }
+
+  subscribeNavigationChanges(
+    listener: (bounds: StructureChangeBounds) => void,
+  ): () => void {
+    this.navigationListeners.add(listener);
+    return () => this.navigationListeners.delete(listener);
+  }
+
+  navigationAtCell(x: number, z: number): StructureNavCell | null {
+    for (const instance of this.instances) {
+      if (!this.containsCell(instance, x, z)) continue;
+
+      if (instance.type === StructureType.Spike) {
+        return {
+          structureId: instance.id,
+          traversalCost: 3.5,
+          hazard: true,
+        };
+      }
+
+      if (instance.type === StructureType.Gate && instance.open) {
+        return null;
+      }
+
+      const ratio = instance.health.ratio;
+      const traversalCost =
+        instance.type === StructureType.Wall
+          ? 18 + ratio * 12
+          : instance.type === StructureType.Gate
+            ? 10 + ratio * 8
+            : 13 + ratio * 8;
+
+      return {
+        structureId: instance.id,
+        traversalCost,
+        hazard: false,
+      };
+    }
+
+    return null;
   }
 
   damageStructure(id: number, amount: number): boolean {
@@ -336,8 +396,9 @@ export class StructureSystem {
       false,
     );
 
-    this.instances.push({
-      id: this.nextId++,
+    const instanceId = this.nextId++;
+    const instance: StructureInstance = {
+      id: instanceId,
       type: this.selectedType,
       definition,
       group,
@@ -348,7 +409,9 @@ export class StructureSystem {
       x: placement.x,
       y: placement.y,
       z: placement.z,
-    });
+    };
+    this.instances.push(instance);
+    this.emitNavigationChanged(instance);
 
     this.feedback = `${definition.name.toUpperCase()} BUILT`;
     this.feedbackTime = 1.1;
@@ -417,6 +480,7 @@ export class StructureSystem {
     const door = nearest.group.getObjectByName("gate-door");
     if (door) door.rotation.y = nearest.open ? Math.PI / 2 : 0;
 
+    this.emitNavigationChanged(nearest);
     this.feedback = nearest.open ? "GATE OPEN" : "GATE CLOSED";
     this.feedbackTime = 1.1;
   }
@@ -462,11 +526,57 @@ export class StructureSystem {
   }
 
   private destroy(instance: StructureInstance): void {
+    const bounds = this.structureBounds(instance);
     this.physics.removeBody(instance.body);
     this.scene.remove(instance.group);
     disposeGroup(instance.group);
     const index = this.instances.indexOf(instance);
     if (index >= 0) this.instances.splice(index, 1);
+    this.emitBounds(bounds);
+  }
+
+  private containsCell(
+    instance: StructureInstance,
+    cellX: number,
+    cellZ: number,
+  ): boolean {
+    const bounds = this.structureBounds(instance);
+    const centerX = cellX + 0.5;
+    const centerZ = cellZ + 0.5;
+    return (
+      centerX >= bounds.minX &&
+      centerX <= bounds.maxX &&
+      centerZ >= bounds.minZ &&
+      centerZ <= bounds.maxZ
+    );
+  }
+
+  private structureBounds(
+    instance: StructureInstance,
+  ): StructureChangeBounds {
+    const quarterTurn =
+      Math.abs(Math.round(instance.yaw / (Math.PI / 2))) % 2 === 1;
+    const width = quarterTurn
+      ? instance.definition.depth
+      : instance.definition.width;
+    const depth = quarterTurn
+      ? instance.definition.width
+      : instance.definition.depth;
+
+    return {
+      minX: instance.x - width / 2,
+      maxX: instance.x + width / 2,
+      minZ: instance.z - depth / 2,
+      maxZ: instance.z + depth / 2,
+    };
+  }
+
+  private emitNavigationChanged(instance: StructureInstance): void {
+    this.emitBounds(this.structureBounds(instance));
+  }
+
+  private emitBounds(bounds: StructureChangeBounds): void {
+    for (const listener of this.navigationListeners) listener(bounds);
   }
 }
 
