@@ -328,7 +328,10 @@ function fmt(value: number, unit: string): string {
       : Math.abs(value) >= 10
         ? value.toFixed(1)
         : value.toFixed(2);
-  return rounded.replace(/\.00$/, "").replace(/(\.\d)0$/, "$1") + unit;
+  return rounded
+    .replace(/\.00$/, "")
+    .replace(/(\.\d)0$/, "$1")
+    .replace(/\.0$/, "") + unit;
 }
 
 function mul(value: number): string {
