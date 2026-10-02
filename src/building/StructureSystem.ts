@@ -212,7 +212,10 @@ export class StructureSystem {
     const instance = this.instances.find((item) => item.id === id);
     if (!instance) return false;
     instance.health.damage(amount);
-    if (!instance.health.destroyed) return false;
+    if (!instance.health.destroyed) {
+      this.emitNavigationChanged(instance);
+      return false;
+    }
     this.destroy(instance);
     return true;
   }
