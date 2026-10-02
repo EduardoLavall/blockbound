@@ -5,7 +5,7 @@ import type { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import type { InteractionMode } from "../player/InteractionMode";
 import type { PlayerController } from "../player/PlayerController";
 import type { Inventory } from "../survival/Inventory";
-import type { RuleEngine } from "../roguelite/RuleEngine";
+import type { PlayerStatus } from "../player/PlayerStatus";
 import { Health } from "../survival/Health";
 import { formatCost, type ResourceCost } from "../survival/Resources";
 import { VOXEL_INTERACTION_DISTANCE } from "../voxel/constants";
@@ -79,7 +79,7 @@ export class StructureSystem {
     private readonly world: VoxelWorld,
     private readonly physics: PhysicsWorld,
     private readonly inventory: Inventory,
-    private readonly rules: RuleEngine,
+    private readonly status: PlayerStatus,
     private readonly mode: InteractionMode,
     private readonly core: Core,
     private readonly bounds: WorldBounds,
@@ -525,7 +525,7 @@ export class StructureSystem {
     }
 
     nearest.health.heal(
-      this.rules.modifyRepairAmount(nearest.definition.repairHealth),
+      this.status.modifyRepairAmount(nearest.definition.repairHealth),
     );
     this.feedback =
       `REPAIRED ${nearest.definition.name.toUpperCase()} · ${Math.round(nearest.health.current)}/${nearest.health.max}`;
