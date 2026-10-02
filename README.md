@@ -327,12 +327,54 @@ Primeiros pontos de atenção identificados:
 
 Nenhum desses números foi automaticamente nerfado/buffado: os próximos ajustes devem cruzar a baseline com runs reais exportadas.
 
+## Rapid / Machine Gun Turret
+
+A primeira torre especializada além da Basic Turret já está implementada.
+
+Perfil atual:
+
+```text
+damage      8
+cooldown    0.22s
+raw DPS     ~36.36
+range       9.5
+cost        2 Wood · 3 Metal · 1 Crystal
+HP          100
+```
+
+Identidade:
+
+- alta cadência;
+- baixo dano por tiro;
+- visual compacto com canos duplos;
+- bolt laranja próprio;
+- prioridade elevada em Runner/Grunt;
+- +15% dano contra Runner;
+- +8% contra Grunt;
+- -45% contra Brute;
+- -55% contra Boss;
+- range menor que a Basic Turret;
+- recebe os mesmos upgrades globais de Turret/Mark/Burn/Shock.
+
+DPS teórico por matchup:
+
+```text
+Runner   ~41.82/s
+Grunt    ~39.27/s
+neutral  ~36.36/s
+Brute    20.00/s
+Boss     ~16.36/s
+```
+
+A Basic Turret continua generalista e com maior alcance; a Rapid existe para limpar pressão leve frequente.
+
 ## Construção e navegação
 
 Defesas:
 
 - Wall;
-- Turret;
+- Basic Turret;
+- Rapid Turret;
 - Spike Trap;
 - Gate;
 - Core.
@@ -443,7 +485,7 @@ Passes já presentes:
 | RMB | colocar bloco / construir |
 | 1–5 | escolher material |
 | B | Build Mode |
-| 1–4 no Build Mode | escolher estrutura |
+| 1–5 no Build Mode | escolher estrutura |
 | E | abrir/fechar Gate |
 | R | reparar estrutura |
 | Esc | menu / liberar Pointer Lock |
@@ -494,7 +536,7 @@ Depois do vertical slice:
 1. Player Status ✅;
 2. Inventário + Equipamento ✅;
 3. Game Design — análise crítica de balanceamento ✅ baseline;
-4. Rapid / Machine Gun Turret;
+4. Rapid / Machine Gun Turret ✅;
 5. Sniper Turret;
 6. Electric / Tesla Turret;
 7. Explosive / Mortar Turret;
@@ -512,7 +554,7 @@ Depois do vertical slice:
 
 A análise crítica de balanceamento acontece então com uma build de jogador mais completa, considerando stats, equipamentos, cartas, economia, defesas, inimigos e Boss em conjunto.
 
-Depois entram as novas torres **uma por vez**, cada uma com função própria: Rapid, Sniper, Tesla, Mortar, Cryo e Flamethrower. Só depois dos seis arquétipos básicos vem o sistema de níveis/especializações das torres.
+Depois entram as novas torres **uma por vez**, cada uma com função própria. A Rapid já está implementada; seguem Sniper, Tesla, Mortar, Cryo e Flamethrower. Só depois dos seis arquétipos básicos vem o sistema de níveis/especializações das torres.
 
 A iluminação será deliberadamente leve: Core, cristais, tochas e emissives com budget controlado, sem depender de iluminação dinâmica pesada.
 
