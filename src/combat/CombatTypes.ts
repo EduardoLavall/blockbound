@@ -21,4 +21,5 @@ export interface EnemyStatusState {
   remaining: number;
   magnitude: number;
   tick: number;
+  source: DamageSource;
 }
