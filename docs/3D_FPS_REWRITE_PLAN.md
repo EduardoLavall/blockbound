@@ -1875,23 +1875,28 @@ As ações principais — atirar, acertar, matar, minerar, construir, sofrer dan
 9. upgrades roguelite
 10. enemy roster + boss
 11. vertical slice completo
-12. Player Status
-13. inventário + equipamento
-14. análise crítica de game design + balanceamento
-15. Rapid / Machine Gun Turret
-16. Sniper Turret
-17. Electric / Tesla Turret
-18. Explosive / Mortar Turret
-19. Slow / Cryo Turret
-20. Flamethrower Turret
-21. progressão e níveis das torres
-22. crafting expandido
-23. shop
-24. level do jogador + árvore de talentos
-25. nível do cristal/Core
-26. shaders + tochas + iluminação leve
-27. juicy effects / game feel
-28. expansão de conteúdo
+12. Player Status ✅
+13. inventário + equipamento ✅
+14. análise crítica de game design + balanceamento ✅ baseline
+15. Rapid / Machine Gun Turret ✅
+16. Lane System v1 — 1 lane indestrutível
+17. Pickaxe / Mining Tool
+18. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling
+19. Inventory 2.0
+20. Crafting contextual v1
+21. shop
+22. level do jogador + árvore de talentos
+23. nível do cristal/Core
+24. shaders + tochas + iluminação leve
+25. Block Breaking Feedback / Juicy Mining
+26. juicy effects / game feel
+27. Sniper Turret
+28. Electric / Tesla Turret
+29. Explosive / Mortar Turret
+30. Slow / Cryo Turret
+31. Flamethrower Turret
+32. progressão e níveis das torres
+33. expansão de conteúdo
 ```
 
 Não construir inventário gigante, crafting complexo ou progressões paralelas antes do core loop estar validado.
@@ -1994,18 +1999,23 @@ vertical slice
   -> inventário/equipamento
   -> análise crítica de game design + balanceamento
   -> Rapid Turret
+  -> Lane System v1
+  -> Pickaxe / Mining Tool
+  -> texturas reais 16×16 + greedy tiling
+  -> Inventory 2.0
+  -> crafting contextual v1
+  -> shop
+  -> player level + árvore de talentos
+  -> crystal/Core level
+  -> shaders + tochas + iluminação leve
+  -> Block Breaking Feedback / Juicy Mining
+  -> juicy effects
   -> Sniper Turret
   -> Tesla Turret
   -> Mortar Turret
   -> Cryo Turret
   -> Flamethrower Turret
   -> níveis/upgrades das torres
-  -> crafting expandido
-  -> shop
-  -> player level + árvore de talentos
-  -> crystal/Core level
-  -> shaders + tochas + iluminação leve
-  -> juicy effects
 ```
 
 Motivo:
@@ -2013,9 +2023,11 @@ Motivo:
 - primeiro consolidamos **Player Status** para tornar os atributos finais da run observáveis e mensuráveis;
 - depois entra **Inventário + Equipamento**, porque itemização altera diretamente DPS, sobrevivência e builds do jogador;
 - só então fazemos a análise crítica de balanceamento, já considerando stats, equipamentos, cartas, economia, defesas, inimigos e Boss em conjunto;
-- depois expandimos o arsenal de torres porque variedade de defesa é parte do core Tower Defense e deve amadurecer antes das progressões mais RPG;
-- cada torre entra separadamente para ser testada e balanceada como um arquétipo próprio;
-- níveis/upgrades entram apenas depois que todos os arquétipos básicos estiverem jogáveis;
+- a Rapid Turret já valida que o sistema suporta arquétipos especializados;
+- as demais variedades de torre ficam deliberadamente para a finaleira, evitando gastar tempo em conteúdo lateral antes dos sistemas estruturais;
+- Lane, mineração, arte voxel, Inventory 2.0, crafting, progressões e game feel entram antes de Sniper/Tesla/Mortar/Cryo/Flamethrower;
+- quando as variedades de torre voltarem, cada uma continua entrando separadamente para ser testada e balanceada como arquétipo próprio;
+- níveis/upgrades de torre entram somente depois que os arquétipos finais estiverem jogáveis;
 - crafting precisa de inventário/itemização;
 - shop precisa de itens e economia já definidos;
 - level/talent tree passa a modificar uma camada de stats estável;
@@ -2409,7 +2421,7 @@ Lane System v1
   -> Block Breaking Feedback / Juicy Mining
 ```
 
-Essa ordem pode ser intercalada com as torres já planejadas sem alterar a dependência interna acima.
+Essa passa a ser a ordem estrutural prioritária. As variedades restantes de Turret **não devem mais ser intercaladas aqui**: Sniper, Tesla, Mortar, Cryo e Flamethrower ficam para a finaleira, depois de Juicy Effects / Game Feel.
 
 ### Fontes de referência de UX
 
@@ -2417,3 +2429,48 @@ Essa ordem pode ser intercalada com as torres já planejadas sem alterar a depen
   https://www.minecraft.net/article/minecraft-controls
 - Terraria Crafting Window / Crafting 101:
   https://terraria.wiki.gg/wiki/Guide:Crafting_101
+
+
+---
+
+# 29. Decisão de roadmap — variedades de Turret ficam para a finaleira
+
+Decisão em 2026-10-02:
+
+A **Rapid Turret já implementada permanece** como prova de que o sistema suporta arquétipos especializados.
+
+As próximas variedades:
+
+- Sniper Turret;
+- Electric / Tesla Turret;
+- Explosive / Mortar Turret;
+- Slow / Cryo Turret;
+- Flamethrower Turret;
+- níveis/especializações de torres;
+
+foram movidas para a **fase final de expansão de conteúdo**.
+
+Motivo:
+
+- já existe Basic + Rapid suficiente para validar o loop atual;
+- novas torres aumentam conteúdo, mas não resolvem fundações ainda incompletas;
+- Lane System, mineração física, texturas 16×16, Inventory 2.0, crafting, progressões e game feel alteram mais profundamente a identidade do jogo;
+- implementar todas as torres agora criaria mais coisas para rebalancear depois dessas mudanças estruturais.
+
+## Ordem imediata revisada
+
+```text
+Rapid concluída
+  -> Lane System v1
+  -> Pickaxe
+  -> Voxel Texture Pipeline 16×16
+  -> Inventory 2.0
+  -> Crafting contextual
+  -> Shop
+  -> Player Level / Talents
+  -> Crystal/Core Level
+  -> Lighting
+  -> Juicy Mining
+  -> Juicy Effects geral
+  -> variedades finais de Turret
+```
