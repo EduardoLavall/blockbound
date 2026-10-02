@@ -445,3 +445,33 @@ code/config baseline
 ```
 
 That loop should remain in place for every future Turret, item, talent, shop and Core progression system.
+
+
+---
+
+# 13. Rapid Turret baseline added
+
+Phase 13 introduces the first specialized turret.
+
+| Tower / matchup | DPS | Range |
+| --- | ---: | ---: |
+| Basic Turret | 29.17 | 12 |
+| Rapid raw | 36.36 | 9.5 |
+| Rapid vs Runner | 41.82 | 9.5 |
+| Rapid vs Grunt | 39.27 | 9.5 |
+| Rapid vs Brute | 20.00 | 9.5 |
+| Rapid vs Boss | 16.36 | 9.5 |
+
+The Rapid Turret intentionally trades range and heavy-target efficiency for light-horde throughput.
+
+## New playtest question
+
+Compare **damage per resource invested** between Basic and Rapid Turret in real runs:
+
+- damage dealt by tower type;
+- Runner/Grunt kills;
+- Brute/Boss damage share;
+- uptime/range losses;
+- structures lost while using each mix.
+
+Do not increase Rapid raw DPS further unless telemetry shows that its shorter range and target specialization fail to compensate.
