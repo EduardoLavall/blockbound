@@ -1,7 +1,9 @@
-import { BlockId, blockDefinition } from "../blocks";
 import {
-  ATLAS_COLUMNS,
-  ATLAS_ROWS,
+  BlockId,
+  blockAtlasTile,
+  type BlockFace,
+} from "../blocks";
+import {
   CHUNK_HEIGHT,
   CHUNK_SIZE,
   PADDED_CHUNK_HEIGHT,
@@ -16,17 +18,18 @@ interface FaceDirection {
   sign: -1 | 1;
   uAxis: Axis;
   vAxis: Axis;
+  face: BlockFace;
 }
 
 const DIMS: [number, number, number] = [CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE];
 
 const DIRECTIONS: readonly FaceDirection[] = [
-  { axis: 0, sign: 1, uAxis: 2, vAxis: 1 },
-  { axis: 0, sign: -1, uAxis: 2, vAxis: 1 },
-  { axis: 1, sign: 1, uAxis: 0, vAxis: 2 },
-  { axis: 1, sign: -1, uAxis: 0, vAxis: 2 },
-  { axis: 2, sign: 1, uAxis: 0, vAxis: 1 },
-  { axis: 2, sign: -1, uAxis: 0, vAxis: 1 },
+  { axis: 0, sign: 1, uAxis: 2, vAxis: 1, face: "east" },
+  { axis: 0, sign: -1, uAxis: 2, vAxis: 1, face: "west" },
+  { axis: 1, sign: 1, uAxis: 0, vAxis: 2, face: "top" },
+  { axis: 1, sign: -1, uAxis: 0, vAxis: 2, face: "bottom" },
+  { axis: 2, sign: 1, uAxis: 0, vAxis: 1, face: "south" },
+  { axis: 2, sign: -1, uAxis: 0, vAxis: 1, face: "north" },
 ];
 
 function paddedBlock(data: Uint16Array, x: number, y: number, z: number): number {
@@ -55,6 +58,7 @@ export function buildGreedyMesh(padded: Uint16Array): ChunkMeshData {
   const positions: number[] = [];
   const normals: number[] = [];
   const uvs: number[] = [];
+  const tiles: number[] = [];
   const indices: number[] = [];
   let quadCount = 0;
 
@@ -118,6 +122,7 @@ export function buildGreedyMesh(padded: Uint16Array): ChunkMeshData {
             positions,
             normals,
             uvs,
+            tiles,
             indices,
             direction,
             slice,
@@ -145,6 +150,7 @@ export function buildGreedyMesh(padded: Uint16Array): ChunkMeshData {
     positions: new Float32Array(positions),
     normals: new Float32Array(normals),
     uvs: new Float32Array(uvs),
+    tiles: new Float32Array(tiles),
     indices: new Uint32Array(indices),
     quadCount,
   };
@@ -154,6 +160,7 @@ function emitQuad(
   positions: number[],
   normals: number[],
   uvs: number[],
+  tiles: number[],
   indices: number[],
   direction: FaceDirection,
   slice: number,
@@ -190,16 +197,18 @@ function emitQuad(
     );
   }
 
-  const tile = blockDefinition(block).atlasTile;
-  const col = tile % ATLAS_COLUMNS;
-  const row = Math.floor(tile / ATLAS_COLUMNS);
-  const insetU = 0.002 / ATLAS_COLUMNS;
-  const insetV = 0.002 / ATLAS_ROWS;
-  const u0 = col / ATLAS_COLUMNS + insetU;
-  const u1 = (col + 1) / ATLAS_COLUMNS - insetU;
-  const v0 = 1 - (row + 1) / ATLAS_ROWS + insetV;
-  const v1 = 1 - row / ATLAS_ROWS - insetV;
-  uvs.push(u0, v0, u1, v0, u1, v1, u0, v1);
+  // UVs are local to the greedy quad, not the atlas.
+  // The fragment shader repeats fract(uv) once per voxel and then maps it
+  // into the atlas tile carried in the voxelTile attribute.
+  uvs.push(
+    0, 0,
+    width, 0,
+    width, height,
+    0, height,
+  );
+
+  const tile = blockAtlasTile(block, direction.face);
+  tiles.push(tile, tile, tile, tile);
 
   const faceCross = cross(du, dv);
   const facing =
