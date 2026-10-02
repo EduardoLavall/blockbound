@@ -464,9 +464,33 @@ Voxel data
   -> identificar faces visíveis
   -> greedy meshing
   -> BufferGeometry
-  -> textura atlas
+  -> texture atlas 16×16 por bloco
+  -> per-block texture tiling dentro de quads mesclados
   -> um pequeno número de meshes por chunk
 ```
+
+### Regra visual do Greedy Meshing
+
+O greedy meshing continua obrigatório por performance, mas **não pode esticar uma única textura sobre vários blocos mesclados**.
+
+Quando uma face 5×3 é convertida em um único quad:
+
+```text
+geometria:
+1 quad
+
+visual:
+5 repetições horizontais × 3 verticais
+```
+
+O material/shader deve preservar o tile atual do atlas e repetir a textura dentro dele usando coordenadas locais por bloco.
+
+Objetivo:
+
+- manter poucos quads/draw calls;
+- preservar a leitura visual de cada voxel;
+- impedir que pedra/terra/madeira pareçam uma textura gigante contínua;
+- permitir crack overlay e feedback de mineração por bloco no futuro.
 
 Instancing pode ser usado para objetos repetidos que NÃO fazem parte do terreno:
 
@@ -933,12 +957,43 @@ Paleta e biome art podem evoluir depois do vertical slice.
 
 ## Assets
 
-Primeira versão pode gerar texturas pixel simples proceduralmente/canvas.
+### Decisão: texturas reais 16×16
 
-Depois substituir por:
+Os blocos finais **não devem depender de texturas procedurais geradas por Canvas**.
 
-- texture atlas original;
-- modelos GLTF simples para armas, inimigos e torres.
+Cada bloco de terreno deve possuir uma textura original real de **16×16 pixels**, criada como asset do projeto.
+
+Exemplos:
+
+```text
+grass.png       16×16
+dirt.png        16×16
+stone.png       16×16
+wood.png        16×16
+leaves.png      16×16
+metal_ore.png   16×16
+crystal.png     16×16
+```
+
+Requisitos:
+
+- pixel art original;
+- resolução base fixa 16×16;
+- `NearestFilter`;
+- sem smoothing;
+- atlas gerado a partir desses assets;
+- suporte futuro a faces diferentes por bloco, por exemplo grass top/side/bottom;
+- UV deve repetir 1 tile por voxel mesmo com greedy meshing;
+- evitar bleeding entre tiles;
+- textura precisa continuar legível sob iluminação noturna;
+- pipeline deve permitir crack overlay independente durante mineração.
+
+O Canvas procedural atual fica apenas como protótipo/fallback temporário até essa fase ser implementada.
+
+Outros assets:
+
+- modelos GLTF simples para armas, inimigos e torres;
+- partículas e overlays originais.
 
 ---
 
@@ -2035,3 +2090,330 @@ Motivo:
 - Crafting, Shop, Talent Tree e Crystal/Core Level continuam depois da primeira análise crítica para evitar adicionar sistemas indefinidamente antes do primeiro balance pass sério.
 
 A Fase 12 deve considerar builds reais de equipamento e upgrades, não apenas os stats base do jogador.
+
+
+---
+
+# 28. Inventory 2.0, Crafting, Lane, Pickaxe e Voxel Art — planos adicionados em 2026-10-02
+
+Estes itens entram no roadmap como **planos formais**. Não representam implementação concluída.
+
+## 28.1 Inventory 2.0 — ergonomia inspirada no Minecraft, UI original
+
+Referência de interação pesquisada:
+
+- Minecraft usa inventário principal conectado à hotbar;
+- hotbar com 9 slots e seleção 1–9 / scroll;
+- inventário Survival possui 27 slots principais + 9 da hotbar;
+- itens possuem limites de stack;
+- itens não-stackable ocupam slots individuais;
+- atalhos de movimentação rápida e gerenciamento de stacks reduzem atrito.
+
+Blockfall deve **replicar as funcionalidades úteis**, mas usar design visual próprio.
+
+### Estrutura proposta
+
+```text
+27 slots de backpack
++ 9 slots de hotbar
++ Weapon
++ Armor
++ Charm
+```
+
+Os slots Weapon/Armor/Charm continuam sendo a camada de equipamento já existente.
+
+### Operações planejadas
+
+- click para pegar/soltar stack;
+- swap entre slots;
+- drag para mover;
+- RMB para dividir stack;
+- RMB distribuindo unidades quando aplicável;
+- Shift+Click para quick-move;
+- double click para consolidar itens iguais;
+- teclas 1–9 para mandar item selecionado à hotbar;
+- scroll/1–9 para selecionar hotbar no gameplay;
+- stacks respeitam `stackLimit`;
+- equipment continua non-stackable;
+- pickup deve primeiro completar stacks existentes e depois usar slots vazios;
+- inventário cheio deve deixar o drop no mundo;
+- tooltip com nome, rarity, tags e modifiers;
+- comparação com equipamento continua disponível;
+- suporte futuro a containers/chests sem reescrever o modelo.
+
+### Design
+
+Não copiar o layout/skin visual de Minecraft.
+
+Direção Blockfall:
+
+- industrial/voxel;
+- painéis compactos;
+- slots com bordas de rarity discretas;
+- crafting integrado lateralmente;
+- recursos, blocos e equipamentos visualmente distinguíveis;
+- hotbar continua legível durante FPS.
+
+### Aceite
+
+Gerenciar dezenas de recursos/blocos durante uma run deve ser rápido sem transformar o inventário num menu lento ou excessivamente RPG.
+
+---
+
+## 28.2 Crafting v1 — contextual como Terraria
+
+O crafting deve aparecer **junto do inventário**, sem exigir uma grade manual 2×2/3×3.
+
+Referência pesquisada no Terraria:
+
+- a janela de crafting aparece quando o inventário está aberto;
+- receitas disponíveis dependem dos materiais possuídos;
+- proximidade de crafting stations pode habilitar novas receitas;
+- receitas disponíveis aparecem numa lista navegável;
+- é possível craftar repetidamente enquanto houver materiais.
+
+### Blockfall Crafting v1
+
+Ao abrir o inventário:
+
+```text
+Inventory
+├─ Backpack / Hotbar
+├─ Equipment
+└─ Crafting
+    ├─ craftable now
+    ├─ all known recipes
+    └─ recipe detail
+```
+
+### Funcionalidades
+
+- mostrar receitas craftáveis agora;
+- opção para mostrar receitas conhecidas ainda sem materiais;
+- requisitos e quantidade faltante;
+- filtros: Blocks / Defense / Equipment / Utility;
+- search;
+- click para craftar 1;
+- hold/craft-many quando stackable;
+- resultado vai para stack existente ou slot livre;
+- bloquear craft quando não houver espaço;
+- receitas consomem recursos do inventário real;
+- suporte a estação próxima no futuro;
+- primeira versão deve funcionar com crafting direto sem dezenas de bancadas.
+
+### Filosofia
+
+Crafting existe para acelerar:
+
+```text
+explorar -> coletar -> preparar -> defender
+```
+
+Não criar uma árvore enciclopédica de receitas.
+
+### Aceite
+
+O jogador abre o inventário, vê imediatamente o que consegue fabricar e crafta sem montar manualmente uma receita numa grade.
+
+---
+
+## 28.3 Lane System v1 — uma lane indestrutível
+
+Blockfall deve ganhar uma camada explícita de **lane de ataque**.
+
+Primeira versão:
+
+```text
+1 Core
+1 Lane
+1 origem principal da horda
+```
+
+A lane é uma região estrutural do mapa que o jogador **não pode destruir**.
+
+### Regras
+
+- terreno da lane usa flag `indestructible`;
+- mineração não pode remover voxels da lane;
+- player não pode bloquear completamente a lane com voxel sólido;
+- estruturas defensivas devem respeitar regras específicas de placement;
+- o caminho principal deve permanecer legível;
+- Flow Field conhece a lane;
+- spawn principal conecta à lane;
+- lane termina na região do Core;
+- visual da lane deve ser reconhecível sem precisar de HUD permanente.
+
+### Objetivo de design
+
+A lane não deve eliminar a liberdade voxel.
+
+Ela serve para garantir:
+
+- um eixo legível de Tower Defense;
+- hordas previsíveis o suficiente para criar killzones;
+- mapa que não pode ser trivializado removendo todo o terreno;
+- base estável para testar torres;
+- crescimento futuro para múltiplas lanes.
+
+### Evolução futura
+
+```text
+v1 -> 1 lane
+v2 -> 2 lanes
+v3 -> eventos que alternam lanes
+v4 -> branches / secondary breaches
+```
+
+Não implementar múltiplas lanes antes da primeira funcionar bem.
+
+### Aceite
+
+Mesmo após grandes alterações no terreno, existe pelo menos uma rota estrutural reconhecível que o jogador não consegue apagar do mapa.
+
+---
+
+## 28.4 Pickaxe / Mining Tool
+
+A mineração precisa deixar de parecer que o jogador quebra blocos apenas com uma mão abstrata.
+
+Adicionar uma **picareta** como ferramenta visível em primeira pessoa.
+
+### Gameplay
+
+- Tool Mode passa a exibir Pickaxe;
+- mining speed base associado à ferramenta;
+- interação com hardness dos blocos;
+- ferramenta pode causar dano baixo em inimigos;
+- upgrades/equipment podem modificar mining speed;
+- não criar durability na primeira versão;
+- progressão de tier de picareta fica opcional/futura até o balanceamento justificar.
+
+### Visual
+
+- viewmodel voxel/low-poly original;
+- swing sincronizado com mineração;
+- impacto da picareta coincide com feedback de crack/partícula;
+- variação leve de animação para evitar repetição mecânica.
+
+### Aceite
+
+Mineração comunica claramente que existe uma ferramenta física executando a ação e o timing visual corresponde ao progresso real do bloco.
+
+---
+
+## 28.5 Voxel Texture Pipeline — assets reais 16×16
+
+Criar um pipeline definitivo de arte voxel.
+
+### Requisitos
+
+- texturas originais reais 16×16;
+- um arquivo fonte por tile/face;
+- atlas construído a partir dos assets;
+- `NearestFilter`;
+- zero smoothing;
+- padding/inset seguro contra atlas bleeding;
+- suporte a top/side/bottom quando necessário;
+- greedy meshing preservado;
+- textura repete uma vez por bloco dentro de quads mesclados;
+- material/shader não pode atravessar tiles vizinhos do atlas;
+- testes visuais para paredes grandes, chão e colunas;
+- manter custo de render equivalente ao greedy meshing atual.
+
+### Problema atual confirmado
+
+Hoje o GreedyMesher mescla faces adjacentes corretamente, porém o `emitQuad()` atribui apenas um intervalo `u0..u1 / v0..v1` ao quad inteiro.
+
+Resultado:
+
+```text
+5×3 blocos iguais
+-> 1 quad
+-> 1 textura esticada em 5×3
+```
+
+Resultado desejado:
+
+```text
+5×3 blocos iguais
+-> 1 quad
+-> textura 16×16 repetida 5×3 visualmente
+```
+
+### Aceite
+
+Uma parede de Stone 10×10 continua sendo otimizada geometricamente, mas visualmente mostra 100 tiles Stone 16×16, não uma textura esticada gigante.
+
+---
+
+## 28.6 Block Breaking Feedback / Juicy Mining
+
+Esta entrega depende da Pickaxe e do Voxel Texture Pipeline.
+
+### Crack progression
+
+Durante mineração:
+
+```text
+0%   sem crack
+20%  crack 1
+40%  crack 2
+60%  crack 3
+80%  crack 4
+100% quebra
+```
+
+O crack deve afetar **somente o voxel alvo**, mesmo se sua face estiver dentro de um greedy quad maior.
+
+### Feedback
+
+- swing da picareta;
+- pequeno kick da câmera;
+- partículas pixel/voxel;
+- debris curto;
+- som por material;
+- micro flash/impact no ponto atingido;
+- crack overlay progressivo;
+- burst de partículas ao quebrar;
+- drop surge do bloco;
+- feedback diferente para Stone / Wood / Ore / Crystal;
+- reduced effects respeitado.
+
+### Regra de performance
+
+Não criar um Mesh permanente por bloco apenas para cracks.
+
+Preferir:
+
+- overlay temporário;
+- decal/quad temporário;
+- shader de seleção;
+- instanced particles;
+- pooling.
+
+### Aceite
+
+Quebrar um bloco deve ser imediatamente satisfatório, legível e sincronizado com o MiningSystem sem destruir as vantagens do greedy meshing.
+
+---
+
+## Ordem lógica destes novos planos
+
+```text
+Lane System v1
+  -> Pickaxe / Mining Tool
+  -> Voxel Texture Pipeline 16×16 + greedy tiling
+  -> Inventory 2.0
+  -> Crafting contextual v1
+  -> Block Breaking Feedback / Juicy Mining
+```
+
+Essa ordem pode ser intercalada com as torres já planejadas sem alterar a dependência interna acima.
+
+### Fontes de referência de UX
+
+- Minecraft Controls — inventory/hotbar:
+  https://www.minecraft.net/article/minecraft-controls
+- Terraria Crafting Window / Crafting 101:
+  https://terraria.wiki.gg/wiki/Guide:Crafting_101
