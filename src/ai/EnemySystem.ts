@@ -286,6 +286,14 @@ export class EnemySystem {
     return this.enemies.filter((enemy) => enemy.alive);
   }
 
+  get boss(): EnemyInstance | null {
+    return (
+      this.enemies.find(
+        (enemy) => enemy.alive && enemy.type === EnemyType.Boss,
+      ) ?? null
+    );
+  }
+
   hasAliveType(type: EnemyType): boolean {
     return this.enemies.some(
       (enemy) => enemy.alive && enemy.type === type,
