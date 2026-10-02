@@ -1,104 +1,128 @@
 # Blockfall
 
-> **Direction update:** Blockfall is being redesigned as a **3D first-person voxel survival + tower defense + roguelite**. The current top-down implementation is preserved at `legacy/topdown-prototype`. See [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md) and Epic #2 for the rewrite roadmap.
+Blockfall está sendo reescrito como um **FPS 3D voxel + Tower Defense + Roguelite** para navegador, usando **HTML, CSS, TypeScript, Vite, Three.js e Rapier**.
 
-Blockfall é um jogo browser-based de sobrevivência, construção, roguelike e tower defense feito com **HTML, CSS, TypeScript e Vite**.
+O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`.
 
-## Loop principal
+Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
-**Explorar → coletar → construir → preparar a defesa → sobreviver à noite → escolher upgrade → repetir**
+## Estado atual — Fase 0/1
 
-Cada run possui mapa procedural, posicionamento diferente de recursos, escalada de hordas e upgrades aleatórios.
+A branch de implementação 3D começa validando a fundação antes da voxel engine:
 
-## Estado atual
+- renderer WebGL com Three.js;
+- câmera FPS com Pointer Lock;
+- WASD;
+- sprint;
+- pulo;
+- gravidade;
+- colisão e character controller com Rapier;
+- autostep e snap-to-ground;
+- cenário 3D temporário para testes;
+- fixed timestep a 60 Hz;
+- crosshair;
+- debug overlay com FPS, posição, grounded, draw calls e triângulos;
+- testes unitários do fixed-step clock;
+- CI executando testes + typecheck + build;
+- configuração explícita para deploy estático na Vercel.
 
-O vertical slice jogável já inclui:
-
-- mapa procedural 48x48;
-- coleta de madeira, pedra, minério e caches raros;
-- construção de muralhas, torres, espinhos e portões;
-- núcleo central que precisa sobreviver;
-- combate do jogador com espada e arco;
-- ciclo completo de dia e noite;
-- hordas progressivas;
-- sistema de 3 upgrades aleatórios ao fim de cada noite;
-- builds de torre, coleta, sobrevivência, crítico, regeneração, armadilhas e sustain;
-- pathfinding por campo de custo: construções realmente alteram a rota dos inimigos;
-- inimigos com funções diferentes:
-  - grunt: atacante padrão;
-  - runner: rápido e frágil;
-  - brute: causa dano extra em estruturas;
-  - archer: pressiona à distância;
-  - shaman: fortalece inimigos próximos;
-  - burrower: ignora estruturas e força defesa interna;
-  - boss: aparece a cada 5 noites e usa onda de impacto em área;
-- morte do jogador ou destruição do núcleo encerra a run;
-- sprites pixel-art originais em SVG no próprio repositório;
-- CI com typecheck e build do Vite.
-
-## Controles
+### Controles atuais
 
 | Controle | Ação |
 | --- | --- |
+| Mouse | olhar |
 | WASD | mover |
-| Mouse | mirar |
-| Click esquerdo | atacar ou coletar |
-| Click direito | construir |
-| 1 | muralha |
-| 2 | torre |
-| 3 | espinhos |
-| 4 | portão |
-| Q | alternar espada/arco |
-| Esc | sair do modo de construção |
+| Space | pular |
+| Shift | correr |
+| Esc | liberar Pointer Lock |
+
+O cenário atual **não é o mapa final**. Os cubos existem somente para testar movimentação e colisão antes da Issue #4, onde começa a voxel engine.
 
 ## Desenvolvimento
 
-Requer Node.js 22+.
+Requer Node.js 22.12+.
 
-~~~bash
+```bash
 npm install
 npm run dev
-~~~
+```
+
+Validação completa:
+
+```bash
+npm run check
+```
 
 Build de produção:
 
-~~~bash
+```bash
 npm run build
 npm run preview
-~~~
+```
 
-## Estrutura
+## Vercel é requisito
 
-~~~text
+Blockfall é desenvolvido para continuar compatível com **Vercel** durante toda a implementação.
+
+A aplicação é client-side e o build de produção é estático:
+
+```text
+framework: Vite
+install:   npm install
+build:     npm run build
+output:    dist
+```
+
+Essas definições também estão versionadas em `vercel.json`.
+
+Regras do projeto relacionadas à Vercel:
+
+- nenhum servidor Node é obrigatório para iniciar o jogo;
+- código de gameplay precisa executar no browser;
+- assets devem ser empacotáveis/servíveis pelo Vite;
+- workers futuros devem usar URLs compatíveis com Vite;
+- Rapier usa `@dimforge/rapier3d-compat`, que embute o WASM no JavaScript para reduzir problemas de bundling/deploy;
+- `npm run build` deve permanecer verde antes de mergear;
+- branches podem ser usadas como Preview Deployments quando o repo estiver ligado a um projeto Vercel.
+
+## Estrutura atual
+
+```text
 src/
+  app/
+    GameApp.ts
+    bootstrap.ts
+  core/
+    FixedStepAccumulator.ts
+    GameLoop.ts
+    Input.ts
+  engine/
+    physics/
+      PhysicsWorld.ts
+    render/
+      Renderer3D.ts
+  player/
+    PlayerController.ts
+  ui/
+    DebugOverlay.ts
+  world/
+    createTestArena.ts
   main.ts
   style.css
-  game/
-    content.ts
-    game.ts
-    renderer.ts
-    rng.ts
-    types.ts
-    world.ts
-public/
-  sprites/
-.github/
-  workflows/
-    ci.yml
-~~~
+```
 
-### Responsabilidades
+## Próximas fases
 
-- `world.ts`: geração procedural e recursos.
-- `game.ts`: simulação, combate, construção, hordas, IA, upgrades e estado da run.
-- `renderer.ts`: renderização Canvas 2D e sprites.
-- `content.ts`: dados balanceáveis de inimigos, construções e upgrades.
-- `rng.ts`: RNG determinístico por seed.
+1. FPS foundation.
+2. Voxel engine com chunks e greedy meshing.
+3. Mundo procedural por seed.
+4. Mineração e construção.
+5. Navegação dinâmica + Tower Defense.
+6. Combate.
+7. Roguelite.
+8. Enemy roster + boss.
+9. Vertical slice completo.
 
-## Filosofia
-
-Blockfall não tenta ser Minecraft no navegador. O foco é a interação entre **construção com propósito**, **defesa de base**, **combate ativo** e **escolhas roguelike**.
-
-Todo sistema novo deve reforçar pelo menos um dos quatro pilares:
+A principal regra de design continua sendo:
 
 **construir → sobreviver → melhorar → tentar novamente**
