@@ -1161,7 +1161,7 @@ Duas runs podem produzir estilos de jogo claramente diferentes.
 
 ---
 
-## Fase 8 — Enemy roster + Boss
+## Fase 8 ✅ implementação base concluída — Enemy roster + Boss
 
 Implementar papéis completos:
 
@@ -1177,9 +1177,21 @@ Implementar papéis completos:
 
 Nenhum inimigo existe apenas como “mesmo mob com mais HP”.
 
+### Implementação atual
+
+- Grunt baseline;
+- Runner evita breach quando encontra alternativa aberta;
+- Brute possui alto structure damage;
+- Archer usa range e recuo;
+- Support buffa velocidade/dano de aliados;
+- Burrower atravessa blockers;
+- Siege Warden possui aura, breach pesado e pulso em área;
+- visuais/cor/silhueta distintos;
+- roster desbloqueado progressivamente por noite.
+
 ---
 
-## Fase 9 — Vertical Slice
+## Fase 9 ✅ implementação base concluída — Vertical Slice
 
 Conteúdo:
 
@@ -1199,6 +1211,24 @@ Conteúdo:
 ### Aceite
 
 Uma run completa pode ser jogada do começo ao boss sem ferramentas de debug.
+
+### Implementação atual
+
+- cinco noites autoradas;
+- roster progressivo;
+- Boss abre a noite 5;
+- night 5 segura a transição em zero até a wave ser limpa;
+- vitória somente após eliminar a wave final inteira;
+- derrota por player death ou Core destruction;
+- menu/overlay de pausa;
+- settings persistentes de volume/effects/debug;
+- áudio procedural via Web Audio API;
+- HUD dedicado do Boss;
+- victory screen + run summary;
+- balance inicial por quantidade/max-alive/spawn interval;
+- cleanup de entidades inativas;
+- hot-loop enemy scale sem alocação de Vector3;
+- CI cobrindo roster, 5-night rules, held final night e wave completion.
 
 ---
 

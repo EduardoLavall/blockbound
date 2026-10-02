@@ -13,6 +13,7 @@ export class DayNightSystem {
   private phaseValue = DayPhase.Day;
   private elapsed = 0;
   private nightValue = 0;
+  private transitionHeld = false;
 
   constructor(
     readonly dayDuration = 45,
@@ -53,9 +54,17 @@ export class DayNightSystem {
     return 0;
   }
 
+  holdTransition(held: boolean): void {
+    this.transitionHeld = held;
+  }
+
   update(dt: number): PhaseTransition | null {
     this.elapsed += dt;
     if (this.elapsed < this.currentDuration) return null;
+    if (this.transitionHeld) {
+      this.elapsed = this.currentDuration;
+      return null;
+    }
 
     const from = this.phaseValue;
     this.elapsed -= this.currentDuration;

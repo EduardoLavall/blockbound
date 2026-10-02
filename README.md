@@ -6,266 +6,228 @@ O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`
 
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
-## Estado atual — Fases 6–7: Combate FPS + Roguelite
+## Estado atual — Vertical Slice de 5 noites
 
-O jogo agora possui o primeiro loop de Tower Defense funcional:
+A primeira run completa já está estruturada:
 
 ```text
 DAY
   -> explorar
   -> minerar
   -> coletar
-  -> construir defesa
+  -> construir / reparar
+  -> preparar killzones
 
 NIGHT
-  -> hordas entram pelas bordas
-  -> Navigation Grid lê terreno + estruturas
-  -> Flow Field aponta para o Core
-  -> inimigos contornam ou quebram obstáculos
-  -> Turrets atiram
-  -> Spike Traps causam dano
-  -> estruturas/Core recebem dano
-  -> Core destruído = derrota
+  -> roster da noite entra pelas bordas
+  -> Navigation Grid + Flow Field reagem à base
+  -> inimigos contornam / quebram / ignoram defesas conforme o papel
+  -> jogador luta com Blade / Repeater
+  -> Turrets e Spikes lutam junto
+  -> Core e jogador podem morrer
+
+DAWN
+  -> noite registrada
+  -> 1 de 3 upgrades roguelite
+  -> próxima preparação
+
+NIGHT 5
+  -> Siege Warden + roster completo
+  -> cronômetro não encerra a noite
+  -> vitória somente após eliminar a wave inteira
 ```
 
-A regra central já está implementada:
+## Enemy roster
 
-> **construir uma base altera o comportamento da horda — e o jogador luta dentro do mesmo ecossistema que suas defesas.**
+### Grunt
+
+Baseline da horda.
+
+- segue Flow Field;
+- ataca jogador próximo;
+- quebra estruturas quando o breach é a melhor rota;
+- pressiona o Core.
+
+### Runner
+
+Pressiona caminhos abertos.
+
+- muito rápido;
+- pouca vida;
+- baixo dano em estruturas;
+- quando encontra blocker tenta primeiro um passo lateral sem blocker;
+- pune corredores e rotas mal fechadas.
+
+### Brute
+
+Anti-wall.
+
+- muita vida;
+- lento;
+- dano de estrutura muito maior;
+- forte contra Core;
+- transforma uma parede resistente em prioridade de combate.
+
+### Archer
+
+Pressão de alcance.
+
+- para antes de entrar em melee quando consegue;
+- ataca jogador à distância;
+- pode atacar o Core à distância quando entra no range;
+- recua se o jogador encurta demais a distância;
+- projétil visual inimigo.
+
+### Support
+
+Muda a força do grupo.
+
+- aura de velocidade;
+- aura de dano;
+- força o jogador a escolher entre limpar DPS direto ou remover o multiplicador da horda;
+- visual próprio com aura.
+
+### Burrower
+
+Anti-killzone / anti-blocker.
+
+- atravessa blockers escolhidos pelo Flow Field;
+- não precisa destruir a parede antes de continuar;
+- dano reduzido contra estrutura porque sua função é bypass;
+- pressiona o Core por uma rota diferente da horda normal.
+
+### Siege Warden — Boss
+
+Boss da noite 5.
+
+- 1450 HP base;
+- escala visual grande;
+- breach extremamente forte;
+- aura que fortalece inimigos próximos;
+- pulso periódico em área;
+- pulso pode atingir jogador, Core e estruturas;
+- barra de HP dedicada no HUD.
+
+## Progressão das noites
+
+| Noite | Conteúdo |
+| --- | --- |
+| 1 | Grunt + Runner |
+| 2 | + Brute |
+| 3 | + Archer |
+| 4 | + Support + Burrower |
+| 5 | Siege Warden + roster completo |
+
+Quantidades atuais:
+
+```text
+Night 1: 11
+Night 2: 15
+Night 3: 19
+Night 4: 24
+Night 5: 28, incluindo o Boss
+```
+
+Esses números são balanceamento inicial e podem mudar por playtest.
+
+## Vitória e derrota
+
+A run termina em derrota se:
+
+- jogador chega a 0 HP;
+- Core chega a 0 HP.
+
+A run termina em vitória somente quando:
+
+- Night 5 está ativa;
+- todos os inimigos previstos já spawnaram;
+- Siege Warden foi eliminado;
+- nenhum inimigo permanece vivo.
+
+O timer da quinta noite é **segurado em zero** até a wave ser realmente limpa.
 
 ## Combate FPS
 
-O jogador alterna com `Q` entre:
+`Q` alterna:
 
-- **Tool** — mineração e interação com o mundo;
-- **Blade** — melee de curto alcance, burst e crit;
-- **Repeater** — projétil, pierce, burn, shock e mark via upgrades.
+- Tool;
+- Blade;
+- Repeater.
 
-O combate já possui:
+Já existe:
 
-- HP do jogador;
-- dano de inimigos contra o jogador;
-- invulnerability window curta para evitar dano de contato por frame;
-- morte do jogador encerrando a run;
+- melee;
+- projectile combat;
+- crit;
+- pierce;
 - hit marker;
-- feedback de crítico/kill;
 - damage flash;
-- projéteis reais no mundo;
-- viewmodels próprios para Blade e Repeater;
-- status **Burn**, **Shock** e **Mark**;
-- atribuição de kills ao jogador ou às defesas.
+- Burn;
+- Shock;
+- Mark;
+- player HP;
+- player death;
+- atribuição de kills.
 
 ## Roguelite
 
-Ao sobreviver à noite:
+Ao sobreviver às noites 1–4:
 
-```text
-night ends
-  -> surviving horde retreats
-  -> simulação pausa
-  -> Pointer Lock é liberado
-  -> 3 cartas aparecem
-  -> jogador escolhe 1
-  -> RuleEngine aplica a regra
-  -> run continua
-```
+- simulação pausa;
+- Pointer Lock é liberado;
+- aparecem exatamente 3 cartas;
+- uma carta é escolhida;
+- o `RuleEngine` aplica a nova regra;
+- a run continua.
 
-O registry atual possui **38 upgrades**, dentro das famílias:
+Registry atual: **38 upgrades**.
+
+Famílias:
 
 - Player;
 - Defense;
 - Economy;
 - System.
 
-Raridades:
+Exemplos:
 
-- common;
-- rare;
-- epic.
+- Mark → Turret causa mais dano;
+- Shock → Spike causa mais dano;
+- Burn → interage com defesas;
+- kills → cura jogador/Core;
+- kills → repara estrutura;
+- kills → Metal/Crystal;
+- mining speed / yield;
+- low-health damage.
 
-Exemplos de sinergias já funcionais:
+## Construção e navegação
 
-- **Mark → Turret** causa dano extra em inimigos marcados;
-- **Shock → Spike** aumenta dano da armadilha;
-- **Burn → defenses** pode amplificar dano de defesa;
-- kills do jogador podem curar jogador/Core;
-- kills podem reparar automaticamente a defesa;
-- kills podem gerar Metal/Crystal;
-- upgrades podem acelerar mineração e aumentar yield;
-- low-health pode aumentar dano do jogador.
+Defesas:
 
-As regras ficam centralizadas em `RuleEngine`, evitando lógica de upgrade espalhada pelos sistemas.
+- Wall;
+- Turret;
+- Spike Trap;
+- Gate;
+- Core.
 
-## Day / Night
-
-Tuning atual:
-
-- dia: **45s**;
-- noite: **55s**;
-- iluminação/fog mudam gradualmente;
-- cada noite aumenta quantidade, HP, velocidade e dano básico da horda;
-- quatro zonas de spawn ficam próximas às bordas do mapa finito.
-
-Esses tempos ainda são valores de balanceamento, não regras definitivas.
-
-## Navegação 2.5D
-
-O Blockfall não usa navmesh tradicional para a horda.
-
-A navegação atual é:
+A navegação usa:
 
 ```text
 VoxelWorld + Structures
-  -> NavigationGrid 2.5D
-  -> dirty cells após edição
-  -> FlowField compartilhado
+  -> dirty NavigationGrid cells
+  -> NavigationGrid revision
+  -> shared FlowField
   -> BreachPlanner
-  -> local steering
   -> EnemySystem
 ```
 
-### Navigation Grid
+Não existe A* individual por inimigo.
 
-Cada célula registra:
+Wall/Gate/Turret possuem custos finitos de travessia. A IA pode:
 
-- altura do chão;
-- walkability;
-- custo de travessia;
-- blocker estrutural;
-- hazard como Spike Trap.
-
-Edições de voxels e estruturas invalidam somente a região próxima da alteração.
-
-### Flow Field
-
-Quando o grid muda, o campo de integração é recalculado para o Core e **compartilhado por todos os inimigos**.
-
-Não existe A* separado por inimigo.
-
-Isso é importante para suportar hordas maiores sem multiplicar o custo de pathfinding.
-
-## Breach Planner
-
-Wall, Gate fechado e Turret têm custos de travessia **altos, mas finitos**.
-
-Isso significa que o jogador pode fechar completamente uma base.
-
-A IA compara implicitamente:
-
-```text
-custo de contornar
-vs
-custo de atravessar/quebrar
-```
-
-Se o desvio for barato, a horda contorna.
-
-Se quebrar a estrutura for mais barato, o Flow Field direciona o inimigo para o blocker e o `BreachPlanner` transforma aquele passo em um alvo de ataque.
-
-Conforme uma estrutura perde HP, seu custo de breach também diminui e a navegação é recalculada.
-
-Existe teste automatizado provando os dois casos:
-
-- barreira cara → rota contorna;
-- barreira barata → rota atravessa/brecha.
-
-## Estruturas defensivas
-
-### Wall
-
-- bloqueia fisicamente;
-- altera Navigation Grid;
-- HP próprio;
-- horda pode contornar ou atacar.
-
-### Gate
-
-- fechado participa do Flow Field como blocker;
-- `E` abre/fecha;
-- collider acompanha o estado;
-- abrir/fechar invalida a navegação imediatamente.
-
-### Turret
-
-- adquire automaticamente o inimigo mais próximo no range;
-- dispara bolts visuais;
-- aplica dano;
-- possui HP/collider;
-- também pode ser alvo de breach.
-
-### Spike Trap
-
-- não bloqueia completamente a rota;
-- adiciona custo/hazard;
-- causa dano periódico em inimigos próximos.
-
-## Inimigos
-
-A primeira horda usa um inimigo básico provisório.
-
-Ele possui:
-
-- HP escalando com a noite;
-- velocidade escalando;
-- dano contra estrutura/Core;
-- attack cooldown;
-- movimento pelo Flow Field;
-- local steering para reduzir sobreposição;
-- ataque de breach contra blockers;
-- ataque ao Core ao alcançar a base.
-
-O roster completo de papéis diferentes ainda pertence à fase posterior de conteúdo.
-
-## Derrota
-
-A run termina se:
-
-- o Core chegar a 0 HP;
-- o jogador chegar a 0 HP.
-
-A tela final mostra:
-
-- noites sobrevividas;
-- kills do jogador;
-- número de upgrades adquiridos.
-
-Reiniciar mantém a mesma seed presente na URL.
-
-## Survival + Build
-
-Recursos atuais:
-
-- Soil
-- Wood
-- Stone
-- Metal
-- Crystal
-
-Loop:
-
-```text
-segurar LMB
-  -> mineração por duração
-  -> drop físico
-  -> pickup
-  -> inventário
-  -> blocos / Wall / Turret / Spike / Gate
-```
-
-### Build Mode
-
-`B` alterna o modo de construção.
-
-| Tecla | Estrutura |
-| --- | --- |
-| 1 | Wall |
-| 2 | Turret |
-| 3 | Spike Trap |
-| 4 | Gate |
-
-- RMB confirma;
-- ghost verde/vermelho;
-- `E` abre/fecha Gate;
-- `R` repara estrutura próxima.
+- contornar;
+- atacar;
+- ou, no caso do Burrower, ignorar o blocker.
 
 ## Mundo
 
@@ -281,19 +243,63 @@ Configuração atual:
 - árvores;
 - Metal Ore;
 - Crystal;
-- ruína;
-- altar;
-- mina;
-- quatro zonas de entrada da horda;
-- limite físico/visual da run.
+- POIs;
+- quatro zonas de entrada;
+- limite físico/visual.
 
-A mesma run pode ser reproduzida com:
+Reproduzir uma run:
 
 ```text
 ?seed=blockfall-demo
 ```
 
-A proceduralidade existe para variar runs, não para produzir exploração infinita.
+## Menu / Settings
+
+O overlay de entrada/pausa possui:
+
+- volume;
+- effects on/off;
+- debug overlay on/off.
+
+As configurações são persistidas em `localStorage`.
+
+## Áudio / FX
+
+O vertical slice usa áudio procedural via Web Audio API:
+
+- início da noite;
+- aviso especial da noite final;
+- hit/kill;
+- abertura do draft;
+- escolha de upgrade;
+- vitória;
+- derrota.
+
+Sem assets externos ou backend.
+
+FX atuais incluem:
+
+- damage flash;
+- hit marker;
+- bolts do jogador/Archer/Turret;
+- boss pulse;
+- transição day/night;
+- boss HUD;
+- auras de Support/Boss.
+
+## Performance
+
+Passes já presentes:
+
+- chunk meshing em workers;
+- nenhum Mesh por voxel;
+- Flow Field compartilhado;
+- cap atual de inimigos vivos por wave;
+- geometria base compartilhada entre inimigos;
+- materiais cacheados por archetype;
+- remoção de entidades inativas ao amanhecer;
+- projéteis com lifetime;
+- remoção de alocação de `Vector3` no hot loop de recuperação de escala dos inimigos.
 
 ## Controles
 
@@ -303,54 +309,15 @@ A proceduralidade existe para variar runs, não para produzir exploração infin
 | WASD | mover |
 | Space | pular |
 | Shift | correr |
-| Q | alternar Tool / Blade / Repeater |
-| LMB | minerar / melee / disparar |
+| Q | Tool / Blade / Repeater |
+| LMB | minerar / atacar |
 | RMB | colocar bloco / construir |
 | 1–5 | escolher material |
 | B | Build Mode |
 | 1–4 no Build Mode | escolher estrutura |
 | E | abrir/fechar Gate |
 | R | reparar estrutura |
-| Esc | liberar Pointer Lock |
-
-## Arquitetura relevante
-
-```text
-src/
-  ai/
-    EnemySystem.ts
-    navigation/
-      NavigationGrid.ts
-      FlowField.ts
-      BreachPlanner.ts
-  combat/
-    CombatTypes.ts
-    PlayerCombatSystem.ts
-    PlayerVitals.ts
-    ProjectileSystem.ts
-  roguelite/
-    RuleEngine.ts
-    RunManager.ts
-    RunRuleEffects.ts
-    UpgradeDraft.ts
-    UpgradeRegistry.ts
-  defense/
-    DayNightSystem.ts
-    SpawnDirector.ts
-    WaveDirector.ts
-    DefenseCombatSystem.ts
-  building/
-    Core.ts
-    StructureSystem.ts
-    StructureRegistry.ts
-  survival/
-  voxel/
-  ui/
-    CombatHUD.ts
-    HordeHUD.ts
-    SurvivalHUD.ts
-    UpgradeDraftUI.ts
-```
+| Esc | menu / liberar Pointer Lock |
 
 ## Vercel é requisito permanente
 
@@ -361,18 +328,19 @@ build:     npm run build
 output:    dist
 ```
 
-Combate, roguelite e hordas continuam totalmente client-side:
+Tudo permanece client-side:
 
-- Navigation Grid no browser;
-- Flow Field no browser;
-- enemy simulation local;
-- ProjectileSystem local;
-- RuleEngine/UpgradeDraft locais;
-- seed do draft derivada da seed da run;
-- Three.js para render;
-- Rapier para player/estruturas;
-- nenhum backend obrigatório;
-- nenhum runtime server-side novo.
+- mundo;
+- física;
+- IA;
+- combat;
+- waves;
+- RuleEngine;
+- draft;
+- settings;
+- áudio Web Audio.
+
+Nenhum servidor Node é necessário para jogar.
 
 ## Desenvolvimento
 
@@ -390,23 +358,17 @@ A CI valida:
 - TypeScript;
 - Vite production build.
 
-## Próxima fase
+## Próximo roadmap
 
-**Issue #9 — enemy roster + boss + vertical slice**
+Depois do vertical slice:
 
-Próximos sistemas:
+1. Player Status;
+2. Inventário + Equipamento;
+3. Crafting expandido;
+4. Shop;
+5. Level + Árvore de Talentos;
+6. Nível do Cristal/Core.
 
-- Runner;
-- Brute;
-- Archer;
-- Support;
-- Burrower;
-- Boss;
-- diferenças reais de comportamento/prioridade;
-- fechamento da run de 5 noites;
-- vitória;
-- balance pass inicial.
-
-A regra central continua sendo:
+A regra central continua:
 
 **construir → sobreviver → melhorar → tentar novamente**

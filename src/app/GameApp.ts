@@ -1,4 +1,5 @@
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { GameSettings } from "./GameSettings";
 import { EnemySystem } from "../ai/EnemySystem";
 import { BreachPlanner } from "../ai/navigation/BreachPlanner";
 import { FlowField } from "../ai/navigation/FlowField";
@@ -17,6 +18,8 @@ import {
 import { DefenseCombatSystem } from "../defense/DefenseCombatSystem";
 import { SpawnDirector } from "../defense/SpawnDirector";
 import { WaveDirector } from "../defense/WaveDirector";
+import { FINAL_NIGHT } from "../defense/VerticalSliceRules";
+import { AudioSystem } from "../engine/audio/AudioSystem";
 import { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Renderer3D } from "../engine/render/Renderer3D";
 import { FirstPersonHand } from "../player/FirstPersonHand";
@@ -76,6 +79,9 @@ interface GameAppOptions {
   defeatText: HTMLParagraphElement;
   runSummary: HTMLDivElement;
   restartButton: HTMLButtonElement;
+  settingsVolume: HTMLInputElement;
+  settingsEffects: HTMLInputElement;
+  settingsDebug: HTMLInputElement;
   status: HTMLDivElement;
 }
 
@@ -91,6 +97,8 @@ export class GameApp {
   private readonly rules = new RuleEngine();
   private readonly run = new RunManager();
   private readonly playerVitals = new PlayerVitals();
+  private readonly settings = new GameSettings();
+  private readonly audio = new AudioSystem();
 
   private physics!: PhysicsWorld;
   private player!: PlayerController;
@@ -132,6 +140,7 @@ export class GameApp {
     );
     this.debugOverlay = new DebugOverlay(options.debug);
     this.hotbar = new Hotbar(options.hotbar);
+    this.bindSettings();
 
     this.options.restartButton.addEventListener("click", () => {
       window.location.reload();
@@ -343,6 +352,15 @@ export class GameApp {
       this.inventory,
     );
 
+    this.enemies.subscribeDamage((event) => {
+      if (
+        event.source === "player-melee" ||
+        event.source === "player-projectile"
+      ) {
+        this.audio.hit(event.killed);
+      }
+    });
+
     const size =
       this.metadata.bounds.maxXExclusive - this.metadata.bounds.minX;
     this.options.status.textContent =
@@ -371,9 +389,17 @@ export class GameApp {
         const transition = this.dayNight.update(dt);
         if (transition?.to === DayPhase.Night) {
           this.waves.startNight(transition.night);
+          this.dayNight.holdTransition(
+            transition.night >= FINAL_NIGHT,
+          );
+          this.audio.nightStart(
+            transition.night >= FINAL_NIGHT,
+          );
         } else if (transition?.to === DayPhase.Day) {
+          this.dayNight.holdTransition(false);
           this.waves.endNight();
           this.enemies.retreatAll();
+          this.enemies.cleanupInactive();
           this.run.completeNight(transition.night);
           this.openUpgradeDraft(transition.night);
           return;
@@ -389,6 +415,21 @@ export class GameApp {
         );
         this.enemies.fixedUpdate(dt);
         this.defenseCombat.fixedUpdate(dt);
+
+        if (
+          this.dayNight.phase === DayPhase.Night &&
+          this.dayNight.night >= FINAL_NIGHT &&
+          this.waves.complete &&
+          this.enemies.aliveCount === 0
+        ) {
+          this.run.completeNight(FINAL_NIGHT);
+          this.endRun(
+            "SIEGE WARDEN FALLEN",
+            "O Core sobreviveu às cinco noites. Vertical slice concluído.",
+            true,
+          );
+          return;
+        }
 
         if (this.core.health.destroyed) {
           this.endRun(
@@ -491,6 +532,7 @@ export class GameApp {
       this.controls.unlock();
     }
 
+    this.audio.upgrade();
     this.upgradeUi.show(
       night,
       choices,
@@ -501,6 +543,7 @@ export class GameApp {
   private chooseUpgrade(upgrade: UpgradeDefinition): void {
     upgrade.apply(this.rules);
     this.run.acquireUpgrade(upgrade.id);
+    this.audio.choose();
     this.drafting = false;
 
     this.options.overlay.classList.add("hidden");
@@ -508,7 +551,11 @@ export class GameApp {
     this.controls.lock();
   }
 
-  private endRun(title: string, text: string): void {
+  private endRun(
+    title: string,
+    text: string,
+    victory = false,
+  ): void {
     if (this.defeated) return;
 
     this.defeated = true;
@@ -518,15 +565,21 @@ export class GameApp {
     this.options.upgradeOverlay.classList.add("hidden");
 
     const summary = this.run.summary();
-    this.options.defeatEyebrow.textContent = "RUN FAILED";
+    this.options.defeatOverlay.classList.toggle("victory", victory);
+    this.options.defeatEyebrow.textContent =
+      victory ? "RUN COMPLETE" : "RUN FAILED";
     this.options.defeatTitle.textContent = title;
     this.options.defeatText.textContent = text;
+    this.options.restartButton.textContent =
+      victory ? "NOVA RUN" : "REINICIAR RUN";
     this.options.runSummary.innerHTML = `
       <div><span>Nights</span><strong>${summary.nightsSurvived}</strong></div>
       <div><span>Player kills</span><strong>${summary.playerKills}</strong></div>
       <div><span>Upgrades</span><strong>${summary.upgrades.length}</strong></div>
     `;
     this.options.defeatOverlay.classList.remove("hidden");
+    if (victory) this.audio.victory();
+    else this.audio.defeat();
 
     if (this.controls.isLocked) {
       this.controls.unlock();
@@ -554,10 +607,50 @@ export class GameApp {
     return seed;
   }
 
+  private bindSettings(): void {
+    const state = this.settings.state;
+    this.options.settingsVolume.value = String(state.volume);
+    this.options.settingsEffects.checked = state.effects;
+    this.options.settingsDebug.checked = state.debug;
+    this.applySettings();
+
+    this.options.settingsVolume.addEventListener("input", () => {
+      this.settings.update({
+        volume: Number(this.options.settingsVolume.value),
+      });
+      this.applySettings();
+    });
+
+    this.options.settingsEffects.addEventListener("change", () => {
+      this.settings.update({
+        effects: this.options.settingsEffects.checked,
+      });
+      this.applySettings();
+    });
+
+    this.options.settingsDebug.addEventListener("change", () => {
+      this.settings.update({
+        debug: this.options.settingsDebug.checked,
+      });
+      this.applySettings();
+    });
+  }
+
+  private applySettings(): void {
+    const state = this.settings.state;
+    this.audio.setVolume(state.volume);
+    this.audio.setEnabled(state.effects);
+    this.options.debug.classList.toggle("hidden", !state.debug);
+    document.body.classList.toggle("reduced-fx", !state.effects);
+  }
+
   private bindPointerLock(): void {
     this.options.playButton.addEventListener(
       "click",
-      () => this.controls.lock(),
+      () => {
+        void this.audio.unlock();
+        this.controls.lock();
+      },
     );
 
     this.controls.addEventListener("lock", () => {

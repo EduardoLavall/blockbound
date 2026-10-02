@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ENEMIES, EnemyType } from "../ai/EnemyRegistry";
 import type { EnemyInstance } from "../ai/EnemySystem";
 import { EnemyStatus } from "../combat/CombatTypes";
 import { RuleEngine } from "./RuleEngine";
@@ -16,6 +17,8 @@ function enemyWith(status?: EnemyStatus): EnemyInstance {
 
   return {
     id: 1,
+    type: EnemyType.Grunt,
+    definition: ENEMIES[EnemyType.Grunt],
     group: {} as EnemyInstance["group"],
     health: {} as EnemyInstance["health"],
     statuses,
@@ -23,6 +26,7 @@ function enemyWith(status?: EnemyStatus): EnemyInstance {
     attackDamage: 1,
     attackInterval: 1,
     attackCooldown: 0,
+    abilityCooldown: 0,
     alive: true,
   };
 }
