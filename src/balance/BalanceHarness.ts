@@ -1,6 +1,10 @@
 import { ENEMIES, type EnemyDefinition, EnemyType, rosterForNight } from "../ai/EnemyRegistry";
 import { STRUCTURES, StructureType } from "../building/StructureRegistry";
 import { NIGHT_DEFINITIONS } from "../defense/VerticalSliceRules";
+import {
+  TURRETS,
+  turretDamageAgainst,
+} from "../defense/TurretRegistry";
 import { ITEMS } from "../items/ItemRegistry";
 import { BASE_PLAYER_STATS } from "../player/PlayerStats";
 import { UPGRADES } from "../roguelite/UpgradeRegistry";
@@ -40,8 +44,13 @@ export interface BalanceSnapshot {
   waves: readonly WaveMetric[];
   defense: {
     turretDps: number;
+    rapidTurretDps: number;
+    rapidVsRunnerDps: number;
+    rapidVsBruteDps: number;
+    rapidVsBossDps: number;
     spikeDps: number;
     turretRange: number;
+    rapidTurretRange: number;
     wallHealth: number;
     gateHealth: number;
   };
@@ -85,9 +94,30 @@ export function createBalanceSnapshot(): BalanceSnapshot {
       };
     }),
     defense: {
-      turretDps: 21 / 0.72,
+      turretDps:
+        TURRETS[StructureType.Turret].damage /
+        TURRETS[StructureType.Turret].cooldown,
+      rapidTurretDps:
+        TURRETS[StructureType.RapidTurret].damage /
+        TURRETS[StructureType.RapidTurret].cooldown,
+      rapidVsRunnerDps:
+        turretDamageAgainst(
+          StructureType.RapidTurret,
+          EnemyType.Runner,
+        ) / TURRETS[StructureType.RapidTurret].cooldown,
+      rapidVsBruteDps:
+        turretDamageAgainst(
+          StructureType.RapidTurret,
+          EnemyType.Brute,
+        ) / TURRETS[StructureType.RapidTurret].cooldown,
+      rapidVsBossDps:
+        turretDamageAgainst(
+          StructureType.RapidTurret,
+          EnemyType.Boss,
+        ) / TURRETS[StructureType.RapidTurret].cooldown,
       spikeDps: 24 / 0.62,
-      turretRange: STRUCTURES[StructureType.Turret].range ?? 0,
+      turretRange: TURRETS[StructureType.Turret].range,
+      rapidTurretRange: TURRETS[StructureType.RapidTurret].range,
       wallHealth: STRUCTURES[StructureType.Wall].maxHealth,
       gateHealth: STRUCTURES[StructureType.Gate].maxHealth,
     },
