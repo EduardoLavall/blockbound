@@ -1232,7 +1232,7 @@ Uma run completa pode ser jogada do começo ao boss sem ferramentas de debug.
 
 ---
 
-## Fase 10 — Game Design: análise crítica e balanceamento
+## Fase 12 — Game Design: análise crítica e balanceamento
 
 Objetivo: fazer uma revisão crítica do jogo já jogável antes de adicionar novas camadas de progressão.
 
@@ -1290,7 +1290,7 @@ Existe uma análise crítica documentada do vertical slice e os primeiros ajuste
 
 ---
 
-## Fase 11 — Rapid / Machine Gun Turret
+## Fase 13 — Rapid / Machine Gun Turret
 
 Objetivo: criar a primeira torre especializada em **DPS sustentado contra grupos leves**.
 
@@ -1310,7 +1310,7 @@ A Rapid Turret é claramente melhor contra alvos leves frequentes e claramente p
 
 ---
 
-## Fase 12 — Sniper Turret
+## Fase 14 — Sniper Turret
 
 Objetivo: criar uma torre de **alto dano, baixa cadência e grande alcance**.
 
@@ -1329,7 +1329,7 @@ A Sniper Turret recompensa posição, linha de visão e seleção de alvo, em ve
 
 ---
 
-## Fase 13 — Electric / Tesla Turret
+## Fase 15 — Electric / Tesla Turret
 
 Objetivo: criar uma torre de **controle e dano em cadeia**.
 
@@ -1348,7 +1348,7 @@ A Tesla Turret cria valor crescente contra grupos densos sem virar a melhor opç
 
 ---
 
-## Fase 14 — Explosive / Mortar Turret
+## Fase 16 — Explosive / Mortar Turret
 
 Objetivo: criar uma torre de **AoE pesado com cadence baixa**.
 
@@ -1367,7 +1367,7 @@ A Mortar Turret resolve densidade de horda, mas possui fraquezas claras de cadê
 
 ---
 
-## Fase 15 — Slow / Cryo Turret
+## Fase 17 — Slow / Cryo Turret
 
 Objetivo: criar uma torre primariamente de **controle de rota**, não de DPS.
 
@@ -1385,7 +1385,7 @@ A Cryo Turret aumenta o tempo que a horda permanece dentro da killzone sem subst
 
 ---
 
-## Fase 16 — Flamethrower Turret
+## Fase 18 — Flamethrower Turret
 
 Objetivo: criar uma torre de **curto alcance e dano contínuo em cone/área**.
 
@@ -1404,7 +1404,7 @@ A Flamethrower Turret recompensa choke points e corredores bem construídos e n�
 
 ---
 
-## Fase 17 — Progressão e níveis das Torres
+## Fase 19 — Progressão e níveis das Torres
 
 Objetivo: permitir investimento em torres sem transformar cada uma numa árvore enorme.
 
@@ -1452,7 +1452,7 @@ Investir níveis muda perceptivelmente a função da torre sem apagar a diferen�
 
 ---
 
-## Fase 18 — Player Status
+## Fase 10 — Player Status
 
 Objetivo: criar uma fonte única e legível para os atributos atuais do jogador.
 
@@ -1474,7 +1474,7 @@ O jogo consegue explicar em uma única tela quais são os atributos atuais do jo
 
 ---
 
-## Fase 19 — Inventário + Equipamento
+## Fase 11 — Inventário + Equipamento
 
 Objetivo: separar recursos de construção de itens/equipamentos utilizáveis.
 
@@ -1708,16 +1708,16 @@ As ações principais — atirar, acertar, matar, minerar, construir, sofrer dan
 9. upgrades roguelite
 10. enemy roster + boss
 11. vertical slice completo
-12. análise crítica de game design + balanceamento
-13. Rapid / Machine Gun Turret
-14. Sniper Turret
-15. Electric / Tesla Turret
-16. Explosive / Mortar Turret
-17. Slow / Cryo Turret
-18. Flamethrower Turret
-19. progressão e níveis das torres
-20. Player Status
-21. inventário + equipamento
+12. Player Status
+13. inventário + equipamento
+14. análise crítica de game design + balanceamento
+15. Rapid / Machine Gun Turret
+16. Sniper Turret
+17. Electric / Tesla Turret
+18. Explosive / Mortar Turret
+19. Slow / Cryo Turret
+20. Flamethrower Turret
+21. progressão e níveis das torres
 22. crafting expandido
 23. shop
 24. level do jogador + árvore de talentos
@@ -1797,16 +1797,16 @@ Recomeçar o aprendizado não é.
 
 Itens novos solicitados e adicionados ao roadmap, sem duplicar sistemas que já estavam planejados:
 
-- **Game Design: análise crítica e balanceamento** → Fase 10;
-- **Rapid / Machine Gun Turret** → Fase 11;
-- **Sniper Turret** → Fase 12;
-- **Electric / Tesla Turret** → Fase 13;
-- **Explosive / Mortar Turret** → Fase 14;
-- **Slow / Cryo Turret** → Fase 15;
-- **Flamethrower Turret** → Fase 16;
-- **Progressão e níveis das Torres** → Fase 17;
-- **Player Status** → Fase 18;
-- **Inventário + Equipamento** → Fase 19;
+- **Player Status** → Fase 10;
+- **Inventário + Equipamento** → Fase 11;
+- **Game Design: análise crítica e balanceamento** → Fase 12;
+- **Rapid / Machine Gun Turret** → Fase 13;
+- **Sniper Turret** → Fase 14;
+- **Electric / Tesla Turret** → Fase 15;
+- **Explosive / Mortar Turret** → Fase 16;
+- **Slow / Cryo Turret** → Fase 17;
+- **Flamethrower Turret** → Fase 18;
+- **Progressão e níveis das Torres** → Fase 19;
 - **Crafting expandido** → Fase 20;
 - **Shop** → Fase 21;
 - **Level do jogador + Árvore de Talentos** → Fase 22;
@@ -1823,6 +1823,8 @@ Não foram adicionados novamente:
 
 ```text
 vertical slice
+  -> Player Status
+  -> inventário/equipamento
   -> análise crítica de game design + balanceamento
   -> Rapid Turret
   -> Sniper Turret
@@ -1831,8 +1833,6 @@ vertical slice
   -> Cryo Turret
   -> Flamethrower Turret
   -> níveis/upgrades das torres
-  -> Player Status
-  -> inventário/equipamento
   -> crafting expandido
   -> shop
   -> player level + árvore de talentos
@@ -1843,12 +1843,12 @@ vertical slice
 
 Motivo:
 
-- primeiro fazemos uma análise crítica do vertical slice para evitar aprofundar progressões sobre um balanceamento ruim;
+- primeiro consolidamos **Player Status** para tornar os atributos finais da run observáveis e mensuráveis;
+- depois entra **Inventário + Equipamento**, porque itemização altera diretamente DPS, sobrevivência e builds do jogador;
+- só então fazemos a análise crítica de balanceamento, já considerando stats, equipamentos, cartas, economia, defesas, inimigos e Boss em conjunto;
 - depois expandimos o arsenal de torres porque variedade de defesa é parte do core Tower Defense e deve amadurecer antes das progressões mais RPG;
 - cada torre entra separadamente para ser testada e balanceada como um arquétipo próprio;
 - níveis/upgrades entram apenas depois que todos os arquétipos básicos estiverem jogáveis;
-- Player Status vira a base de leitura dos atributos;
-- equipamento depende dessa base para alterar stats;
 - crafting precisa de inventário/itemização;
 - shop precisa de itens e economia já definidos;
 - level/talent tree passa a modificar uma camada de stats estável;
@@ -1864,8 +1864,9 @@ Motivo:
 Foram adicionadas três frentes novas:
 
 1. **Game Design — análise crítica de balanceamento**
-   - entra imediatamente após o vertical slice;
+   - entra após Player Status e Inventário + Equipamento;
    - deve usar runs completas, dados e comparação de estratégias;
+   - Player Status fornece os atributos observáveis e o sistema de equipamento precisa estar presente para a análise não ficar obsoleta logo depois;
    - precisa avaliar pacing, economia, dificuldade, armas, inimigos, estruturas, upgrades e Boss;
    - objetivo principal: detectar estratégias dominantes, sistemas irrelevantes e números que mascaram problemas de design.
 
@@ -1898,3 +1899,27 @@ Novas torres foram adicionadas como entregas separadas:
 7. **Progressão e níveis das Torres** — evolução/especialização depois dos seis arquétipos.
 
 Cada torre deve ser implementada e balanceada individualmente antes de considerar o arsenal concluído.
+
+
+---
+
+# 27. Reordenação de Player Status / Equipamento / Balanceamento em 2026-10-02
+
+Decisão revisada:
+
+```text
+Vertical Slice
+  -> Player Status
+  -> Inventário + Equipamento
+  -> Game Design / análise crítica de balanceamento
+  -> expansão das torres
+```
+
+Motivo:
+
+- **Player Status** cria uma fonte única dos atributos atuais e torna DPS, defesa, crit, mining speed e outros modificadores diretamente observáveis;
+- **Inventário + Equipamento** altera esses atributos e constitui parte importante da build do jogador;
+- balancear antes da itemização faria Blade, Repeater, inimigos e cartas serem avaliados contra uma versão incompleta da build;
+- Crafting, Shop, Talent Tree e Crystal/Core Level continuam depois da primeira análise crítica para evitar adicionar sistemas indefinidamente antes do primeiro balance pass sério.
+
+A Fase 12 deve considerar builds reais de equipamento e upgrades, não apenas os stats base do jogador.
