@@ -23,6 +23,7 @@ export class Renderer3D {
 
     this.camera = new THREE.PerspectiveCamera(74, 1, 0.05, 140);
     this.camera.position.set(0, 2.2, 7);
+    this.scene.add(this.camera);
 
     const hemi = new THREE.HemisphereLight(0xc9e8f0, 0x37442d, 1.8);
     this.scene.add(hemi);
