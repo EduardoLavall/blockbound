@@ -18,6 +18,46 @@ export class PhysicsWorld {
     this.world.step();
   }
 
+  createStaticBody(
+    x: number,
+    y: number,
+    z: number,
+    yaw = 0,
+  ): RAPIER.RigidBody {
+    const half = yaw / 2;
+    return this.world.createRigidBody(
+      RAPIER.RigidBodyDesc.fixed()
+        .setTranslation(x, y, z)
+        .setRotation({
+          x: 0,
+          y: Math.sin(half),
+          z: 0,
+          w: Math.cos(half),
+        }),
+    );
+  }
+
+  addBoxCollider(
+    body: RAPIER.RigidBody,
+    halfX: number,
+    halfY: number,
+    halfZ: number,
+    offsetX = 0,
+    offsetY = 0,
+    offsetZ = 0,
+  ): RAPIER.Collider {
+    return this.world.createCollider(
+      RAPIER.ColliderDesc.cuboid(halfX, halfY, halfZ)
+        .setTranslation(offsetX, offsetY, offsetZ)
+        .setFriction(0.8),
+      body,
+    );
+  }
+
+  removeBody(body: RAPIER.RigidBody): void {
+    this.world.removeRigidBody(body);
+  }
+
   addStaticBox(
     x: number,
     y: number,
@@ -26,13 +66,8 @@ export class PhysicsWorld {
     halfY: number,
     halfZ: number,
   ): RAPIER.Collider {
-    const body = this.world.createRigidBody(
-      RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z),
-    );
-    return this.world.createCollider(
-      RAPIER.ColliderDesc.cuboid(halfX, halfY, halfZ).setFriction(0.8),
-      body,
-    );
+    const body = this.createStaticBody(x, y, z);
+    return this.addBoxCollider(body, halfX, halfY, halfZ);
   }
 
   replaceChunkCollider(
@@ -50,9 +85,7 @@ export class PhysicsWorld {
 
     if (indices.length === 0) return;
 
-    const body = this.world.createRigidBody(
-      RAPIER.RigidBodyDesc.fixed().setTranslation(originX, 0, originZ),
-    );
+    const body = this.createStaticBody(originX, 0, originZ);
 
     this.world.createCollider(
       RAPIER.ColliderDesc.trimesh(vertices, indices).setFriction(0.85),
