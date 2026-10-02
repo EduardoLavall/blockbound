@@ -303,6 +303,30 @@ Exemplos:
 - mining speed / yield;
 - low-health damage.
 
+## Balance Analysis
+
+A primeira baseline crítica está em `docs/BALANCE_ANALYSIS.md`.
+
+O projeto possui agora:
+
+- `BalanceHarness` em TypeScript puro;
+- métricas reproduzíveis de DPS/TTK/breach/waves;
+- baseline testada em CI;
+- telemetria de run com checkpoints;
+- botão **EXPORT TELEMETRY** no resumo final;
+- comparação de seed, HP, Core, recursos, upgrades, equipamentos e Player Status.
+
+Primeiros pontos de atenção identificados:
+
+- Blade e Repeater têm DPS base praticamente idêntico apesar do risco diferente;
+- Miner Sigil pode entregar ~2.36× throughput de recursos;
+- Brute possui janela de breach de Wall muito curta;
+- Siege Warden possui pressão extremamente alta ao encostar na base;
+- crit cards são fracas isoladamente e dependem bastante de sinergia;
+- Night 5 representa um salto grande de pressão teórica.
+
+Nenhum desses números foi automaticamente nerfado/buffado: os próximos ajustes devem cruzar a baseline com runs reais exportadas.
+
 ## Construção e navegação
 
 Defesas:
@@ -469,7 +493,7 @@ Depois do vertical slice:
 
 1. Player Status ✅;
 2. Inventário + Equipamento ✅;
-3. Game Design — análise crítica de balanceamento;
+3. Game Design — análise crítica de balanceamento ✅ baseline;
 4. Rapid / Machine Gun Turret;
 5. Sniper Turret;
 6. Electric / Tesla Turret;
