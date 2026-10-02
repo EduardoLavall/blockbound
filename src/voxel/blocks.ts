@@ -10,10 +10,19 @@ export enum BlockId {
   MetalOre = 8,
 }
 
+export type BlockFace =
+  | "east"
+  | "west"
+  | "top"
+  | "bottom"
+  | "south"
+  | "north";
+
 export interface BlockDefinition {
   id: BlockId;
   name: string;
   atlasTile: number;
+  atlasFaces?: Partial<Record<BlockFace, number>>;
   solid: boolean;
   placeable: boolean;
   destructible: boolean;
@@ -46,4 +55,13 @@ export function blockDefinition(id: number): BlockDefinition {
 
 export function isSolidBlock(id: number): boolean {
   return blockDefinition(id).solid;
+}
+
+
+export function blockAtlasTile(
+  id: number,
+  face: BlockFace,
+): number {
+  const definition = blockDefinition(id);
+  return definition.atlasFaces?.[face] ?? definition.atlasTile;
 }
