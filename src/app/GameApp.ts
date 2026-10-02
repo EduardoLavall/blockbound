@@ -1,8 +1,19 @@
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { EnemySystem } from "../ai/EnemySystem";
+import { BreachPlanner } from "../ai/navigation/BreachPlanner";
+import { FlowField } from "../ai/navigation/FlowField";
+import { NavigationGrid } from "../ai/navigation/NavigationGrid";
 import { Core } from "../building/Core";
 import { StructureSystem } from "../building/StructureSystem";
 import { GameLoop } from "../core/GameLoop";
 import { Input } from "../core/Input";
+import {
+  DayNightSystem,
+  DayPhase,
+} from "../defense/DayNightSystem";
+import { DefenseCombatSystem } from "../defense/DefenseCombatSystem";
+import { SpawnDirector } from "../defense/SpawnDirector";
+import { WaveDirector } from "../defense/WaveDirector";
 import { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Renderer3D } from "../engine/render/Renderer3D";
 import { FirstPersonHand } from "../player/FirstPersonHand";
@@ -13,6 +24,7 @@ import { VoxelInteractionController } from "../player/VoxelInteractionController
 import { Inventory } from "../survival/Inventory";
 import { ResourceDropSystem } from "../survival/ResourceDropSystem";
 import { DebugOverlay } from "../ui/DebugOverlay";
+import { HordeHUD } from "../ui/HordeHUD";
 import { SurvivalHUD } from "../ui/SurvivalHUD";
 import { BiomeId } from "../voxel/generation/Biomes";
 import {
@@ -43,6 +55,9 @@ interface GameAppOptions {
   miningProgress: HTMLDivElement;
   inventoryHud: HTMLDivElement;
   coreHud: HTMLDivElement;
+  hordeHud: HTMLDivElement;
+  defeatOverlay: HTMLDivElement;
+  restartButton: HTMLButtonElement;
   status: HTMLDivElement;
 }
 
@@ -54,6 +69,7 @@ export class GameApp {
   private readonly hotbar: Hotbar;
   private readonly inventory = new Inventory();
   private readonly mode = new InteractionMode();
+  private readonly dayNight = new DayNightSystem();
 
   private physics!: PhysicsWorld;
   private player!: PlayerController;
@@ -66,13 +82,31 @@ export class GameApp {
   private structures!: StructureSystem;
   private core!: Core;
   private survivalHud!: SurvivalHUD;
+
+  private navigation!: NavigationGrid;
+  private flow!: FlowField;
+  private breachPlanner!: BreachPlanner;
+  private enemies!: EnemySystem;
+  private spawns!: SpawnDirector;
+  private waves!: WaveDirector;
+  private defenseCombat!: DefenseCombatSystem;
+  private hordeHud!: HordeHUD;
+
   private loop!: GameLoop;
+  private defeated = false;
 
   constructor(private readonly options: GameAppOptions) {
     this.renderer = new Renderer3D(options.canvas);
-    this.controls = new PointerLockControls(this.renderer.camera, options.canvas);
+    this.controls = new PointerLockControls(
+      this.renderer.camera,
+      options.canvas,
+    );
     this.debugOverlay = new DebugOverlay(options.debug);
     this.hotbar = new Hotbar(options.hotbar);
+
+    this.options.restartButton.addEventListener("click", () => {
+      window.location.reload();
+    });
   }
 
   async init(): Promise<void> {
@@ -180,6 +214,40 @@ export class GameApp {
       this.options.miningProgress,
     );
 
+    this.navigation = new NavigationGrid(
+      this.world,
+      this.structures,
+      this.metadata.bounds,
+    );
+    this.flow = new FlowField(
+      this.navigation,
+      this.metadata.core.x,
+      this.metadata.core.z,
+    );
+    this.breachPlanner = new BreachPlanner(this.structures);
+
+    this.enemies = new EnemySystem(
+      this.renderer.scene,
+      this.navigation,
+      this.flow,
+      this.breachPlanner,
+      this.structures,
+      this.core,
+    );
+
+    this.spawns = new SpawnDirector(
+      this.metadata.seed.value,
+      this.metadata.spawnZones,
+      this.navigation,
+      this.enemies,
+    );
+    this.waves = new WaveDirector(this.spawns);
+    this.defenseCombat = new DefenseCombatSystem(
+      this.renderer.scene,
+      this.structures,
+      this.enemies,
+    );
+
     this.survivalHud = new SurvivalHUD(
       this.inventory,
       this.core,
@@ -187,17 +255,30 @@ export class GameApp {
       this.options.coreHud,
     );
 
+    this.hordeHud = new HordeHUD(
+      this.options.hordeHud,
+      this.dayNight,
+      this.waves,
+      this.enemies,
+      this.navigation,
+      this.flow,
+    );
+
     const size =
       this.metadata.bounds.maxXExclusive - this.metadata.bounds.minX;
     this.options.status.textContent =
-      "SURVIVAL " + size + "×" + size + " · SEED " + seed.text;
+      "DAY · " + size + "×" + size + " · SEED " + seed.text;
 
     this.bindPointerLock();
     this.options.loadingLabel.textContent =
-      "Survival loop pronto. Minere, colete e construa.";
+      "Prepare a defesa. A primeira noite começa em " +
+      Math.ceil(this.dayNight.timeRemaining) +
+      "s.";
 
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
+        if (this.defeated) return;
+
         this.player.fixedUpdate(dt);
         this.physics.step(dt);
         this.player.syncCamera();
@@ -206,6 +287,28 @@ export class GameApp {
         this.interaction.fixedUpdate(dt);
         this.drops.update(dt);
         this.core.update(dt);
+
+        const transition = this.dayNight.update(dt);
+        if (transition?.to === DayPhase.Night) {
+          this.waves.startNight(transition.night);
+        } else if (transition?.to === DayPhase.Day) {
+          this.waves.endNight();
+        }
+
+        this.navigation.updateDirty();
+        this.flow.updateIfNeeded();
+
+        this.waves.update(
+          dt,
+          this.dayNight.phase,
+          this.enemies.aliveCount,
+        );
+        this.enemies.fixedUpdate(dt);
+        this.defenseCombat.fixedUpdate(dt);
+
+        if (this.core.health.destroyed) {
+          this.handleDefeat();
+        }
       },
       render: (frameMs) => {
         this.options.hotbar.classList.toggle(
@@ -217,13 +320,30 @@ export class GameApp {
           this.mode.buildMode,
         );
 
+        this.renderer.setNightFactor(this.dayNight.nightFactor);
         this.structures.renderUpdate();
         this.interaction.renderUpdate();
         this.survivalHud.update();
+        this.hordeHud.update();
         this.hand.update(frameMs);
+
+        const phaseLabel =
+          this.dayNight.phase === DayPhase.Day
+            ? "DAY"
+            : "NIGHT " + this.dayNight.night;
+        this.options.status.textContent =
+          phaseLabel +
+          " · " +
+          size +
+          "×" +
+          size +
+          " · SEED " +
+          seed.text;
+
         this.renderer.render();
 
         const chunkStats = this.chunks.getStats();
+        const wave = this.waves.stats;
         this.debugOverlay.update({
           frameMs,
           renderer: this.renderer.renderer,
@@ -231,15 +351,19 @@ export class GameApp {
           locked: this.controls.isLocked,
           extraLines: [
             "SEED      " + this.metadata.seed.text,
-            "WORLD     " + size + "x" + size + " finite",
+            "PHASE     " + phaseLabel,
+            "ENEMIES   " + this.enemies.aliveCount,
+            "WAVE Q    " + wave.remainingToSpawn,
+            "NAV DIRTY " + this.navigation.pendingCells,
+            "NAV MS    " + this.navigation.lastRebuildMs.toFixed(2),
+            "FLOW MS   " + this.flow.rebuildMs.toFixed(2),
+            "CORE      " + Math.round(this.core.health.current) +
+              "/" + this.core.health.max,
             "BIOMES    P" + this.metadata.biomeCounts[BiomeId.Plains] +
               " F" + this.metadata.biomeCounts[BiomeId.Forest] +
               " R" + this.metadata.biomeCounts[BiomeId.Rocky],
-            "CORE      " + Math.round(this.core.health.current) +
-              "/" + this.core.health.max,
             "DROPS     " + this.drops.count,
             "CHUNKS    " + chunkStats.chunks,
-            "DIRTY     " + chunkStats.dirty,
             "WORKERS   " + chunkStats.workersBusy +
               " busy / " + chunkStats.workersPending + " queued",
             ...this.structures.getDebugLines(),
@@ -250,6 +374,18 @@ export class GameApp {
     });
 
     this.loop.start();
+  }
+
+  private handleDefeat(): void {
+    if (this.defeated) return;
+    this.defeated = true;
+    this.waves.endNight();
+    this.input.setEnabled(false);
+    this.options.defeatOverlay.classList.remove("hidden");
+
+    if (this.controls.isLocked) {
+      this.controls.unlock();
+    }
   }
 
   private applyGeneration(generation: WorldGenerationResult): void {
@@ -274,14 +410,22 @@ export class GameApp {
   }
 
   private bindPointerLock(): void {
-    this.options.playButton.addEventListener("click", () => this.controls.lock());
+    this.options.playButton.addEventListener(
+      "click",
+      () => this.controls.lock(),
+    );
 
     this.controls.addEventListener("lock", () => {
       this.options.overlay.classList.add("hidden");
-      this.input.setEnabled(true);
+      this.input.setEnabled(!this.defeated);
     });
 
     this.controls.addEventListener("unlock", () => {
+      if (this.defeated) {
+        this.options.overlay.classList.add("hidden");
+        return;
+      }
+
       this.options.overlay.classList.remove("hidden");
       this.input.setEnabled(false);
     });

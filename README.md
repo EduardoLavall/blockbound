@@ -6,22 +6,165 @@ O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`
 
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
-## Estado atual — Fase 4: Survival + Build
+## Estado atual — Fase 5: Hordas + Navegação Dinâmica
 
-O jogo já possui FPS 3D, voxel engine, mundo procedural finito e agora um loop de preparação defensiva baseado em recursos.
-
-### Loop atual
+O jogo agora possui o primeiro loop de Tower Defense funcional:
 
 ```text
-explorar
-  -> minerar segurando LMB
-  -> bloco gera drop físico
-  -> coletar recurso
-  -> gastar em blocos ou receitas defensivas
-  -> montar defesa ao redor do Core
+DAY
+  -> explorar
+  -> minerar
+  -> coletar
+  -> construir defesa
+
+NIGHT
+  -> hordas entram pelas bordas
+  -> Navigation Grid lê terreno + estruturas
+  -> Flow Field aponta para o Core
+  -> inimigos contornam ou quebram obstáculos
+  -> Turrets atiram
+  -> Spike Traps causam dano
+  -> estruturas/Core recebem dano
+  -> Core destruído = derrota
 ```
 
-### Mineração e recursos
+A regra central já está implementada:
+
+> **construir uma base altera o comportamento da horda.**
+
+## Day / Night
+
+Tuning atual:
+
+- dia: **45s**;
+- noite: **55s**;
+- iluminação/fog mudam gradualmente;
+- cada noite aumenta quantidade, HP, velocidade e dano básico da horda;
+- quatro zonas de spawn ficam próximas às bordas do mapa finito.
+
+Esses tempos ainda são valores de balanceamento, não regras definitivas.
+
+## Navegação 2.5D
+
+O Blockfall não usa navmesh tradicional para a horda.
+
+A navegação atual é:
+
+```text
+VoxelWorld + Structures
+  -> NavigationGrid 2.5D
+  -> dirty cells após edição
+  -> FlowField compartilhado
+  -> BreachPlanner
+  -> local steering
+  -> EnemySystem
+```
+
+### Navigation Grid
+
+Cada célula registra:
+
+- altura do chão;
+- walkability;
+- custo de travessia;
+- blocker estrutural;
+- hazard como Spike Trap.
+
+Edições de voxels e estruturas invalidam somente a região próxima da alteração.
+
+### Flow Field
+
+Quando o grid muda, o campo de integração é recalculado para o Core e **compartilhado por todos os inimigos**.
+
+Não existe A* separado por inimigo.
+
+Isso é importante para suportar hordas maiores sem multiplicar o custo de pathfinding.
+
+## Breach Planner
+
+Wall, Gate fechado e Turret têm custos de travessia **altos, mas finitos**.
+
+Isso significa que o jogador pode fechar completamente uma base.
+
+A IA compara implicitamente:
+
+```text
+custo de contornar
+vs
+custo de atravessar/quebrar
+```
+
+Se o desvio for barato, a horda contorna.
+
+Se quebrar a estrutura for mais barato, o Flow Field direciona o inimigo para o blocker e o `BreachPlanner` transforma aquele passo em um alvo de ataque.
+
+Conforme uma estrutura perde HP, seu custo de breach também diminui e a navegação é recalculada.
+
+Existe teste automatizado provando os dois casos:
+
+- barreira cara → rota contorna;
+- barreira barata → rota atravessa/brecha.
+
+## Estruturas defensivas
+
+### Wall
+
+- bloqueia fisicamente;
+- altera Navigation Grid;
+- HP próprio;
+- horda pode contornar ou atacar.
+
+### Gate
+
+- fechado participa do Flow Field como blocker;
+- `E` abre/fecha;
+- collider acompanha o estado;
+- abrir/fechar invalida a navegação imediatamente.
+
+### Turret
+
+- adquire automaticamente o inimigo mais próximo no range;
+- dispara bolts visuais;
+- aplica dano;
+- possui HP/collider;
+- também pode ser alvo de breach.
+
+### Spike Trap
+
+- não bloqueia completamente a rota;
+- adiciona custo/hazard;
+- causa dano periódico em inimigos próximos.
+
+## Inimigos
+
+A primeira horda usa um inimigo básico provisório.
+
+Ele possui:
+
+- HP escalando com a noite;
+- velocidade escalando;
+- dano contra estrutura/Core;
+- attack cooldown;
+- movimento pelo Flow Field;
+- local steering para reduzir sobreposição;
+- ataque de breach contra blockers;
+- ataque ao Core ao alcançar a base.
+
+O roster completo de papéis diferentes ainda pertence à fase posterior de conteúdo.
+
+## Derrota
+
+O Core possui **500 HP**.
+
+Quando chega a zero:
+
+- waves param;
+- input é bloqueado;
+- Pointer Lock é liberado;
+- aparece a tela **CORE DESTROYED**;
+- a run pode ser reiniciada mantendo a mesma seed pela URL.
+
+## Survival + Build
 
 Recursos atuais:
 
@@ -31,17 +174,20 @@ Recursos atuais:
 - Metal
 - Crystal
 
-Blocos têm tempos diferentes de mineração. Recursos mais valiosos, como Metal Ore e Crystal, demoram mais para quebrar.
+Loop:
 
-Ao minerar, o recurso vira um pickup físico que flutua no mundo e é atraído para o jogador quando ele chega perto.
-
-Colocar blocos também consome recursos do inventário.
+```text
+segurar LMB
+  -> mineração por duração
+  -> drop físico
+  -> pickup
+  -> inventário
+  -> blocos / Wall / Turret / Spike / Gate
+```
 
 ### Build Mode
 
-Pressione `B` para alternar o Build Mode.
-
-No Build Mode:
+`B` alterna o modo de construção.
 
 | Tecla | Estrutura |
 | --- | --- |
@@ -50,76 +196,38 @@ No Build Mode:
 | 3 | Spike Trap |
 | 4 | Gate |
 
-O RMB confirma a construção.
-
-O placement ghost fica:
-
-- verde quando o local é válido e os recursos existem;
-- vermelho quando falta recurso, há colisão com terreno/jogador/Core ou outra estrutura.
-
-As estruturas usam receitas diretas de construção, que são o crafting mínimo desta fase.
-
-### Estruturas
-
-**Wall**
-- bloqueio físico;
-- HP próprio;
-- custo de Wood + Stone.
-
-**Turret**
-- entidade própria;
-- HP;
-- collider;
-- range já definido no registry para a fase de hordas;
-- exige Metal + Crystal.
-
-**Spike Trap**
-- entidade defensiva no chão;
-- HP;
-- preparada para aplicar dano na fase de inimigos.
-
-**Gate**
-- collider composto;
-- `E` próximo ao Gate abre/fecha;
-- o collider da porta acompanha o estado aberto/fechado.
-
-Todas as estruturas possuem:
-
-- custo;
-- max HP;
-- regra de reparo;
-- API de dano pronta para a Issue #7.
-
-Pressione `R` perto de uma estrutura danificada para consumir o recurso de reparo e recuperar HP.
-
-## Core
-
-O Core agora é uma entidade real, não apenas um marcador visual.
-
-- HP inicial: **500**;
-- collider próprio;
-- visual original;
-- HUD de vida;
-- API de dano/reparo pronta para as hordas.
+- RMB confirma;
+- ghost verde/vermelho;
+- `E` abre/fecha Gate;
+- `R` repara estrutura próxima.
 
 ## Mundo
 
-- procedural por seed;
-- finito;
-- configuração atual: **5×5 chunks / 80×80 blocos**;
-- planície, floresta e região pedregosa;
+O mundo é **procedural por seed, porém finito**.
+
+Configuração atual:
+
+- 5×5 chunks;
+- 80×80 blocos;
+- planície;
+- floresta;
+- região pedregosa;
 - árvores;
 - Metal Ore;
 - Crystal;
-- POIs;
-- quatro entradas futuras de horda;
-- limite físico do mapa.
+- ruína;
+- altar;
+- mina;
+- quatro zonas de entrada da horda;
+- limite físico/visual da run.
 
-A mesma seed pode ser reproduzida com:
+A mesma run pode ser reproduzida com:
 
 ```text
 ?seed=blockfall-demo
 ```
+
+A proceduralidade existe para variar runs, não para produzir exploração infinita.
 
 ## Controles
 
@@ -132,31 +240,35 @@ A mesma seed pode ser reproduzida com:
 | Hold LMB | minerar |
 | RMB | colocar bloco / construir |
 | 1–5 | escolher material |
-| B | alternar Build Mode |
+| B | Build Mode |
 | 1–4 no Build Mode | escolher estrutura |
-| E | abrir/fechar Gate próximo |
-| R | reparar estrutura próxima |
+| E | abrir/fechar Gate |
+| R | reparar estrutura |
 | Esc | liberar Pointer Lock |
 
 ## Arquitetura relevante
 
 ```text
 src/
+  ai/
+    EnemySystem.ts
+    navigation/
+      NavigationGrid.ts
+      FlowField.ts
+      BreachPlanner.ts
+  defense/
+    DayNightSystem.ts
+    SpawnDirector.ts
+    WaveDirector.ts
+    DefenseCombatSystem.ts
   building/
     Core.ts
-    StructureRegistry.ts
     StructureSystem.ts
-    StructureVisuals.ts
+    StructureRegistry.ts
   survival/
-    Health.ts
-    Inventory.ts
-    Mining.ts
-    ResourceDropSystem.ts
-    Resources.ts
-  player/
-    InteractionMode.ts
-    VoxelInteractionController.ts
+  voxel/
   ui/
+    HordeHUD.ts
     SurvivalHUD.ts
 ```
 
@@ -169,13 +281,15 @@ build:     npm run build
 output:    dist
 ```
 
-Toda a lógica nova continua client-side:
+A fase de hordas continua totalmente client-side:
 
-- inventário local da run;
-- drops renderizados com Three.js;
-- Core e estruturas usando Rapier no browser;
+- Navigation Grid no browser;
+- Flow Field no browser;
+- enemy simulation local;
+- Three.js para render;
+- Rapier para player/estruturas;
 - nenhum backend obrigatório;
-- nenhum novo runtime server-side.
+- nenhum runtime server-side novo.
 
 ## Desenvolvimento
 
@@ -187,23 +301,28 @@ npm run dev
 npm run check
 ```
 
+A CI valida:
+
+- Vitest;
+- TypeScript;
+- Vite production build.
+
 ## Próxima fase
 
-**Issue #7 — hordas + navegação dinâmica**
+**Issue #8 — combate FPS + roguelite**
 
 Próximos sistemas:
 
-- day/night;
-- waves;
-- spawn director;
-- navigation grid;
-- flow field;
-- breach planner;
-- inimigos atacando estruturas/Core;
-- Wall alterando rota;
-- Gate alterando rota quando abre/fecha;
-- Turret adquirindo alvos e atirando;
-- Spike Trap aplicando dano.
+- dano ativo do jogador contra inimigos;
+- melee;
+- ranged;
+- hit feedback;
+- status effects;
+- player death;
+- Upgrade Registry;
+- draft 1-of-3;
+- tags e sinergias;
+- Rule Engine.
 
 A regra central continua sendo:
 

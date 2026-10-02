@@ -1077,7 +1077,7 @@ Duas seeds diferentes produzem mapas diferentes, mas reproduzíveis.
 
 ---
 
-## Fase 5 — Tower Defense
+## Fase 5 ✅ implementação base concluída — Tower Defense
 
 - day/night;
 - wave director;
