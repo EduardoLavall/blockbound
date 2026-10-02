@@ -5,29 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10170f" />
     <meta name="description" content="Blockfall — 3D voxel FPS tower defense roguelite." />
-    <title>Blockfall — 3D FPS Foundation</title>
+    <title>Blockfall — Voxel Engine</title>
   </head>
   <body>
     <div id="app">
       <canvas id="game-canvas"></canvas>
       <div id="crosshair" aria-hidden="true"></div>
       <div id="debug"></div>
-      <div id="status">FPS FOUNDATION · ISSUE #3</div>
+      <div id="status">VOXEL ENGINE · ISSUE #4</div>
+      <div id="target-info">BUILD</div>
+      <div id="hotbar" aria-label="Hotbar"></div>
 
       <div id="start-overlay" class="overlay">
         <div class="panel">
           <div class="eyebrow">BLOCKFALL · 3D REWRITE</div>
-          <h1>FPS FOUNDATION</h1>
-          <p>Primeira fundação 3D do Blockfall. Este cenário é temporário: serve para validar câmera, movimentação e colisão antes da voxel engine.</p>
+          <h1>VOXEL ENGINE</h1>
+          <p>Chunks reais, greedy meshing em Web Workers, colisão agregada e edição de blocos em primeira pessoa.</p>
           <div class="controls">
             <span><b>WASD</b> mover</span>
             <span><b>Mouse</b> olhar</span>
+            <span><b>LMB</b> quebrar</span>
+            <span><b>RMB</b> colocar</span>
+            <span><b>1–5</b> selecionar bloco</span>
             <span><b>Space</b> pular</span>
             <span><b>Shift</b> correr</span>
             <span><b>Esc</b> soltar mouse</span>
           </div>
-          <button id="play-button">ENTRAR NO TESTE 3D</button>
-          <small id="loading-label">Inicializando física...</small>
+          <button id="play-button">ENTRAR NO MUNDO VOXEL</button>
+          <small id="loading-label">Inicializando...</small>
         </div>
       </div>
     </div>

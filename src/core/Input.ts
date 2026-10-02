@@ -14,6 +14,21 @@ export class Input {
       this.held.delete(event.code);
     });
 
+    window.addEventListener("pointerdown", (event) => {
+      if (!this.enabled) return;
+      const code = `Mouse${event.button}`;
+      if (!this.held.has(code)) this.pressed.add(code);
+      this.held.add(code);
+    });
+
+    window.addEventListener("pointerup", (event) => {
+      this.held.delete(`Mouse${event.button}`);
+    });
+
+    window.addEventListener("contextmenu", (event) => {
+      if (this.enabled) event.preventDefault();
+    });
+
     window.addEventListener("blur", () => this.clear());
   }
 

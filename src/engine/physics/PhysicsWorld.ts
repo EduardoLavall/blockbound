@@ -2,6 +2,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 
 export class PhysicsWorld {
   readonly world: RAPIER.World;
+  private readonly chunkBodies = new Map<string, RAPIER.RigidBody>();
 
   private constructor() {
     this.world = new RAPIER.World({ x: 0, y: -18, z: 0 });
@@ -17,21 +18,30 @@ export class PhysicsWorld {
     this.world.step();
   }
 
-  addStaticBox(
-    x: number,
-    y: number,
-    z: number,
-    halfX: number,
-    halfY: number,
-    halfZ: number,
-  ): RAPIER.Collider {
+  replaceChunkCollider(
+    key: string,
+    originX: number,
+    originZ: number,
+    vertices: Float32Array,
+    indices: Uint32Array,
+  ): void {
+    const previous = this.chunkBodies.get(key);
+    if (previous) {
+      this.world.removeRigidBody(previous);
+      this.chunkBodies.delete(key);
+    }
+
+    if (indices.length === 0) return;
+
     const body = this.world.createRigidBody(
-      RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z),
+      RAPIER.RigidBodyDesc.fixed().setTranslation(originX, 0, originZ),
     );
-    return this.world.createCollider(
-      RAPIER.ColliderDesc.cuboid(halfX, halfY, halfZ)
-        .setFriction(0.8),
+
+    this.world.createCollider(
+      RAPIER.ColliderDesc.trimesh(vertices, indices).setFriction(0.85),
       body,
     );
+
+    this.chunkBodies.set(key, body);
   }
 }

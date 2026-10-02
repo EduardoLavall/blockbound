@@ -6,6 +6,7 @@ interface DebugState {
   renderer: THREE.WebGLRenderer;
   player: PlayerController;
   locked: boolean;
+  extraLines?: readonly string[];
 }
 
 export class DebugOverlay {
@@ -31,6 +32,7 @@ export class DebugOverlay {
       `LOCKED    ${state.locked ? "YES" : "NO"}`,
       `DRAWS     ${info.calls}`,
       `TRIS      ${info.triangles}`,
+      ...(state.extraLines ?? []),
     ].join("\n");
   }
 }
