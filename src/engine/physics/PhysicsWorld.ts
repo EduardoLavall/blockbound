@@ -18,6 +18,23 @@ export class PhysicsWorld {
     this.world.step();
   }
 
+  addStaticBox(
+    x: number,
+    y: number,
+    z: number,
+    halfX: number,
+    halfY: number,
+    halfZ: number,
+  ): RAPIER.Collider {
+    const body = this.world.createRigidBody(
+      RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z),
+    );
+    return this.world.createCollider(
+      RAPIER.ColliderDesc.cuboid(halfX, halfY, halfZ).setFriction(0.8),
+      body,
+    );
+  }
+
   replaceChunkCollider(
     key: string,
     originX: number,
