@@ -188,6 +188,17 @@ export class EnemySystem {
     return this.enemies.filter((enemy) => enemy.alive);
   }
 
+  retreatAll(): number {
+    let retreated = 0;
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      enemy.alive = false;
+      enemy.group.visible = false;
+      retreated++;
+    }
+    return retreated;
+  }
+
   subscribeDamage(
     listener: (event: EnemyDamageEvent) => void,
   ): () => void {
