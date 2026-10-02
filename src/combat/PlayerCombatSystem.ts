@@ -174,11 +174,23 @@ export class PlayerCombatSystem {
     ranged: boolean,
   ): void {
     if (this.random.range(0, 1) < this.rules.playerBurnChance) {
-      this.enemies.applyStatus(enemy, EnemyStatus.Burn, 3.5, 1);
+      this.enemies.applyStatus(
+        enemy,
+        EnemyStatus.Burn,
+        3.5,
+        1,
+        "player-melee",
+      );
     }
 
     if (this.random.range(0, 1) < this.rules.playerShockChance) {
-      this.enemies.applyStatus(enemy, EnemyStatus.Shock, 2.6, 1);
+      this.enemies.applyStatus(
+        enemy,
+        EnemyStatus.Shock,
+        2.6,
+        1,
+        "player-melee",
+      );
     }
 
     if (ranged && this.rules.playerMarkDuration > 0) {
@@ -187,6 +199,7 @@ export class PlayerCombatSystem {
         EnemyStatus.Mark,
         this.rules.playerMarkDuration,
         1,
+        "player-projectile",
       );
     }
   }
