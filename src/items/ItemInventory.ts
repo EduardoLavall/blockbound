@@ -1,63 +1,30 @@
+import {
+  RunInventory,
+  type ItemStack,
+} from "../inventory/RunInventory";
 import { itemDefinition, type ItemDefinition } from "./ItemRegistry";
 
-export interface ItemStack {
-  uid: string;
-  definitionId: string;
-  quantity: number;
-}
-
+export type { ItemStack } from "../inventory/RunInventory";
 export type ItemInventoryListener = () => void;
 
 export class ItemInventory {
-  private readonly stacks: ItemStack[] = [];
-  private readonly listeners = new Set<ItemInventoryListener>();
-  private nextUid = 1;
+  constructor(
+    readonly storage: RunInventory = new RunInventory(),
+  ) {}
 
   get all(): readonly ItemStack[] {
-    return this.stacks;
+    return this.storage.itemStacks();
   }
 
-  add(definitionId: string, quantity = 1): readonly ItemStack[] {
-    if (quantity <= 0) return [];
-
-    const definition = itemDefinition(definitionId);
-    const touched: ItemStack[] = [];
-    let remaining = quantity;
-
-    if (definition.stackLimit > 1) {
-      for (const stack of this.stacks) {
-        if (stack.definitionId !== definitionId) continue;
-        if (stack.quantity >= definition.stackLimit) continue;
-
-        const amount = Math.min(
-          remaining,
-          definition.stackLimit - stack.quantity,
-        );
-        stack.quantity += amount;
-        remaining -= amount;
-        touched.push(stack);
-        if (remaining <= 0) break;
-      }
-    }
-
-    while (remaining > 0) {
-      const amount = Math.min(remaining, definition.stackLimit);
-      const stack: ItemStack = {
-        uid: `item-${this.nextUid++}`,
-        definitionId,
-        quantity: amount,
-      };
-      this.stacks.push(stack);
-      touched.push(stack);
-      remaining -= amount;
-    }
-
-    this.emit();
-    return touched;
+  add(
+    definitionId: string,
+    quantity = 1,
+  ): readonly ItemStack[] {
+    return this.storage.addItem(definitionId, quantity);
   }
 
   get(uid: string): ItemStack | undefined {
-    return this.stacks.find((stack) => stack.uid === uid);
+    return this.storage.findItem(uid);
   }
 
   definition(uid: string): ItemDefinition | undefined {
@@ -65,28 +32,33 @@ export class ItemInventory {
     return stack ? itemDefinition(stack.definitionId) : undefined;
   }
 
-  remove(uid: string, quantity = 1): boolean {
-    const index = this.stacks.findIndex((stack) => stack.uid === uid);
-    if (index < 0 || quantity <= 0) return false;
+  take(uid: string): ItemStack | null {
+    return this.storage.takeItem(uid);
+  }
 
-    const stack = this.stacks[index]!;
+  put(stack: ItemStack): boolean {
+    return this.storage.insertDetachedStack(stack, "backpack");
+  }
+
+  remove(uid: string, quantity = 1): boolean {
+    const stack = this.get(uid);
+    if (!stack || quantity <= 0) return false;
+
     if (quantity >= stack.quantity) {
-      this.stacks.splice(index, 1);
-    } else {
-      stack.quantity -= quantity;
+      return this.take(uid) !== null;
     }
 
-    this.emit();
+    stack.quantity -= quantity;
+    // Use a harmless slot interaction to notify subscribers.
+    const index = this.storage.itemSlot(uid);
+    if (index >= 0) {
+      const detached = this.storage.takeAll(index);
+      if (detached) this.storage.placeAll(index, detached);
+    }
     return true;
   }
 
   subscribe(listener: ItemInventoryListener): () => void {
-    this.listeners.add(listener);
-    listener();
-    return () => this.listeners.delete(listener);
-  }
-
-  private emit(): void {
-    for (const listener of this.listeners) listener();
+    return this.storage.subscribe(listener);
   }
 }
