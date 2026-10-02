@@ -1,9 +1,10 @@
 import { Health } from "../survival/Health";
+import { BASE_PLAYER_STATS } from "../player/PlayerStats";
 
 export type PlayerVitalsListener = () => void;
 
 export class PlayerVitals {
-  readonly health = new Health(140);
+  readonly health = new Health(BASE_PLAYER_STATS.maxHealth);
   private invulnerability = 0;
   private readonly listeners = new Set<PlayerVitalsListener>();
 
