@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10170f" />
     <meta name="description" content="Blockfall — 3D voxel FPS tower defense roguelite." />
-    <title>Blockfall — Survival & Build</title>
+    <title>Blockfall — Horde Defense</title>
   </head>
   <body>
     <div id="app">
       <canvas id="game-canvas"></canvas>
       <div id="crosshair" aria-hidden="true"></div>
       <div id="debug"></div>
-      <div id="status">SURVIVAL + BUILD · ISSUE #6</div>
+      <div id="status">HORDE NAVIGATION · ISSUE #7</div>
 
       <div id="core-hud"></div>
       <div id="inventory-hud"></div>
+      <div id="horde-hud"></div>
 
       <div id="build-info">B · BUILD MODE</div>
       <div id="target-info">MATERIAL</div>
@@ -27,11 +28,20 @@
       <div id="buildbar" aria-label="Build recipes"></div>
       <div id="hotbar" aria-label="Material hotbar"></div>
 
+      <div id="defeat-overlay" class="overlay defeat-overlay hidden">
+        <div class="panel defeat-panel">
+          <div class="eyebrow">RUN FAILED</div>
+          <h1>CORE DESTROYED</h1>
+          <p>A horda atravessou suas defesas. Recarregue a mesma seed e tente uma arquitetura diferente.</p>
+          <button id="restart-button">REINICIAR RUN</button>
+        </div>
+      </div>
+
       <div id="start-overlay" class="overlay">
         <div class="panel">
-          <div class="eyebrow">BLOCKFALL · SURVIVE BY BUILDING</div>
-          <h1>SURVIVAL + BUILD</h1>
-          <p>Minere recursos, colete os drops e transforme materiais em blocos e estruturas defensivas para proteger o Core.</p>
+          <div class="eyebrow">BLOCKFALL · BUILD CHANGES THE HORDE</div>
+          <h1>HORDE DEFENSE</h1>
+          <p>Prepare a base durante o dia. À noite, a horda usa um Flow Field compartilhado e decide entre contornar sua construção ou quebrá-la.</p>
           <div class="controls">
             <span><b>WASD</b> mover</span>
             <span><b>Mouse</b> olhar</span>
@@ -47,7 +57,7 @@
             <span><b>Esc</b> soltar mouse</span>
           </div>
           <button id="play-button">ENTRAR NA RUN</button>
-          <small id="loading-label">Preparando sobrevivência...</small>
+          <small id="loading-label">Preparando navegação da horda...</small>
         </div>
       </div>
     </div>
