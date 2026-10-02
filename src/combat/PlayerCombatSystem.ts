@@ -4,7 +4,7 @@ import { EnemyStatus, PlayerActionMode } from "./CombatTypes";
 import type { Input } from "../core/Input";
 import type { InteractionMode } from "../player/InteractionMode";
 import type { FirstPersonHand } from "../player/FirstPersonHand";
-import type { RuleEngine } from "../roguelite/RuleEngine";
+import type { PlayerStatus } from "../player/PlayerStatus";
 import type { PlayerVitals } from "./PlayerVitals";
 import { SeededRandom } from "../voxel/generation/SeededRandom";
 import type { CombatHUD } from "../ui/CombatHUD";
@@ -23,7 +23,7 @@ export class PlayerCombatSystem {
     private readonly interactionMode: InteractionMode,
     private readonly enemies: EnemySystem,
     private readonly projectiles: ProjectileSystem,
-    private readonly rules: RuleEngine,
+    private readonly status: PlayerStatus,
     private readonly vitals: PlayerVitals,
     private readonly hand: FirstPersonHand,
     private readonly hud: CombatHUD,
@@ -90,20 +90,20 @@ export class PlayerCombatSystem {
 
   private swingBlade(): void {
     this.camera.getWorldDirection(this.direction);
-    const range = 2.45 + this.rules.meleeRangeBonus;
+    const stats = this.status.snapshot();
+    const range = stats.melee.range;
     const target = this.bestMeleeTarget(range);
 
     this.hand.triggerAttack(1);
-    this.cooldown = 0.48 * this.rules.meleeCooldownMultiplier;
+    this.cooldown = stats.melee.cooldown;
 
     if (!target) return;
 
     const critical = this.rollCrit();
     const base =
-      34 *
-      this.rules.meleeDamageMultiplier *
-      this.rules.playerOutgoingMultiplier(this.vitals.ratio);
-    const damage = critical ? base * this.rules.critMultiplier : base;
+      stats.melee.damage *
+      this.status.outgoingDamageMultiplier();
+    const damage = critical ? base * stats.crit.multiplier : base;
 
     const killed = this.enemies.damage(
       target,
@@ -116,12 +116,12 @@ export class PlayerCombatSystem {
 
   private fireRepeater(): void {
     this.camera.getWorldDirection(this.direction);
+    const stats = this.status.snapshot();
     const critical = this.rollCrit();
     const base =
-      24 *
-      this.rules.rangedDamageMultiplier *
-      this.rules.playerOutgoingMultiplier(this.vitals.ratio);
-    const damage = critical ? base * this.rules.critMultiplier : base;
+      stats.ranged.damage *
+      this.status.outgoingDamageMultiplier();
+    const damage = critical ? base * stats.crit.multiplier : base;
 
     const origin = this.camera.position
       .clone()
@@ -130,17 +130,17 @@ export class PlayerCombatSystem {
     this.projectiles.spawn({
       origin,
       direction: this.direction,
-      speed: 25 * this.rules.projectileSpeedMultiplier,
+      speed: stats.ranged.projectileSpeed,
       damage,
-      pierce: this.rules.projectilePierceBonus,
-      burnChance: this.rules.playerBurnChance,
-      shockChance: this.rules.playerShockChance,
-      markDuration: this.rules.playerMarkDuration,
+      pierce: stats.ranged.pierce,
+      burnChance: stats.statuses.burnChance,
+      shockChance: stats.statuses.shockChance,
+      markDuration: stats.statuses.markDuration,
       critical,
     });
 
     this.hand.triggerAttack(0.45);
-    this.cooldown = 0.34 * this.rules.rangedCooldownMultiplier;
+    this.cooldown = stats.ranged.cooldown;
   }
 
   private bestMeleeTarget(range: number): EnemyInstance | null {
@@ -173,7 +173,9 @@ export class PlayerCombatSystem {
     enemy: EnemyInstance,
     ranged: boolean,
   ): void {
-    if (this.random.range(0, 1) < this.rules.playerBurnChance) {
+    const stats = this.status.snapshot();
+
+    if (this.random.range(0, 1) < stats.statuses.burnChance) {
       this.enemies.applyStatus(
         enemy,
         EnemyStatus.Burn,
@@ -183,7 +185,7 @@ export class PlayerCombatSystem {
       );
     }
 
-    if (this.random.range(0, 1) < this.rules.playerShockChance) {
+    if (this.random.range(0, 1) < stats.statuses.shockChance) {
       this.enemies.applyStatus(
         enemy,
         EnemyStatus.Shock,
@@ -193,11 +195,11 @@ export class PlayerCombatSystem {
       );
     }
 
-    if (ranged && this.rules.playerMarkDuration > 0) {
+    if (ranged && stats.statuses.markDuration > 0) {
       this.enemies.applyStatus(
         enemy,
         EnemyStatus.Mark,
-        this.rules.playerMarkDuration,
+        stats.statuses.markDuration,
         1,
         "player-projectile",
       );
@@ -205,6 +207,6 @@ export class PlayerCombatSystem {
   }
 
   private rollCrit(): boolean {
-    return this.random.range(0, 1) < Math.min(0.75, this.rules.critChance);
+    return this.random.range(0, 1) < this.status.snapshot().crit.chance;
   }
 }
