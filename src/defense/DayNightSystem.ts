@@ -42,6 +42,10 @@ export class DayNightSystem {
       return Math.min(1, this.elapsed / fade);
     }
 
+    if (this.nightValue > 0 && this.elapsed < fade) {
+      return 1 - this.elapsed / fade;
+    }
+
     if (this.timeRemaining < fade) {
       return 1 - this.timeRemaining / fade;
     }
