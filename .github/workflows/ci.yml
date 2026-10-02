@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,5 +18,5 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
-      - name: Typecheck and build
-        run: npm run build
+      - name: Tests + typecheck + Vite build
+        run: npm run check
