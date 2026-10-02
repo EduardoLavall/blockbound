@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { PlayerActionMode } from "../combat/CombatTypes";
 import type { Input } from "../core/Input";
+import { miningSwingCount } from "../survival/MiningTool";
 import type { PlayerController } from "./PlayerController";
 
 const BASE_POSITION = new THREE.Vector3(0.52, -0.48, -0.82);
@@ -10,6 +11,7 @@ const BASE_ROTATION = new THREE.Euler(-0.42, -0.18, -0.16, "XYZ");
 export class FirstPersonHand {
   private readonly root = new THREE.Group();
   private readonly arm = new THREE.Group();
+  private readonly pickaxe = new THREE.Group();
   private readonly blade = new THREE.Group();
   private readonly repeater = new THREE.Group();
 
@@ -19,6 +21,9 @@ export class FirstPersonHand {
   private attackStrength = 1;
   private swayX = 0;
   private swayY = 0;
+  private miningActive = false;
+  private miningProgress = 0;
+  private miningDuration = 0;
 
   constructor(
     camera: THREE.PerspectiveCamera,
@@ -65,22 +70,18 @@ export class FirstPersonHand {
       this.arm.add(mesh);
     }
 
+    this.createPickaxe();
     this.createBlade();
     this.createRepeater();
 
-    this.root.add(this.arm, this.blade, this.repeater);
+    this.root.add(
+      this.arm,
+      this.pickaxe,
+      this.blade,
+      this.repeater,
+    );
     camera.add(this.root);
     this.setActionMode(PlayerActionMode.Tool);
-
-    window.addEventListener("pointerdown", (event) => {
-      if (
-        event.button === 0 &&
-        this.controls.isLocked &&
-        this.actionMode === PlayerActionMode.Tool
-      ) {
-        this.triggerAttack(1);
-      }
-    });
 
     this.controls.addEventListener("lock", () => {
       this.root.visible = true;
@@ -93,8 +94,24 @@ export class FirstPersonHand {
 
   setActionMode(mode: PlayerActionMode): void {
     this.actionMode = mode;
+    this.pickaxe.visible = mode === PlayerActionMode.Tool;
     this.blade.visible = mode === PlayerActionMode.Blade;
     this.repeater.visible = mode === PlayerActionMode.Repeater;
+
+    if (mode !== PlayerActionMode.Tool) {
+      this.setMiningState(false, 0, 0);
+    }
+  }
+
+  setMiningState(
+    active: boolean,
+    progress: number,
+    duration: number,
+  ): void {
+    this.miningActive =
+      active && this.actionMode === PlayerActionMode.Tool;
+    this.miningProgress = THREE.MathUtils.clamp(progress, 0, 1);
+    this.miningDuration = Math.max(0, duration);
   }
 
   update(frameMs: number): void {
@@ -117,9 +134,11 @@ export class FirstPersonHand {
       this.walkTime += dt * (sprinting ? 12 : 8);
     }
 
-    const bobStrength = moving && grounded ? (sprinting ? 0.038 : 0.026) : 0;
+    const bobStrength =
+      moving && grounded ? (sprinting ? 0.038 : 0.026) : 0;
     const bobX = Math.sin(this.walkTime) * bobStrength;
-    const bobY = Math.abs(Math.cos(this.walkTime)) * bobStrength * 0.75;
+    const bobY =
+      Math.abs(Math.cos(this.walkTime)) * bobStrength * 0.75;
 
     const pointer = this.input.consumePointerDelta();
     this.swayX = THREE.MathUtils.lerp(
@@ -133,16 +152,42 @@ export class FirstPersonHand {
       0.38,
     );
 
-    if (Math.abs(pointer.x) < 0.01) this.swayX *= Math.pow(0.001, dt);
-    if (Math.abs(pointer.y) < 0.01) this.swayY *= Math.pow(0.001, dt);
+    if (Math.abs(pointer.x) < 0.01) {
+      this.swayX *= Math.pow(0.001, dt);
+    }
+    if (Math.abs(pointer.y) < 0.01) {
+      this.swayY *= Math.pow(0.001, dt);
+    }
 
     this.attackTime = Math.min(1, this.attackTime + dt / 0.22);
-    const wave = Math.sin(this.attackTime * Math.PI) * this.attackStrength;
+    const attackWave =
+      Math.sin(this.attackTime * Math.PI) * this.attackStrength;
+
+    const miningCycles = miningSwingCount(this.miningDuration);
+    const miningPhase =
+      (this.miningProgress * miningCycles) % 1;
+    const miningWave =
+      this.miningActive
+        ? Math.sin(miningPhase * Math.PI)
+        : 0;
+
+    const toolWave =
+      this.actionMode === PlayerActionMode.Tool
+        ? Math.max(attackWave, miningWave)
+        : 0;
     const bladeFactor =
       this.actionMode === PlayerActionMode.Blade ? 1.25 : 1;
-    const forward = wave * 0.32 * bladeFactor;
-    const down = wave * 0.075;
-    const pitch = wave * -0.68 * bladeFactor;
+
+    const forward =
+      attackWave * 0.32 * bladeFactor +
+      toolWave * 0.12;
+    const down =
+      attackWave * 0.075 +
+      toolWave * 0.1;
+    const pitch =
+      attackWave * -0.68 * bladeFactor +
+      toolWave * -0.92;
+    const toolRoll = toolWave * 0.28;
 
     this.root.position.set(
       BASE_POSITION.x + bobX + this.swayX,
@@ -153,8 +198,11 @@ export class FirstPersonHand {
     this.root.rotation.set(
       BASE_ROTATION.x + pitch + this.swayY * 0.5,
       BASE_ROTATION.y + this.swayX * 0.65,
-      BASE_ROTATION.z - bobX * 1.8 +
-        (this.actionMode === PlayerActionMode.Blade ? wave * 0.38 : 0),
+      BASE_ROTATION.z -
+        bobX * 1.8 +
+        (this.actionMode === PlayerActionMode.Blade
+          ? attackWave * 0.38
+          : toolRoll),
     );
   }
 
@@ -163,8 +211,54 @@ export class FirstPersonHand {
     this.attackStrength = strength;
   }
 
-  triggerPunch(): void {
-    this.triggerAttack(1);
+  private createPickaxe(): void {
+    const handle = viewMaterial(0x725038, 0.88, 0.02);
+    const grip = viewMaterial(0x2d342f, 0.85, 0.04);
+    const metal = viewMaterial(0x9ba7a5, 0.38, 0.62);
+    const edge = viewMaterial(0xc5d2cf, 0.26, 0.74);
+
+    const shaft = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.12, 0.95),
+      handle,
+    );
+    shaft.position.set(0, 0.02, -1.28);
+
+    const lowerGrip = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 0.15, 0.28),
+      grip,
+    );
+    lowerGrip.position.set(0, 0.02, -0.92);
+
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(0.78, 0.17, 0.2),
+      metal,
+    );
+    head.position.set(0, 0.02, -1.76);
+
+    const leftTip = new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 0.1, 0.12),
+      edge,
+    );
+    leftTip.position.set(-0.48, 0.02, -1.76);
+    leftTip.rotation.z = -0.22;
+
+    const rightTip = new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 0.1, 0.12),
+      edge,
+    );
+    rightTip.position.set(0.48, 0.02, -1.76);
+    rightTip.rotation.z = 0.22;
+
+    for (const mesh of [
+      shaft,
+      lowerGrip,
+      head,
+      leftTip,
+      rightTip,
+    ]) {
+      prepareViewMesh(mesh);
+      this.pickaxe.add(mesh);
+    }
   }
 
   private createBlade(): void {
