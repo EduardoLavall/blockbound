@@ -28,6 +28,7 @@ export class VoxelInteractionController {
   private miningKey = "";
   private miningElapsed = 0;
   private miningRatio = 0;
+  private miningDurationValue = 0;
   private feedback = "";
   private feedbackTime = 0;
 
@@ -144,6 +145,18 @@ export class VoxelInteractionController {
     }
   }
 
+  get miningState(): {
+    active: boolean;
+    progress: number;
+    duration: number;
+  } {
+    return {
+      active: this.miningRatio > 0,
+      progress: this.miningRatio,
+      duration: this.miningDurationValue,
+    };
+  }
+
   getDebugLines(): string[] {
     return [
       `BLOCK     ${this.hotbar.selectedName}`,
@@ -189,6 +202,7 @@ export class VoxelInteractionController {
 
     const baseDuration = miningDuration(target.block);
     const duration = this.status.modifyMiningDuration(baseDuration);
+    this.miningDurationValue = duration;
     if (!Number.isFinite(duration)) {
       this.resetMining();
       return;
@@ -278,6 +292,7 @@ export class VoxelInteractionController {
     this.miningKey = "";
     this.miningElapsed = 0;
     this.miningRatio = 0;
+    this.miningDurationValue = 0;
   }
 
   private intersectsPlayer(x: number, y: number, z: number): boolean {
