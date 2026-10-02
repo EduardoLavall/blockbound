@@ -3,6 +3,7 @@ import { ResourceId, type ResourceCost } from "../survival/Resources";
 export enum StructureType {
   Wall = "wall",
   Turret = "turret",
+  RapidTurret = "rapid-turret",
   Spike = "spike",
   Gate = "gate",
 }
@@ -54,6 +55,24 @@ export const STRUCTURES: Readonly<Record<StructureType, StructureDefinition>> = 
     repairHealth: 35,
     range: 12,
   },
+  [StructureType.RapidTurret]: {
+    type: StructureType.RapidTurret,
+    name: "Rapid Turret",
+    cost: {
+      [ResourceId.Wood]: 2,
+      [ResourceId.Metal]: 3,
+      [ResourceId.Crystal]: 1,
+    },
+    maxHealth: 100,
+    width: 1,
+    depth: 1,
+    height: 1.85,
+    swatch: "#8e805d",
+    repairResource: ResourceId.Metal,
+    repairAmount: 1,
+    repairHealth: 30,
+    range: 9.5,
+  },
   [StructureType.Spike]: {
     type: StructureType.Spike,
     name: "Spike Trap",
@@ -93,4 +112,5 @@ export const STRUCTURE_ORDER: readonly StructureType[] = [
   StructureType.Turret,
   StructureType.Spike,
   StructureType.Gate,
+  StructureType.RapidTurret,
 ];

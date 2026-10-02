@@ -12,6 +12,7 @@ import { VOXEL_INTERACTION_DISTANCE } from "../voxel/constants";
 import type { WorldBounds } from "../voxel/generation/WorldMetadata";
 import { raycastVoxels } from "../voxel/VoxelRaycast";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
+import { isTurretStructure } from "../defense/TurretRegistry";
 import type { Core } from "./Core";
 import {
   STRUCTURES,
@@ -435,9 +436,17 @@ export class StructureSystem {
 
     if (type === StructureType.Wall) {
       this.physics.addBoxCollider(body, 1, 1, 0.23, 0, 1, 0);
-    } else if (type === StructureType.Turret) {
+    } else if (isTurretStructure(type)) {
       this.physics.addBoxCollider(body, 0.45, 0.25, 0.45, 0, 0.25, 0);
-      this.physics.addBoxCollider(body, 0.28, 0.75, 0.28, 0, 0.95, 0);
+      this.physics.addBoxCollider(
+        body,
+        type === StructureType.RapidTurret ? 0.34 : 0.28,
+        type === StructureType.RapidTurret ? 0.58 : 0.75,
+        type === StructureType.RapidTurret ? 0.34 : 0.28,
+        0,
+        type === StructureType.RapidTurret ? 0.78 : 0.95,
+        0,
+      );
     } else if (type === StructureType.Spike) {
       this.physics.addBoxCollider(body, 0.85, 0.08, 0.85, 0, 0.08, 0);
     } else {

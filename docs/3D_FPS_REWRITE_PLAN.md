@@ -1311,7 +1311,7 @@ A infraestrutura e a primeira análise estática estão concluídas, mas a valid
 
 ---
 
-## Fase 13 — Rapid / Machine Gun Turret
+## Fase 13 ✅ implementação base concluída — Rapid / Machine Gun Turret
 
 Objetivo: criar a primeira torre especializada em **DPS sustentado contra grupos leves**.
 
@@ -1328,6 +1328,38 @@ Objetivo: criar a primeira torre especializada em **DPS sustentado contra grupos
 ### Aceite
 
 A Rapid Turret é claramente melhor contra alvos leves frequentes e claramente pior contra alvos resistentes/long-range.
+
+### Implementação atual
+
+- novo `StructureType.RapidTurret`;
+- slot 5 do Build Mode, preservando os atalhos anteriores;
+- custo 2 Wood + 3 Metal + 1 Crystal;
+- 100 HP;
+- 9.5 de range;
+- 8 damage / 0.22s;
+- ~36.36 raw DPS;
+- visual compacto com canos duplos;
+- bolt laranja;
+- `TurretRegistry.ts` centraliza perfil de combate;
+- target priority favorece Runner e Grunt;
+- matchup damage aumenta contra Runner/Grunt;
+- matchup damage reduz contra Brute/Boss;
+- Basic Turret permanece generalista e com 12 de range;
+- upgrades globais de Turret, Burn, Shock e Mark continuam aplicáveis;
+- BalanceHarness registra DPS por matchup;
+- testes de identidade e baseline.
+
+### Tuning atual por alvo
+
+```text
+Runner   ~41.82 DPS
+Grunt    ~39.27 DPS
+neutral  ~36.36 DPS
+Brute    20.00 DPS
+Boss     ~16.36 DPS
+```
+
+Esses números continuam sujeitos à telemetria/playtest.
 
 ---
 
