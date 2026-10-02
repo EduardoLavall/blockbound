@@ -79,19 +79,12 @@ export class ItemLootSystem {
 
     this.killsSeen++;
     const guaranteedFirstDrop = this.killsSeen === 1;
-    const chance = guaranteedFirstDrop
-      ? 1
-      : dropChance(event.enemy.type);
-
-    if (this.random.next() > chance) return;
-
-    const rarity = guaranteedFirstDrop
-      ? "common"
-      : this.rollRarity(event.enemy.type);
-    const candidates = ITEMS.filter((item) => item.rarity === rarity);
-    const pool = candidates.length > 0 ? candidates : ITEMS;
-    const definition =
-      pool[Math.floor(this.random.range(0, pool.length))]!;
+    const definition = selectLootDefinition(
+      this.random,
+      event.enemy.type,
+      guaranteedFirstDrop,
+    );
+    if (!definition) return;
 
     const position = event.enemy.group.position;
     this.spawn(
@@ -138,28 +131,6 @@ export class ItemLootSystem {
     });
   }
 
-  private rollRarity(type: EnemyType): ItemRarity {
-    if (type === EnemyType.Boss) return "epic";
-
-    const roll = this.random.next();
-    const epicChance =
-      type === EnemyType.Support || type === EnemyType.Burrower
-        ? 0.12
-        : type === EnemyType.Brute
-          ? 0.09
-          : 0.04;
-    const rareChance =
-      type === EnemyType.Support ||
-      type === EnemyType.Burrower ||
-      type === EnemyType.Brute
-        ? 0.42
-        : 0.28;
-
-    if (roll < epicChance) return "epic";
-    if (roll < epicChance + rareChance) return "rare";
-    return "common";
-  }
-
   private removeAt(index: number): void {
     const drop = this.drops[index]!;
     this.scene.remove(drop.mesh);
@@ -171,7 +142,24 @@ export class ItemLootSystem {
   }
 }
 
-function dropChance(type: EnemyType): number {
+export function selectLootDefinition(
+  random: SeededRandom,
+  type: EnemyType,
+  guaranteed = false,
+): ItemDefinition | null {
+  if (!guaranteed && random.next() > itemDropChance(type)) {
+    return null;
+  }
+
+  const rarity = guaranteed
+    ? "common"
+    : rollItemRarity(random, type);
+  const candidates = ITEMS.filter((item) => item.rarity === rarity);
+  const pool = candidates.length > 0 ? candidates : ITEMS;
+  return pool[Math.floor(random.range(0, pool.length))] ?? null;
+}
+
+export function itemDropChance(type: EnemyType): number {
   switch (type) {
     case EnemyType.Runner:
       return 0.13;
@@ -188,6 +176,31 @@ function dropChance(type: EnemyType): number {
     default:
       return 0.15;
   }
+}
+
+export function rollItemRarity(
+  random: SeededRandom,
+  type: EnemyType,
+): ItemRarity {
+  if (type === EnemyType.Boss) return "epic";
+
+  const roll = random.next();
+  const epicChance =
+    type === EnemyType.Support || type === EnemyType.Burrower
+      ? 0.12
+      : type === EnemyType.Brute
+        ? 0.09
+        : 0.04;
+  const rareChance =
+    type === EnemyType.Support ||
+    type === EnemyType.Burrower ||
+    type === EnemyType.Brute
+      ? 0.42
+      : 0.28;
+
+  if (roll < epicChance) return "epic";
+  if (roll < epicChance + rareChance) return "rare";
+  return "common";
 }
 
 function rarityColor(rarity: ItemRarity): THREE.Color {
