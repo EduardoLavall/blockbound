@@ -13,7 +13,12 @@ export async function bootstrap(): Promise<void> {
   const loadingLabel = required<HTMLElement>("loading-label");
   const debug = required<HTMLDivElement>("debug");
   const hotbar = required<HTMLDivElement>("hotbar");
+  const buildBar = required<HTMLDivElement>("buildbar");
   const targetInfo = required<HTMLDivElement>("target-info");
+  const buildInfo = required<HTMLDivElement>("build-info");
+  const miningProgress = required<HTMLDivElement>("mining-progress-fill");
+  const inventoryHud = required<HTMLDivElement>("inventory-hud");
+  const coreHud = required<HTMLDivElement>("core-hud");
   const status = required<HTMLDivElement>("status");
 
   const app = new GameApp({
@@ -23,7 +28,12 @@ export async function bootstrap(): Promise<void> {
     loadingLabel,
     debug,
     hotbar,
+    buildBar,
     targetInfo,
+    buildInfo,
+    miningProgress,
+    inventoryHud,
+    coreHud,
     status,
   });
 
