@@ -5,34 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10170f" />
     <meta name="description" content="Blockfall — 3D voxel FPS tower defense roguelite." />
-    <title>Blockfall — Procedural World</title>
+    <title>Blockfall — Survival & Build</title>
   </head>
   <body>
     <div id="app">
       <canvas id="game-canvas"></canvas>
       <div id="crosshair" aria-hidden="true"></div>
       <div id="debug"></div>
-      <div id="status">PROCEDURAL WORLD · ISSUE #5</div>
-      <div id="target-info">BUILD</div>
-      <div id="hotbar" aria-label="Hotbar"></div>
+      <div id="status">SURVIVAL + BUILD · ISSUE #6</div>
+
+      <div id="core-hud"></div>
+      <div id="inventory-hud"></div>
+
+      <div id="build-info">B · BUILD MODE</div>
+      <div id="target-info">MATERIAL</div>
+
+      <div id="mining-progress-track">
+        <div id="mining-progress-fill"></div>
+      </div>
+
+      <div id="buildbar" aria-label="Build recipes"></div>
+      <div id="hotbar" aria-label="Material hotbar"></div>
 
       <div id="start-overlay" class="overlay">
         <div class="panel">
-          <div class="eyebrow">BLOCKFALL · FINITE PROCEDURAL RUN</div>
-          <h1>PROCEDURAL WORLD</h1>
-          <p>Um mapa voxel finito gerado por seed, com biomas, árvores, recursos, POIs e zonas reservadas para Core e hordas.</p>
+          <div class="eyebrow">BLOCKFALL · SURVIVE BY BUILDING</div>
+          <h1>SURVIVAL + BUILD</h1>
+          <p>Minere recursos, colete os drops e transforme materiais em blocos e estruturas defensivas para proteger o Core.</p>
           <div class="controls">
             <span><b>WASD</b> mover</span>
             <span><b>Mouse</b> olhar</span>
-            <span><b>LMB</b> quebrar</span>
-            <span><b>RMB</b> colocar</span>
-            <span><b>1–5</b> selecionar bloco</span>
+            <span><b>Hold LMB</b> minerar</span>
+            <span><b>RMB</b> colocar/construir</span>
+            <span><b>1–5</b> materiais</span>
+            <span><b>B</b> Build Mode</span>
+            <span><b>1–4</b> estruturas no Build</span>
+            <span><b>E</b> abrir/fechar Gate</span>
+            <span><b>R</b> reparar estrutura</span>
             <span><b>Space</b> pular</span>
             <span><b>Shift</b> correr</span>
             <span><b>Esc</b> soltar mouse</span>
           </div>
           <button id="play-button">ENTRAR NA RUN</button>
-          <small id="loading-label">Gerando seed...</small>
+          <small id="loading-label">Preparando sobrevivência...</small>
         </div>
       </div>
     </div>

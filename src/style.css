@@ -154,3 +154,179 @@ small { display: block; color: #899685; margin-top: 13px; }
   .hotbar-slot { width: 55px; }
   .hotbar-name { display: none; }
 }
+
+
+.hidden { display: none !important; }
+
+#inventory-hud,
+#core-hud,
+#build-info,
+#mining-progress-track {
+  position: fixed;
+  z-index: 6;
+  pointer-events: none;
+}
+
+#inventory-hud {
+  right: 16px;
+  top: 58px;
+  min-width: 160px;
+  padding: 10px;
+  background: rgba(7, 10, 8, .76);
+  border: 1px solid rgba(236, 220, 155, .2);
+  backdrop-filter: blur(5px);
+}
+
+.resource-row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 7px;
+  align-items: center;
+  min-height: 24px;
+  color: #c9d1c2;
+  font: 800 10px ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.resource-row strong {
+  color: #f1dda1;
+  font-size: 12px;
+}
+
+.resource-swatch {
+  width: 12px;
+  height: 12px;
+  background: var(--swatch);
+  border: 1px solid rgba(255,255,255,.2);
+  box-shadow: inset -2px -2px 0 rgba(0,0,0,.2);
+}
+
+#core-hud {
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, 42vw);
+  padding: 8px 10px;
+  background: rgba(7, 10, 8, .76);
+  border: 1px solid rgba(101, 228, 221, .34);
+  backdrop-filter: blur(5px);
+}
+
+.core-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  color: #9de9e2;
+  font: 900 11px ui-monospace, monospace;
+  letter-spacing: .08em;
+}
+
+.core-health-track {
+  height: 7px;
+  background: #17201d;
+  border: 1px solid #31443e;
+  overflow: hidden;
+}
+
+.core-health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4cbdb5, #8cf2e7);
+}
+
+#build-info {
+  left: 50%;
+  bottom: 148px;
+  transform: translateX(-50%);
+  padding: 7px 10px;
+  color: #f2dfa0;
+  background: rgba(7, 10, 8, .72);
+  border: 1px solid rgba(236, 220, 155, .2);
+  font: 800 10px ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+#mining-progress-track {
+  left: 50%;
+  top: calc(50% + 20px);
+  transform: translateX(-50%);
+  width: 120px;
+  height: 6px;
+  opacity: 0;
+  background: rgba(10, 12, 10, .72);
+  border: 1px solid rgba(255,255,255,.16);
+  transition: opacity .08s ease;
+}
+
+#mining-progress-track.active { opacity: 1; }
+
+#mining-progress-fill {
+  width: 0;
+  height: 100%;
+  background: #e6c55f;
+}
+
+#buildbar {
+  position: fixed;
+  z-index: 7;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.build-slot {
+  width: 112px;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 22px 24px 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 5px;
+  align-items: center;
+  padding: 7px;
+  background: rgba(9, 13, 10, .9);
+  border: 2px solid rgba(152, 162, 133, .38);
+  box-shadow: 0 4px 0 rgba(0,0,0,.45);
+}
+
+.build-slot.selected {
+  border-color: #efd06e;
+  transform: translateY(-5px);
+  background: rgba(33, 37, 22, .96);
+}
+
+.build-key {
+  color: #efd06e;
+  font: 900 12px ui-monospace, monospace;
+}
+
+.build-swatch {
+  width: 20px;
+  height: 20px;
+  background: var(--swatch);
+  border: 1px solid rgba(255,255,255,.22);
+}
+
+.build-name {
+  color: #d9decf;
+  font: 900 10px ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.build-cost {
+  grid-column: 1 / -1;
+  color: #899685;
+  font: 700 8px ui-monospace, monospace;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  #inventory-hud { min-width: 130px; }
+  #core-hud { width: 46vw; }
+  .build-slot { width: 76px; }
+  .build-cost { display: none; }
+  .build-name { font-size: 8px; }
+}
