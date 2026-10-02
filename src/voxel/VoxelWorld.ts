@@ -10,51 +10,6 @@ export interface VoxelEditResult {
 export class VoxelWorld {
   private readonly chunks = new Map<string, Chunk>();
 
-  static createTestWorld(radius = 1): VoxelWorld {
-    const world = new VoxelWorld();
-
-    for (let cz = -radius; cz <= radius; cz++) {
-      for (let cx = -radius; cx <= radius; cx++) {
-        world.ensureChunk(cx, cz);
-      }
-    }
-
-    const min = -radius * CHUNK_SIZE;
-    const max = (radius + 1) * CHUNK_SIZE - 1;
-
-    for (let z = min; z <= max; z++) {
-      for (let x = min; x <= max; x++) {
-        const wave =
-          Math.sin(x * 0.17) * 1.25 +
-          Math.cos(z * 0.15) * 1.1 +
-          Math.sin((x + z) * 0.075) * 0.7;
-        const height = Math.max(3, Math.min(8, 5 + Math.round(wave)));
-
-        world.setBlockRaw(x, 0, z, BlockId.Bedrock);
-        for (let y = 1; y <= height; y++) {
-          const block =
-            y === height
-              ? BlockId.Grass
-              : y >= height - 2
-                ? BlockId.Dirt
-                : BlockId.Stone;
-          world.setBlockRaw(x, y, z, block);
-        }
-      }
-    }
-
-    // A few deliberately artificial landmarks make collision, mining and
-    // placement easier to validate before seeded world generation exists.
-    for (let y = 6; y <= 10; y++) {
-      world.setBlockRaw(-5, y, -4, BlockId.Wood);
-    }
-    world.setBlockRaw(6, 7, -5, BlockId.Crystal);
-    world.setBlockRaw(6, 8, -5, BlockId.Crystal);
-    world.setBlockRaw(7, 7, -5, BlockId.Crystal);
-
-    return world;
-  }
-
   ensureChunk(cx: number, cz: number): Chunk {
     const key = Chunk.key(cx, cz);
     let chunk = this.chunks.get(key);
@@ -113,19 +68,22 @@ export class VoxelWorld {
     return { changed: true, dirtyChunkKeys: [...dirty] };
   }
 
+  setGeneratedBlock(x: number, y: number, z: number, block: BlockId): boolean {
+    if (y < 0 || y >= CHUNK_HEIGHT) return false;
+
+    const cx = Math.floor(x / CHUNK_SIZE);
+    const cz = Math.floor(z / CHUNK_SIZE);
+    const chunk = this.getChunk(cx, cz);
+    if (!chunk) return false;
+
+    return chunk.set(x - cx * CHUNK_SIZE, y, z - cz * CHUNK_SIZE, block);
+  }
+
   highestSolidY(x: number, z: number): number {
     for (let y = CHUNK_HEIGHT - 1; y >= 0; y--) {
       if (this.getBlock(x, y, z) !== BlockId.Air) return y;
     }
     return -1;
-  }
-
-  private setBlockRaw(x: number, y: number, z: number, block: BlockId): void {
-    const cx = Math.floor(x / CHUNK_SIZE);
-    const cz = Math.floor(z / CHUNK_SIZE);
-    const chunk = this.getChunk(cx, cz);
-    if (!chunk || y < 0 || y >= CHUNK_HEIGHT) return;
-    chunk.set(x - cx * CHUNK_SIZE, y, z - cz * CHUNK_SIZE, block);
   }
 
   private addIfLoaded(target: Set<string>, cx: number, cz: number): void {
