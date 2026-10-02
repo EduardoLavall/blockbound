@@ -1232,7 +1232,7 @@ Uma run completa pode ser jogada do começo ao boss sem ferramentas de debug.
 
 ---
 
-## Fase 12 — Game Design: análise crítica e balanceamento
+## Fase 12 ✅ baseline implementada — Game Design: análise crítica e balanceamento
 
 Objetivo: fazer uma revisão crítica do jogo já jogável antes de adicionar novas camadas de progressão.
 
@@ -1287,6 +1287,27 @@ Criar um documento de balanceamento contendo:
 ### Aceite
 
 Existe uma análise crítica documentada do vertical slice e os primeiros ajustes de balanceamento são baseados em dados/playtest, não apenas sensação isolada.
+
+### Implementação atual
+
+- `src/balance/BalanceHarness.ts` calcula a baseline diretamente dos registries reais;
+- Blade/Repeater DPS e expected crit;
+- TTK por inimigo;
+- enemy DPS;
+- tempo teórico de breach;
+- pressão no Core;
+- Turret/Spike theoretical DPS;
+- pressão teórica das Nights 1–5;
+- auditoria de power budget de upgrades escalares;
+- `RunTelemetry.ts` registra checkpoints de run;
+- export JSON no resumo final;
+- `docs/BALANCE_ANALYSIS.md` separa fatos, hipóteses e perguntas de playtest;
+- primeiros outliers identificados sem alterar tuning prematuramente;
+- testes travam a baseline atual para futuras comparações.
+
+### Pendência intencional
+
+A infraestrutura e a primeira análise estática estão concluídas, mas a validação subjetiva/empírica exige uma bateria de runs humanas com os JSONs exportados.
 
 ---
 
