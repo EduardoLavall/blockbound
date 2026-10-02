@@ -13,6 +13,7 @@ export class Input {
   constructor() {
     window.addEventListener("keydown", (event) => {
       if (!this.enabled) return;
+      if (event.code === "Tab") event.preventDefault();
       if (!this.held.has(event.code)) this.pressed.add(event.code);
       this.held.add(event.code);
     });
