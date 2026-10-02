@@ -9,7 +9,7 @@ import {
   formatCost,
   placementCost,
 } from "../survival/Resources";
-import type { RuleEngine } from "../roguelite/RuleEngine";
+import type { PlayerStatus } from "./PlayerStatus";
 import { BlockId, blockDefinition } from "../voxel/blocks";
 import { VOXEL_INTERACTION_DISTANCE } from "../voxel/constants";
 import type { ChunkManager } from "../voxel/render/ChunkManager";
@@ -42,7 +42,7 @@ export class VoxelInteractionController {
     private readonly inventory: Inventory,
     private readonly drops: ResourceDropSystem,
     private readonly mode: InteractionMode,
-    private readonly rules: RuleEngine,
+    private readonly status: PlayerStatus,
     private readonly canMinePrimary: () => boolean,
     private readonly targetInfo: HTMLElement,
     private readonly miningProgress: HTMLElement,
@@ -176,7 +176,7 @@ export class VoxelInteractionController {
     }
 
     const baseDuration = miningDuration(target.block);
-    const duration = this.rules.modifyMiningDuration(baseDuration);
+    const duration = this.status.modifyMiningDuration(baseDuration);
     if (!Number.isFinite(duration)) {
       this.resetMining();
       return;
@@ -208,7 +208,9 @@ export class VoxelInteractionController {
         this.drops.spawn(
           {
             ...drop,
-            amount: drop.amount + this.rules.resourceYieldBonus,
+            amount:
+              drop.amount +
+              this.status.snapshot().utility.resourceYieldBonus,
           },
           target.voxel.x,
           target.voxel.y,
