@@ -6,7 +6,11 @@ function materialFor(type: StructureType, ghost: boolean): THREE.MeshStandardMat
   return new THREE.MeshStandardMaterial({
     color,
     roughness: 0.82,
-    metalness: type === StructureType.Turret ? 0.28 : 0.05,
+    metalness:
+      type === StructureType.Turret ||
+      type === StructureType.RapidTurret
+        ? 0.28
+        : 0.05,
     transparent: ghost,
     opacity: ghost ? 0.42 : 1,
     depthWrite: !ghost,
@@ -55,6 +59,24 @@ export function createStructureVisual(
       depthWrite: !ghost,
     });
     addBox(group, crystalMaterial, [0.2, 0.2, 0.2], [0, 1.76, 0]);
+  } else if (type === StructureType.RapidTurret) {
+    addBox(group, material, [0.92, 0.24, 0.92], [0, 0.12, 0]);
+    addBox(group, material, [0.28, 0.72, 0.28], [0, 0.58, 0]);
+    addBox(group, material, [0.82, 0.42, 0.68], [0, 1.04, 0]);
+    addBox(group, material, [0.16, 0.14, 0.84], [-0.2, 1.08, -0.62]);
+    addBox(group, material, [0.16, 0.14, 0.84], [0.2, 1.08, -0.62]);
+
+    const rapidCore = new THREE.MeshStandardMaterial({
+      color: 0xffc45e,
+      emissive: 0x6a3f0e,
+      emissiveIntensity: 1.9,
+      roughness: 0.38,
+      metalness: 0.12,
+      transparent: ghost,
+      opacity: ghost ? 0.5 : 1,
+      depthWrite: !ghost,
+    });
+    addBox(group, rapidCore, [0.34, 0.18, 0.16], [0, 1.33, 0.16]);
   } else if (type === StructureType.Spike) {
     addBox(group, material, [1.7, 0.12, 1.7], [0, 0.06, 0]);
     for (const x of [-0.55, 0, 0.55]) {
