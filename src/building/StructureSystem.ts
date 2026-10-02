@@ -259,6 +259,19 @@ export class StructureSystem {
       return false;
     }
 
+    const startX = Math.floor(minX + 0.001);
+    const endX = Math.floor(maxX - 0.001);
+    const startZ = Math.floor(minZ + 0.001);
+    const endZ = Math.floor(maxZ - 0.001);
+
+    for (let gridZ = startZ; gridZ <= endZ; gridZ++) {
+      for (let gridX = startX; gridX <= endX; gridX++) {
+        if (this.world.highestSolidY(gridX, gridZ) >= y) {
+          return false;
+        }
+      }
+    }
+
     const coreX = this.core.group.position.x;
     const coreZ = this.core.group.position.z;
     if (
