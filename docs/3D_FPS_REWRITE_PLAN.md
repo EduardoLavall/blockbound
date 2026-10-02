@@ -1879,7 +1879,7 @@ As ações principais — atirar, acertar, matar, minerar, construir, sofrer dan
 13. inventário + equipamento ✅
 14. análise crítica de game design + balanceamento ✅ baseline
 15. Rapid / Machine Gun Turret ✅
-16. Lane System v1 — 1 lane indestrutível
+16. Lane System v1 — 1 lane indestrutível ✅
 17. Pickaxe / Mining Tool
 18. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling
 19. Inventory 2.0
@@ -2230,7 +2230,7 @@ O jogador abre o inventário, vê imediatamente o que consegue fabricar e crafta
 
 ---
 
-## 28.3 Lane System v1 — uma lane indestrutível
+## 28.3 Lane System v1 ✅ implementação base concluída — uma lane indestrutível
 
 Blockfall deve ganhar uma camada explícita de **lane de ataque**.
 
@@ -2282,6 +2282,29 @@ Não implementar múltiplas lanes antes da primeira funcionar bem.
 ### Aceite
 
 Mesmo após grandes alterações no terreno, existe pelo menos uma rota estrutural reconhecível que o jogador não consegue apagar do mapa.
+
+### Implementação atual
+
+- uma única lane por run;
+- entrada norte única para a horda;
+- 3 blocos de largura;
+- terreno nivelado em Y=6;
+- conecta a entrada à região do Core;
+- `VoxelWorld.protectColumn(..., "lane")`;
+- mineração e placement voxel bloqueados nas colunas da lane;
+- Wall/Gate/Basic Turret/Rapid Turret proibidos sobre a lane;
+- Spike Trap permitida;
+- `NavigationCell.lane`;
+- custo preferencial `0.65` contra `1.0` do terreno comum;
+- SpawnDirector recebe apenas a origem da lane;
+- overlay visual sutil em world-space;
+- metadata/debug da lane;
+- testes de world generation, proteção, navigation e structure policy.
+
+### Pendência
+
+- smoke visual/manual durante uma Night real;
+- validar em playtest se 3 blocos de largura dão espaço suficiente para traps/killzones.
 
 ---
 
