@@ -1452,7 +1452,7 @@ Investir níveis muda perceptivelmente a função da torre sem apagar a diferen�
 
 ---
 
-## Fase 10 — Player Status
+## Fase 10 ✅ implementação base concluída — Player Status
 
 Objetivo: criar uma fonte única e legível para os atributos atuais do jogador.
 
@@ -1472,7 +1472,33 @@ Objetivo: criar uma fonte única e legível para os atributos atuais do jogador.
 
 O jogo consegue explicar em uma única tela quais são os atributos atuais do jogador e de onde os principais modificadores vêm.
 
+### Implementação atual
+
+- `PlayerStats.ts` concentra os valores base;
+- `PlayerStatus.ts` calcula snapshots finais;
+- breakdown explícito Base / Run / Equip / Final;
+- contrato `EquipmentStatModifiers` pronto para a Fase 11;
+- HP atual/máximo;
+- walk/sprint/jump;
+- Blade damage/cooldown/APS/range/DPS;
+- Repeater damage/cooldown/SPS/projectile speed/pierce/DPS;
+- crit chance/multiplier;
+- damage reduction;
+- mining speed;
+- resource yield;
+- repair power;
+- Burn/Shock/Mark;
+- low-HP damage;
+- kill-effect stats permanecem disponíveis no snapshot;
+- `Tab` abre o Live Build Sheet;
+- upgrades adquiridos aparecem no painel;
+- movimento, combate, mineração, resource yield, reparo e player incoming damage consultam o Player Status;
+- camada de equipamento está neutra até a próxima fase;
+- testes verificam combinação Base + Run + Equipment.
+
 ---
+
+
 
 ## Fase 11 — Inventário + Equipamento
 
