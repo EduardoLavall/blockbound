@@ -1880,7 +1880,7 @@ As ações principais — atirar, acertar, matar, minerar, construir, sofrer dan
 14. análise crítica de game design + balanceamento ✅ baseline
 15. Rapid / Machine Gun Turret ✅
 16. Lane System v1 — 1 lane indestrutível ✅
-17. Pickaxe / Mining Tool
+17. Pickaxe / Mining Tool ✅
 18. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling
 19. Inventory 2.0
 20. Crafting contextual v1
@@ -2308,7 +2308,7 @@ Mesmo após grandes alterações no terreno, existe pelo menos uma rota estrutur
 
 ---
 
-## 28.4 Pickaxe / Mining Tool
+## 28.4 Pickaxe / Mining Tool ✅ implementação base concluída
 
 A mineração precisa deixar de parecer que o jogador quebra blocos apenas com uma mão abstrata.
 
@@ -2335,7 +2335,36 @@ Adicionar uma **picareta** como ferramenta visível em primeira pessoa.
 
 Mineração comunica claramente que existe uma ferramenta física executando a ação e o timing visual corresponde ao progresso real do bloco.
 
+### Implementação atual
+
+- `MiningToolDefinition` centralizada;
+- Pickaxe é a ferramenta base;
+- mining power `1.0×`, preservando o balanceamento anterior;
+- hardness explícito por bloco;
+- duração = hardness / tool power / Player Status mining speed;
+- viewmodel voxel/low-poly original;
+- Pickaxe visível apenas no Tool Mode;
+- swing sincronizado com progresso/duração reais;
+- quantidade de swings deriva da duração final do bloco;
+- 10 damage;
+- 0.55s cooldown;
+- 2.1m range;
+- ~18.18 DPS, bem abaixo da Blade;
+- prioriza mineração quando há voxel antes do inimigo;
+- vira melee de emergência quando o inimigo está realmente na frente;
+- source `player-tool`;
+- kills continuam contando para RunManager/kill effects;
+- não aplica Burn/Shock/Mark automaticamente;
+- sem durability;
+- testes de tool baseline e hardness.
+
+### Pendência intencional
+
+Crack overlay, particles, debris, material-specific impact e camera feedback continuam na fase **Block Breaking Feedback / Juicy Mining**, após o pipeline de texturas 16×16.
+
 ---
+
+
 
 ## 28.5 Voxel Texture Pipeline — assets reais 16×16
 
