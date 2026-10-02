@@ -43,6 +43,11 @@ describe("BalanceHarness", () => {
     const snapshot = createBalanceSnapshot();
 
     expect(snapshot.defense.turretDps).toBeCloseTo(29.1667, 3);
+    expect(snapshot.defense.rapidTurretDps).toBeCloseTo(36.3636, 3);
+    expect(snapshot.defense.rapidVsRunnerDps).toBeCloseTo(41.8182, 3);
+    expect(snapshot.defense.rapidVsBruteDps).toBeCloseTo(20, 3);
+    expect(snapshot.defense.rapidVsBossDps).toBeCloseTo(16.3636, 3);
+    expect(snapshot.defense.rapidTurretRange).toBe(9.5);
     expect(snapshot.defense.spikeDps).toBeCloseTo(38.7097, 3);
     expect(snapshot.content.upgrades).toBe(38);
     expect(snapshot.content.items).toBe(12);
