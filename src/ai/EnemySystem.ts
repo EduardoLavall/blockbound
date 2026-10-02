@@ -263,7 +263,8 @@ export class EnemySystem {
     enemy: EnemyInstance,
     status: EnemyStatus,
     duration: number,
-    magnitude = 1,
+    magnitude: number,
+    source: DamageSource,
   ): void {
     if (!enemy.alive || duration <= 0) return;
 
@@ -272,6 +273,7 @@ export class EnemySystem {
       remaining: Math.max(duration, current?.remaining ?? 0),
       magnitude: Math.max(magnitude, current?.magnitude ?? 0),
       tick: current?.tick ?? 0.5,
+      source,
     });
   }
 
@@ -285,7 +287,7 @@ export class EnemySystem {
         state.tick -= dt;
         if (state.tick <= 0) {
           state.tick += 0.5;
-          this.damage(enemy, 5 * state.magnitude, "burn");
+          this.damage(enemy, 5 * state.magnitude, state.source);
           if (!enemy.alive) return;
         }
       }
