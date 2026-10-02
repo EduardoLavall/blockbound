@@ -5,7 +5,7 @@ interface TileStyle {
   base: string;
   light: string;
   dark: string;
-  mode: "noise" | "stripes" | "crystal";
+  mode: "noise" | "stripes" | "crystal" | "ore";
 }
 
 const TILES: readonly TileStyle[] = [
@@ -15,6 +15,8 @@ const TILES: readonly TileStyle[] = [
   { base: "#936d42", light: "#b58a56", dark: "#6f4d2d", mode: "stripes" },
   { base: "#48aaad", light: "#7ce3dc", dark: "#276b75", mode: "crystal" },
   { base: "#30343a", light: "#464b52", dark: "#202329", mode: "noise" },
+  { base: "#3f7441", light: "#5d9658", dark: "#2a522f", mode: "noise" },
+  { base: "#666a66", light: "#bd8f70", dark: "#494c49", mode: "ore" },
 ];
 
 export function createVoxelTextureAtlas(): THREE.CanvasTexture {
@@ -49,6 +51,16 @@ export function createVoxelTextureAtlas(): THREE.CanvasTexture {
       ctx.fillStyle = style.dark;
       ctx.fillRect(tx + 6, ty + 1, 2, 13);
       ctx.fillRect(tx + 12, ty + 7, 2, 7);
+    } else if (style.mode === "ore") {
+      ctx.fillStyle = style.dark;
+      for (let y = 0; y < ATLAS_TILE_SIZE; y += 4) {
+        ctx.fillRect(tx, ty + y, ATLAS_TILE_SIZE, 1);
+      }
+      ctx.fillStyle = style.light;
+      const spots = [[2, 3], [7, 1], [11, 5], [4, 10], [12, 12], [8, 8]];
+      for (const [x, y] of spots) {
+        ctx.fillRect(tx + x!, ty + y!, 2, 2);
+      }
     } else {
       for (let y = 0; y < ATLAS_TILE_SIZE; y++) {
         for (let x = 0; x < ATLAS_TILE_SIZE; x++) {

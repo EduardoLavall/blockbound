@@ -6,32 +6,64 @@ O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`
 
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
-## Estado atual — Fase 2: Voxel Engine
+## Estado atual — Fase 3: Mundo Procedural Finito
 
-A fundação FPS já evoluiu para um mundo voxel editável:
+O jogo já possui uma base FPS 3D, voxel engine editável e agora um mundo procedural reproduzível por seed.
 
-- câmera FPS com Pointer Lock;
-- WASD, sprint, pulo e gravidade;
-- character controller e colisão com Rapier;
+### Mundo
+
+- mapa finito de **5×5 chunks / 80×80 blocos** por run nesta primeira configuração;
+- seed reproduzível;
+- seed persistida na URL com `?seed=...`;
+- terreno gerado por noise/fBm;
+- planície;
+- floresta;
+- região pedregosa;
+- clareira central preparada para o futuro Core;
+- quatro zonas de entrada de horda próximas às bordas;
+- três POIs iniciais por run:
+  - ruína;
+  - altar de cristal;
+  - mina;
+- árvores com tronco e folhas voxel;
+- Metal Ore distribuído no subsolo;
+- cristais em POIs;
+- barreira visual e física nas bordas;
+- nenhuma expansão infinita de chunks.
+
+A proceduralidade existe para produzir **runs diferentes**, não exploração infinita.
+
+### Voxel engine
+
 - chunks `16x16x24`;
-- voxels armazenados em `Uint16Array`;
-- suporte correto a chunks/coordenadas negativas;
+- voxels em `Uint16Array`;
 - greedy meshing;
-- meshing em pool de Web Workers;
-- culling de faces entre chunks por snapshot com borda;
+- meshing em Web Workers;
 - uma `BufferGeometry` agregada por chunk;
-- um collider trimesh agregado por chunk;
-- rebuild assíncrono apenas de chunks alterados;
-- chunks vizinhos invalidados quando uma edição acontece na borda;
-- raycast DDA diretamente no grid voxel;
-- highlight do bloco mirado;
-- quebrar e colocar blocos;
-- hotbar de blocos;
-- atlas pixel-art original gerado pelo próprio jogo;
-- debug de FPS, posição, draw calls, triângulos, chunks e fila de Workers;
-- testes de coordenadas, raycast, invalidação de bordas e greedy meshing.
+- um collider trimesh Rapier por chunk;
+- raycast DDA;
+- quebrar/colocar blocos;
+- hotbar;
+- rebuild incremental dos chunks alterados.
 
-O terreno atual é **somente um mapa técnico determinístico**. Geração procedural por seed pertence à Issue #5.
+## Seed
+
+Sem parâmetro, o jogo gera uma nova seed e a coloca automaticamente na URL.
+
+Exemplo:
+
+```text
+https://<deploy-vercel>/?seed=blockfall-demo
+```
+
+Reabrir a mesma URL gera o mesmo terreno, biomas, árvores, recursos e POIs.
+
+Isso é importante para:
+
+- reproduzir bugs;
+- comparar balanceamento;
+- compartilhar runs específicas;
+- testar o mesmo mapa entre localhost, Preview Deployment e Production na Vercel.
 
 ## Controles
 
@@ -46,43 +78,22 @@ O terreno atual é **somente um mapa técnico determinístico**. Geração proce
 | 1–5 | escolher bloco da hotbar |
 | Esc | liberar Pointer Lock |
 
-Blocos atuais:
+## Limites do mundo
 
-1. Grass
-2. Dirt
-3. Stone
-4. Wood
-5. Crystal
+O mundo de Blockfall é **procedural, porém finito**.
 
-O Bedrock existe como camada estrutural e não pode ser destruído.
+A configuração atual usa 80×80 blocos, mas esse tamanho ainda é parâmetro de balanceamento. O importante é que uma run sempre possua limites conhecidos.
 
-## Arquitetura voxel
+Isso permite:
 
-```text
-VoxelWorld
-  -> Chunk (Uint16Array)
-  -> padded snapshot
-  -> MeshWorkerPool
-  -> mesher.worker.ts
-  -> GreedyMesher
-  -> positions / normals / UVs / indices
-  -> Three.js BufferGeometry
-  -> Rapier trimesh collider
-```
+- performance previsível;
+- meshing e física limitados;
+- pathfinding/flow fields controláveis;
+- hordas convergindo para o Core;
+- densidade de recursos e POIs balanceável;
+- pacing de run previsível.
 
-Ao editar um bloco:
-
-```text
-raycast DDA
-  -> VoxelWorld.setBlock
-  -> marca chunk dirty
-  -> marca vizinho se edição estiver na borda
-  -> Web Worker remesh
-  -> troca BufferGeometry
-  -> recria collider do chunk
-```
-
-O mundo **não usa um Mesh nem um collider por bloco**.
+As bordas atualmente usam uma barreira translúcida com collider físico. A aparência final da tempestade/barreira pode mudar sem alterar a regra de mundo finito.
 
 ## Desenvolvimento
 
@@ -108,8 +119,6 @@ npm run preview
 
 ## Vercel é requisito permanente
 
-Blockfall precisa continuar deployável na **Vercel** durante todas as fases.
-
 ```text
 framework: Vite
 install:   npm install
@@ -117,67 +126,51 @@ build:     npm run build
 output:    dist
 ```
 
-O arquivo `vercel.json` mantém essas definições versionadas.
+A geração procedural é client-side e não introduz backend.
 
-A voxel engine preserva isso:
-
-- gameplay totalmente client-side;
-- nenhum servidor Node necessário;
+- nenhuma função server-side necessária;
+- seed via query string;
 - Rapier via `@dimforge/rapier3d-compat`;
-- Workers carregados com `new URL(..., import.meta.url)`, para o Vite gerar os assets corretos;
-- atlas gerado em runtime, sem dependência externa;
-- CI executa testes + build de produção antes de merge.
+- meshing Workers empacotados pelo Vite;
+- mundo gerado localmente no browser;
+- output continua estático em `dist/`.
 
 ## Estrutura relevante
 
 ```text
 src/
-  app/
-  core/
-  engine/
-    physics/
-    render/
-  player/
-    Hotbar.ts
-    PlayerController.ts
-    VoxelInteractionController.ts
   voxel/
-    blocks.ts
-    Chunk.ts
-    ChunkSnapshot.ts
-    constants.ts
-    VoxelRaycast.ts
-    VoxelWorld.ts
+    generation/
+      Biomes.ts
+      Noise.ts
+      Seed.ts
+      SeededRandom.ts
+      WorldGenerator.ts
+      WorldMetadata.ts
     mesh/
-      GreedyMesher.ts
-      MeshWorkerPool.ts
-      protocol.ts
     render/
-      ChunkManager.ts
-      TextureAtlas.ts
-  workers/
-    mesher.worker.ts
+  world/
+    WorldBoundary.ts
+    WorldLandmarks.ts
 ```
 
 ## Próxima fase
 
-**Issue #5 — procedural world**
-
-### Decisão de mundo
-
-O mundo será **procedural por seed, mas não infinito**. Cada run terá um mapa finito e delimitado, com tamanho controlado. A proceduralidade existe para variar terreno, biomas, recursos e POIs entre runs — não para criar exploração sem fim.
+**Issue #6 — survival/build loop**
 
 Próximos sistemas:
 
-- seed reproduzível;
-- limites finitos do mapa por run;
-- height/noise;
-- biomas iniciais;
-- árvores;
-- recursos/minérios;
-- POIs;
-- Core perto do centro;
-- spawn ring para hordas.
+- mineração com tempo/durabilidade;
+- drops;
+- inventário;
+- recursos de verdade;
+- crafting mínimo;
+- modo de construção defensiva;
+- wall;
+- turret;
+- spike trap;
+- gate;
+- Core com vida.
 
 A regra principal continua sendo:
 

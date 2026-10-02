@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10170f" />
     <meta name="description" content="Blockfall — 3D voxel FPS tower defense roguelite." />
-    <title>Blockfall — Voxel Engine</title>
+    <title>Blockfall — Procedural World</title>
   </head>
   <body>
     <div id="app">
       <canvas id="game-canvas"></canvas>
       <div id="crosshair" aria-hidden="true"></div>
       <div id="debug"></div>
-      <div id="status">VOXEL ENGINE · ISSUE #4</div>
+      <div id="status">PROCEDURAL WORLD · ISSUE #5</div>
       <div id="target-info">BUILD</div>
       <div id="hotbar" aria-label="Hotbar"></div>
 
       <div id="start-overlay" class="overlay">
         <div class="panel">
-          <div class="eyebrow">BLOCKFALL · 3D REWRITE</div>
-          <h1>VOXEL ENGINE</h1>
-          <p>Chunks reais, greedy meshing em Web Workers, colisão agregada e edição de blocos em primeira pessoa.</p>
+          <div class="eyebrow">BLOCKFALL · FINITE PROCEDURAL RUN</div>
+          <h1>PROCEDURAL WORLD</h1>
+          <p>Um mapa voxel finito gerado por seed, com biomas, árvores, recursos, POIs e zonas reservadas para Core e hordas.</p>
           <div class="controls">
             <span><b>WASD</b> mover</span>
             <span><b>Mouse</b> olhar</span>
@@ -31,8 +31,8 @@
             <span><b>Shift</b> correr</span>
             <span><b>Esc</b> soltar mouse</span>
           </div>
-          <button id="play-button">ENTRAR NO MUNDO VOXEL</button>
-          <small id="loading-label">Inicializando...</small>
+          <button id="play-button">ENTRAR NA RUN</button>
+          <small id="loading-label">Gerando seed...</small>
         </div>
       </div>
     </div>
