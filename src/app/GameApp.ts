@@ -1,13 +1,19 @@
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { Core } from "../building/Core";
+import { StructureSystem } from "../building/StructureSystem";
 import { GameLoop } from "../core/GameLoop";
 import { Input } from "../core/Input";
 import { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Renderer3D } from "../engine/render/Renderer3D";
 import { FirstPersonHand } from "../player/FirstPersonHand";
 import { Hotbar } from "../player/Hotbar";
+import { InteractionMode } from "../player/InteractionMode";
 import { PlayerController } from "../player/PlayerController";
 import { VoxelInteractionController } from "../player/VoxelInteractionController";
+import { Inventory } from "../survival/Inventory";
+import { ResourceDropSystem } from "../survival/ResourceDropSystem";
 import { DebugOverlay } from "../ui/DebugOverlay";
+import { SurvivalHUD } from "../ui/SurvivalHUD";
 import { BiomeId } from "../voxel/generation/Biomes";
 import {
   createRandomRunSeed,
@@ -31,7 +37,12 @@ interface GameAppOptions {
   loadingLabel: HTMLElement;
   debug: HTMLDivElement;
   hotbar: HTMLDivElement;
+  buildBar: HTMLDivElement;
   targetInfo: HTMLDivElement;
+  buildInfo: HTMLDivElement;
+  miningProgress: HTMLDivElement;
+  inventoryHud: HTMLDivElement;
+  coreHud: HTMLDivElement;
   status: HTMLDivElement;
 }
 
@@ -41,6 +52,9 @@ export class GameApp {
   private readonly controls: PointerLockControls;
   private readonly debugOverlay: DebugOverlay;
   private readonly hotbar: Hotbar;
+  private readonly inventory = new Inventory();
+  private readonly mode = new InteractionMode();
+
   private physics!: PhysicsWorld;
   private player!: PlayerController;
   private hand!: FirstPersonHand;
@@ -48,6 +62,10 @@ export class GameApp {
   private metadata!: WorldMetadata;
   private chunks!: ChunkManager;
   private interaction!: VoxelInteractionController;
+  private drops!: ResourceDropSystem;
+  private structures!: StructureSystem;
+  private core!: Core;
+  private survivalHud!: SurvivalHUD;
   private loop!: GameLoop;
 
   constructor(private readonly options: GameAppOptions) {
@@ -88,6 +106,18 @@ export class GameApp {
       this.metadata,
     );
 
+    const coreSurface = this.world.highestSolidY(
+      this.metadata.core.x,
+      this.metadata.core.z,
+    );
+    this.core = new Core(
+      this.renderer.scene,
+      this.physics,
+      this.metadata.core.x,
+      coreSurface + 1,
+      this.metadata.core.z,
+    );
+
     const spawnX = this.metadata.playerSpawn.x + 0.5;
     const spawnZ = this.metadata.playerSpawn.z + 0.5;
     const surfaceY = this.world.highestSolidY(
@@ -114,6 +144,27 @@ export class GameApp {
       this.player,
     );
 
+    this.drops = new ResourceDropSystem(
+      this.renderer.scene,
+      this.inventory,
+      this.player,
+    );
+
+    this.structures = new StructureSystem(
+      this.renderer.scene,
+      this.renderer.camera,
+      this.input,
+      this.player,
+      this.world,
+      this.physics,
+      this.inventory,
+      this.mode,
+      this.core,
+      this.metadata.bounds,
+      this.options.buildBar,
+      this.options.buildInfo,
+    );
+
     this.interaction = new VoxelInteractionController(
       this.renderer.camera,
       this.renderer.scene,
@@ -122,27 +173,53 @@ export class GameApp {
       this.world,
       this.chunks,
       this.hotbar,
+      this.inventory,
+      this.drops,
+      this.mode,
       this.options.targetInfo,
+      this.options.miningProgress,
+    );
+
+    this.survivalHud = new SurvivalHUD(
+      this.inventory,
+      this.core,
+      this.options.inventoryHud,
+      this.options.coreHud,
     );
 
     const size =
       this.metadata.bounds.maxXExclusive - this.metadata.bounds.minX;
     this.options.status.textContent =
-      "FINITE WORLD " + size + "×" + size + " · SEED " + seed.text;
+      "SURVIVAL " + size + "×" + size + " · SEED " + seed.text;
 
     this.bindPointerLock();
     this.options.loadingLabel.textContent =
-      "Mundo procedural pronto. Use ?seed=" + seed.text + " para reproduzir.";
+      "Survival loop pronto. Minere, colete e construa.";
 
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
         this.player.fixedUpdate(dt);
         this.physics.step(dt);
         this.player.syncCamera();
-        this.interaction.fixedUpdate();
+
+        this.structures.fixedUpdate(dt);
+        this.interaction.fixedUpdate(dt);
+        this.drops.update(dt);
+        this.core.update(dt);
       },
       render: (frameMs) => {
+        this.options.hotbar.classList.toggle(
+          "hidden",
+          this.mode.buildMode,
+        );
+        this.options.targetInfo.classList.toggle(
+          "hidden",
+          this.mode.buildMode,
+        );
+
+        this.structures.renderUpdate();
         this.interaction.renderUpdate();
+        this.survivalHud.update();
         this.hand.update(frameMs);
         this.renderer.render();
 
@@ -158,11 +235,14 @@ export class GameApp {
             "BIOMES    P" + this.metadata.biomeCounts[BiomeId.Plains] +
               " F" + this.metadata.biomeCounts[BiomeId.Forest] +
               " R" + this.metadata.biomeCounts[BiomeId.Rocky],
-            "POIS      " + this.metadata.pois.length,
+            "CORE      " + Math.round(this.core.health.current) +
+              "/" + this.core.health.max,
+            "DROPS     " + this.drops.count,
             "CHUNKS    " + chunkStats.chunks,
             "DIRTY     " + chunkStats.dirty,
             "WORKERS   " + chunkStats.workersBusy +
               " busy / " + chunkStats.workersPending + " queued",
+            ...this.structures.getDebugLines(),
             ...this.interaction.getDebugLines(),
           ],
         });
