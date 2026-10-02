@@ -504,7 +504,7 @@ export class GameApp {
     this.drafting = false;
 
     this.options.overlay.classList.add("hidden");
-    this.input.setEnabled(true);
+    this.input.setEnabled(false);
     this.controls.lock();
   }
 
