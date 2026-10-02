@@ -252,6 +252,10 @@ export class PlayerStatus {
       : 1;
   }
 
+  modifyIncomingDamage(base: number): number {
+    return base * (1 - this.snapshot().defense.damageReduction);
+  }
+
   modifyMiningDuration(baseDuration: number): number {
     return (
       baseDuration /
@@ -268,7 +272,8 @@ export class PlayerStatus {
     const e = this.equipment;
 
     return [
-      line("Vitals", "HP", BASE_PLAYER_STATS.maxHealth, "—", "—", s.health.max),
+      line("Vitals", "Current HP", BASE_PLAYER_STATS.maxHealth, "—", "—", s.health.current),
+      line("Vitals", "Max HP", BASE_PLAYER_STATS.maxHealth, "—", "—", s.health.max),
       line("Mobility", "Walk speed", BASE_PLAYER_STATS.walkSpeed, "×1", mul(e.walkSpeedMultiplier), s.mobility.walkSpeed, "m/s"),
       line("Mobility", "Sprint speed", BASE_PLAYER_STATS.sprintSpeed, "×1", mul(e.sprintSpeedMultiplier), s.mobility.sprintSpeed, "m/s"),
       line("Mobility", "Jump velocity", BASE_PLAYER_STATS.jumpSpeed, "×1", mul(e.jumpSpeedMultiplier), s.mobility.jumpSpeed, "m/s"),
