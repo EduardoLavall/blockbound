@@ -3,6 +3,7 @@ import { GameLoop } from "../core/GameLoop";
 import { Input } from "../core/Input";
 import { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Renderer3D } from "../engine/render/Renderer3D";
+import { FirstPersonHand } from "../player/FirstPersonHand";
 import { Hotbar } from "../player/Hotbar";
 import { PlayerController } from "../player/PlayerController";
 import { VoxelInteractionController } from "../player/VoxelInteractionController";
@@ -42,6 +43,7 @@ export class GameApp {
   private readonly hotbar: Hotbar;
   private physics!: PhysicsWorld;
   private player!: PlayerController;
+  private hand!: FirstPersonHand;
   private world!: VoxelWorld;
   private metadata!: WorldMetadata;
   private chunks!: ChunkManager;
@@ -105,6 +107,13 @@ export class GameApp {
       },
     );
 
+    this.hand = new FirstPersonHand(
+      this.renderer.camera,
+      this.controls,
+      this.input,
+      this.player,
+    );
+
     this.interaction = new VoxelInteractionController(
       this.renderer.camera,
       this.renderer.scene,
@@ -134,6 +143,7 @@ export class GameApp {
       },
       render: (frameMs) => {
         this.interaction.renderUpdate();
+        this.hand.update(frameMs);
         this.renderer.render();
 
         const chunkStats = this.chunks.getStats();

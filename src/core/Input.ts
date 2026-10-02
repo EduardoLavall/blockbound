@@ -1,6 +1,13 @@
+export interface PointerDelta {
+  x: number;
+  y: number;
+}
+
 export class Input {
   private readonly held = new Set<string>();
   private readonly pressed = new Set<string>();
+  private pointerDeltaX = 0;
+  private pointerDeltaY = 0;
   private enabled = false;
 
   constructor() {
@@ -25,6 +32,12 @@ export class Input {
       this.held.delete(`Mouse${event.button}`);
     });
 
+    window.addEventListener("pointermove", (event) => {
+      if (!this.enabled) return;
+      this.pointerDeltaX += event.movementX;
+      this.pointerDeltaY += event.movementY;
+    });
+
     window.addEventListener("contextmenu", (event) => {
       if (this.enabled) event.preventDefault();
     });
@@ -47,8 +60,20 @@ export class Input {
     return true;
   }
 
+  consumePointerDelta(): PointerDelta {
+    const delta = {
+      x: this.pointerDeltaX,
+      y: this.pointerDeltaY,
+    };
+    this.pointerDeltaX = 0;
+    this.pointerDeltaY = 0;
+    return delta;
+  }
+
   private clear(): void {
     this.held.clear();
     this.pressed.clear();
+    this.pointerDeltaX = 0;
+    this.pointerDeltaY = 0;
   }
 }
