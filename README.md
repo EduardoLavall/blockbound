@@ -362,12 +362,21 @@ A CI valida:
 
 Depois do vertical slice:
 
-1. Player Status;
-2. Inventário + Equipamento;
-3. Crafting expandido;
-4. Shop;
-5. Level + Árvore de Talentos;
-6. Nível do Cristal/Core.
+1. Game Design — análise crítica de balanceamento;
+2. Player Status;
+3. Inventário + Equipamento;
+4. Crafting expandido;
+5. Shop;
+6. Level + Árvore de Talentos;
+7. Nível do Cristal/Core;
+8. Shaders + tochas + iluminação leve;
+9. Juicy Effects / Game Feel.
+
+A fase de balanceamento vem primeiro para revisar pacing, economia, armas, torres, inimigos, upgrades e dificuldade com runs completas antes de aprofundar novas progressões.
+
+A iluminação será deliberadamente leve: Core, cristais, tochas e emissives com budget controlado, sem depender de iluminação dinâmica pesada.
+
+Juicy Effects entram depois dessa base visual para melhorar recoil, impacto, partículas, mineração, construção, torres, cartas e Boss sem sacrificar legibilidade ou performance.
 
 A regra central continua:
 
