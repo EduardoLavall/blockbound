@@ -9,6 +9,7 @@ import {
   formatCost,
   placementCost,
 } from "../survival/Resources";
+import type { RuleEngine } from "../roguelite/RuleEngine";
 import { BlockId, blockDefinition } from "../voxel/blocks";
 import { VOXEL_INTERACTION_DISTANCE } from "../voxel/constants";
 import type { ChunkManager } from "../voxel/render/ChunkManager";
@@ -41,6 +42,8 @@ export class VoxelInteractionController {
     private readonly inventory: Inventory,
     private readonly drops: ResourceDropSystem,
     private readonly mode: InteractionMode,
+    private readonly rules: RuleEngine,
+    private readonly canMinePrimary: () => boolean,
     private readonly targetInfo: HTMLElement,
     private readonly miningProgress: HTMLElement,
   ) {
@@ -75,7 +78,7 @@ export class VoxelInteractionController {
 
     this.refreshTarget();
 
-    if (this.input.isDown("Mouse0")) {
+    if (this.canMinePrimary() && this.input.isDown("Mouse0")) {
       this.mineTarget(dt);
     } else {
       this.resetMining();
@@ -89,6 +92,7 @@ export class VoxelInteractionController {
   renderUpdate(): void {
     this.refreshTarget();
     const target = this.target;
+    const miningEnabled = this.canMinePrimary();
 
     this.miningProgress.style.width =
       `${Math.round(this.miningRatio * 100)}%`;
@@ -99,6 +103,15 @@ export class VoxelInteractionController {
 
     if (this.mode.buildMode) {
       this.highlight.visible = false;
+      return;
+    }
+
+    if (!miningEnabled) {
+      this.highlight.visible = false;
+      this.targetInfo.textContent =
+        this.feedbackTime > 0
+          ? this.feedback
+          : "Q · SWITCH TO TOOL FOR MINING";
       return;
     }
 
@@ -162,7 +175,8 @@ export class VoxelInteractionController {
       return;
     }
 
-    const duration = miningDuration(target.block);
+    const baseDuration = miningDuration(target.block);
+    const duration = this.rules.modifyMiningDuration(baseDuration);
     if (!Number.isFinite(duration)) {
       this.resetMining();
       return;
@@ -192,7 +206,10 @@ export class VoxelInteractionController {
       this.chunks.requestRebuild(edit.dirtyChunkKeys);
       if (drop) {
         this.drops.spawn(
-          drop,
+          {
+            ...drop,
+            amount: drop.amount + this.rules.resourceYieldBonus,
+          },
           target.voxel.x,
           target.voxel.y,
           target.voxel.z,
