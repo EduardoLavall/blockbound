@@ -3,6 +3,7 @@ import { BlockId, isSolidBlock } from "../../voxel/blocks";
 import { CHUNK_HEIGHT } from "../../voxel/constants";
 import type { WorldBounds } from "../../voxel/generation/WorldMetadata";
 import type { VoxelWorld } from "../../voxel/VoxelWorld";
+import { LANE_NAVIGATION_COST } from "../../world/LaneSystem";
 
 export interface NavigationCell {
   x: number;
@@ -10,6 +11,7 @@ export interface NavigationCell {
   groundY: number;
   walkable: boolean;
   traversalCost: number;
+  lane: boolean;
   blockerId: number | null;
   hazardStructureId: number | null;
 }
@@ -48,6 +50,7 @@ export class NavigationGrid implements NavigationGridSource {
           groundY: -1,
           walkable: false,
           traversalCost: Infinity,
+          lane: false,
           blockerId: null,
           hazardStructureId: null,
         };
@@ -178,6 +181,7 @@ export class NavigationGrid implements NavigationGridSource {
       cell.groundY = -1;
       cell.walkable = false;
       cell.traversalCost = Infinity;
+      cell.lane = false;
       cell.blockerId = null;
       cell.hazardStructureId = null;
       return;
@@ -185,9 +189,14 @@ export class NavigationGrid implements NavigationGridSource {
 
     const structure = this.structures.navigationAtCell(cell.x, cell.z);
 
+    const lane = this.world.isLaneColumn(cell.x, cell.z);
+
     cell.groundY = groundY;
     cell.walkable = true;
-    cell.traversalCost = structure?.traversalCost ?? 1;
+    cell.lane = lane;
+    cell.traversalCost =
+      structure?.traversalCost ??
+      (lane ? LANE_NAVIGATION_COST : 1);
     cell.blockerId =
       structure && !structure.hazard ? structure.structureId : null;
     cell.hazardStructureId =
