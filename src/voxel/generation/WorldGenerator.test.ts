@@ -40,17 +40,41 @@ describe("generateWorld", () => {
     expect(world.getChunk(2, 0)).toBeUndefined();
   });
 
-  it("reserves core, spawn zones and POIs", () => {
+  it("reserves core, one lane spawn and POIs", () => {
     const { metadata } = generateWorld(
       createRunSeed("landmarks"),
       1,
     );
 
-    expect(metadata.spawnZones).toHaveLength(4);
+    expect(metadata.spawnZones).toHaveLength(1);
+    expect(metadata.spawnZones[0]).toEqual(metadata.lane.entry);
+    expect(metadata.lane.width).toBe(3);
+    expect(metadata.lane.cells.length).toBeGreaterThan(20);
     expect(metadata.pois.map((poi) => poi.type).sort()).toEqual([
       "altar",
       "mine",
       "ruin",
     ]);
+  });
+
+  it("creates a flat protected lane connected toward the Core", () => {
+    const { world, metadata } = generateWorld(
+      createRunSeed("lane-check"),
+      2,
+    );
+
+    for (const cell of metadata.lane.cells) {
+      expect(world.isLaneColumn(cell.x, cell.z)).toBe(true);
+      expect(world.highestSolidY(cell.x, cell.z)).toBe(6);
+    }
+
+    const centerCells = metadata.lane.cells.filter(
+      (cell) => cell.x === metadata.core.x,
+    );
+    const minZ = Math.min(...centerCells.map((cell) => cell.z));
+    const maxZ = Math.max(...centerCells.map((cell) => cell.z));
+
+    expect(minZ).toBe(metadata.lane.entry.z);
+    expect(maxZ).toBe(metadata.core.z - 2);
   });
 });

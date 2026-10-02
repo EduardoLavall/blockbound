@@ -398,6 +398,38 @@ Wall/Gate/Turret possuem custos finitos de travessia. A IA pode:
 - atacar;
 - ou, no caso do Burrower, ignorar o blocker.
 
+## Lane System v1
+
+A run agora possui uma **lane principal estrutural**.
+
+V1 atual:
+
+```text
+North horde origin
+        ↓
+3-block-wide protected lane
+        ↓
+Core
+```
+
+Regras:
+
+- existe apenas **1 lane**;
+- existe apenas **1 origem principal da horda**;
+- o terreno da lane é nivelado;
+- colunas da lane são marcadas como protegidas no `VoxelWorld`;
+- mineração não remove voxels da lane;
+- blocos não podem ser colocados sobre a lane;
+- Wall, Gate, Basic Turret e Rapid Turret não podem ocupar a lane;
+- Spike Trap continua permitida por ser hazard não-bloqueador;
+- `NavigationGrid` marca células `lane`;
+- custo base de travessia da lane é `0.65` contra `1.0` do terreno comum;
+- o Flow Field naturalmente prefere a rota;
+- a lane possui marcação visual sutil no mundo;
+- metadata/debug expõem tamanho e origem da lane.
+
+A V1 é propositalmente reta. Multiple lanes, branches e eventos de troca de lane ficam para depois da validação desta fundação.
+
 ## Mundo
 
 O mundo é **procedural por seed, porém finito**.
@@ -413,7 +445,12 @@ Configuração atual:
 - Metal Ore;
 - Crystal;
 - POIs;
-- quatro zonas de entrada;
+- **1 lane estrutural indestrutível**;
+- 1 origem principal da horda;
+- lane reta de 3 blocos de largura conectada ao Core;
+- custo de navegação preferencial para a lane;
+- Wall/Gate/Turrets não podem selar a lane;
+- Spike Trap pode ser colocada sobre a lane;
 - limite físico/visual.
 
 Reproduzir uma run:
@@ -537,7 +574,7 @@ Depois do vertical slice:
 2. Inventário + Equipamento ✅;
 3. Game Design — análise crítica de balanceamento ✅ baseline;
 4. Rapid / Machine Gun Turret ✅;
-5. Lane System v1 — 1 lane indestrutível;
+5. Lane System v1 — 1 lane indestrutível ✅;
 6. Pickaxe / Mining Tool;
 7. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling;
 8. Inventory 2.0;

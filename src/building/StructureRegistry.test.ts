@@ -3,6 +3,7 @@ import { ResourceId } from "../survival/Resources";
 import {
   STRUCTURES,
   StructureType,
+  structureAllowedOnLane,
 } from "./StructureRegistry";
 
 describe("defensive structure recipes", () => {
@@ -19,5 +20,13 @@ describe("defensive structure recipes", () => {
       expect(definition.repairAmount).toBeGreaterThan(0);
       expect(definition.repairHealth).toBeGreaterThan(0);
     }
+  });
+
+  it("allows only non-blocking Spike traps on the primary lane", () => {
+    expect(structureAllowedOnLane(StructureType.Spike)).toBe(true);
+    expect(structureAllowedOnLane(StructureType.Wall)).toBe(false);
+    expect(structureAllowedOnLane(StructureType.Gate)).toBe(false);
+    expect(structureAllowedOnLane(StructureType.Turret)).toBe(false);
+    expect(structureAllowedOnLane(StructureType.RapidTurret)).toBe(false);
   });
 });

@@ -15,8 +15,11 @@ export interface VoxelEditEvent {
   after: BlockId;
 }
 
+export type ProtectedColumnTag = "lane";
+
 export class VoxelWorld {
   private readonly chunks = new Map<string, Chunk>();
+  private readonly protectedColumns = new Map<string, ProtectedColumnTag>();
   private readonly editListeners = new Set<(event: VoxelEditEvent) => void>();
 
   ensureChunk(cx: number, cz: number): Chunk {
@@ -54,6 +57,10 @@ export class VoxelWorld {
   }
 
   setBlock(x: number, y: number, z: number, block: BlockId): VoxelEditResult {
+    if (this.isProtectedColumn(x, z)) {
+      return { changed: false, dirtyChunkKeys: [] };
+    }
+
     if (y < 0 || y >= CHUNK_HEIGHT) {
       return { changed: false, dirtyChunkKeys: [] };
     }
@@ -79,6 +86,29 @@ export class VoxelWorld {
     for (const listener of this.editListeners) listener(event);
 
     return { changed: true, dirtyChunkKeys: [...dirty] };
+  }
+
+  protectColumn(
+    x: number,
+    z: number,
+    tag: ProtectedColumnTag,
+  ): void {
+    this.protectedColumns.set(columnKey(x, z), tag);
+  }
+
+  protectionAtColumn(
+    x: number,
+    z: number,
+  ): ProtectedColumnTag | null {
+    return this.protectedColumns.get(columnKey(x, z)) ?? null;
+  }
+
+  isProtectedColumn(x: number, z: number): boolean {
+    return this.protectedColumns.has(columnKey(x, z));
+  }
+
+  isLaneColumn(x: number, z: number): boolean {
+    return this.protectionAtColumn(x, z) === "lane";
   }
 
   subscribeEdits(listener: (event: VoxelEditEvent) => void): () => void {
@@ -108,4 +138,9 @@ export class VoxelWorld {
     const key = Chunk.key(cx, cz);
     if (this.chunks.has(key)) target.add(key);
   }
+}
+
+
+function columnKey(x: number, z: number): string {
+  return `${x},${z}`;
 }

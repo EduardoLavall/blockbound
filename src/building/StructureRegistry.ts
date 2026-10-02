@@ -114,3 +114,10 @@ export const STRUCTURE_ORDER: readonly StructureType[] = [
   StructureType.Gate,
   StructureType.RapidTurret,
 ];
+
+
+export function structureAllowedOnLane(
+  type: StructureType,
+): boolean {
+  return type === StructureType.Spike;
+}

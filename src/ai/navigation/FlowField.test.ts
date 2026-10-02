@@ -27,6 +27,7 @@ class TestGrid implements NavigationGridSource {
           groundY: 0,
           walkable: true,
           traversalCost: 1,
+          lane: false,
           blockerId: null,
           hazardStructureId: null,
         });

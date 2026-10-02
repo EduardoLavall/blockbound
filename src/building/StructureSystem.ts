@@ -18,6 +18,7 @@ import {
   STRUCTURES,
   STRUCTURE_ORDER,
   StructureType,
+  structureAllowedOnLane,
   type StructureDefinition,
 } from "./StructureRegistry";
 import {
@@ -332,6 +333,13 @@ export class StructureSystem {
 
     for (let gridZ = startZ; gridZ <= endZ; gridZ++) {
       for (let gridX = startX; gridX <= endX; gridX++) {
+        if (
+          this.world.isLaneColumn(gridX, gridZ) &&
+          !structureAllowedOnLane(this.selectedType)
+        ) {
+          return false;
+        }
+
         if (this.world.highestSolidY(gridX, gridZ) >= y) {
           return false;
         }

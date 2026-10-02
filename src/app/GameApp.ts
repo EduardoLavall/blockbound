@@ -563,6 +563,7 @@ export class GameApp {
             "FLOW MS   " + this.flow.rebuildMs.toFixed(2),
             "CORE      " + Math.round(this.core.health.current) +
               "/" + this.core.health.max,
+            "LANE      1 · " + this.metadata.lane.cells.length + " cells",
             "BIOMES    P" + this.metadata.biomeCounts[BiomeId.Plains] +
               " F" + this.metadata.biomeCounts[BiomeId.Forest] +
               " R" + this.metadata.biomeCounts[BiomeId.Rocky],
