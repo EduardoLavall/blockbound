@@ -1881,7 +1881,7 @@ As ações principais — atirar, acertar, matar, minerar, construir, sofrer dan
 15. Rapid / Machine Gun Turret ✅
 16. Lane System v1 — 1 lane indestrutível ✅
 17. Pickaxe / Mining Tool ✅
-18. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling
+18. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling ✅
 19. Inventory 2.0
 20. Crafting contextual v1
 21. shop
@@ -2366,7 +2366,7 @@ Crack overlay, particles, debris, material-specific impact e camera feedback con
 
 
 
-## 28.5 Voxel Texture Pipeline — assets reais 16×16
+## 28.5 Voxel Texture Pipeline ✅ implementação base concluída — assets reais 16×16
 
 Criar um pipeline definitivo de arte voxel.
 
@@ -2408,6 +2408,34 @@ Resultado desejado:
 ### Aceite
 
 Uma parede de Stone 10×10 continua sendo otimizada geometricamente, mas visualmente mostra 100 tiles Stone 16×16, não uma textura esticada gigante.
+
+### Implementação atual
+
+- 8 PNGs fonte reais 16×16 em `src/assets/voxels/`;
+- `atlas.png` 64×32, layout 4×2;
+- manifest tipado preserva ordem dos tiles;
+- runtime não gera mais arte proceduralmente por Canvas;
+- atlas carregado via `TextureLoader`;
+- `NearestFilter`;
+- mipmaps desabilitados;
+- ClampToEdge;
+- half-pixel inset por tile;
+- greedy meshing continua mesclando geometria;
+- `uv` agora representa coordenada local do greedy quad;
+- `voxelTile` é um atributo separado por vértice;
+- shader usa `fract(localUv)` para repetir uma textura por voxel;
+- tile id é convertido para coordenada do atlas apenas no fragment shader;
+- suporte a `atlasFaces` permite top/side/bottom diferentes futuramente;
+- worker protocol transfere o novo buffer `tiles`;
+- testes verificam que 2 Stone adjacentes continuam 6 quads mas UV chega a 2;
+- testes garantem que blocos de tiles diferentes não são fundidos;
+- testes validam wrapping e inset do atlas;
+- testes validam 8 source PNGs 16×16 na ordem correta.
+
+### Pendência
+
+- smoke visual/manual no navegador com paredes/chãos grandes;
+- validar visualmente ausência de bleeding nas bordas dos tiles.
 
 ---
 

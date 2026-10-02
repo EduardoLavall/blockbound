@@ -6,7 +6,10 @@ import { CHUNK_SIZE } from "../constants";
 import type { VoxelWorld } from "../VoxelWorld";
 import { MeshWorkerPool } from "../mesh/MeshWorkerPool";
 import type { MeshBuildResponse } from "../mesh/protocol";
-import { createVoxelTextureAtlas } from "./TextureAtlas";
+import {
+  createVoxelMaterial,
+  loadVoxelTextureAtlas,
+} from "./TextureAtlas";
 
 interface ChunkRenderEntry {
   mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
@@ -24,14 +27,13 @@ export class ChunkManager {
     private readonly scene: THREE.Scene,
     private readonly physics: PhysicsWorld,
   ) {
-    this.material = new THREE.MeshStandardMaterial({
-      map: createVoxelTextureAtlas(),
-      roughness: 0.92,
-      metalness: 0,
-    });
+    this.material = createVoxelMaterial();
   }
 
   async initialize(): Promise<void> {
+    this.material.map = await loadVoxelTextureAtlas();
+    this.material.needsUpdate = true;
+
     await Promise.all(
       this.world.getChunks().map((chunk) => this.rebuildChunkNow(chunk.key)),
     );
@@ -86,6 +88,10 @@ export class ChunkManager {
     geometry.setAttribute("position", new THREE.BufferAttribute(result.positions, 3));
     geometry.setAttribute("normal", new THREE.BufferAttribute(result.normals, 3));
     geometry.setAttribute("uv", new THREE.BufferAttribute(result.uvs, 2));
+    geometry.setAttribute(
+      "voxelTile",
+      new THREE.BufferAttribute(result.tiles, 1),
+    );
     geometry.setIndex(new THREE.BufferAttribute(result.indices, 1));
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();

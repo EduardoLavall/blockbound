@@ -1,87 +1,125 @@
 import * as THREE from "three";
-import { ATLAS_COLUMNS, ATLAS_ROWS, ATLAS_TILE_SIZE } from "../constants";
+import { VOXEL_ATLAS_URL } from "../../assets/voxels/manifest";
+import {
+  ATLAS_COLUMNS,
+  ATLAS_ROWS,
+  ATLAS_TILE_SIZE,
+} from "../constants";
 
-interface TileStyle {
-  base: string;
-  light: string;
-  dark: string;
-  mode: "noise" | "stripes" | "crystal" | "ore";
-}
+const TILE_INSET = 0.5 / ATLAS_TILE_SIZE;
 
-const TILES: readonly TileStyle[] = [
-  { base: "#668945", light: "#83a955", dark: "#4d6c35", mode: "noise" },
-  { base: "#76543a", light: "#90684a", dark: "#593c2a", mode: "noise" },
-  { base: "#72766f", light: "#8b9087", dark: "#555a55", mode: "noise" },
-  { base: "#936d42", light: "#b58a56", dark: "#6f4d2d", mode: "stripes" },
-  { base: "#48aaad", light: "#7ce3dc", dark: "#276b75", mode: "crystal" },
-  { base: "#30343a", light: "#464b52", dark: "#202329", mode: "noise" },
-  { base: "#3f7441", light: "#5d9658", dark: "#2a522f", mode: "noise" },
-  { base: "#666a66", light: "#bd8f70", dark: "#494c49", mode: "ore" },
-];
-
-export function createVoxelTextureAtlas(): THREE.CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = ATLAS_COLUMNS * ATLAS_TILE_SIZE;
-  canvas.height = ATLAS_ROWS * ATLAS_TILE_SIZE;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Could not create voxel texture atlas.");
-
-  ctx.imageSmoothingEnabled = false;
-
-  TILES.forEach((style, tile) => {
-    const tx = (tile % ATLAS_COLUMNS) * ATLAS_TILE_SIZE;
-    const ty = Math.floor(tile / ATLAS_COLUMNS) * ATLAS_TILE_SIZE;
-
-    ctx.fillStyle = style.base;
-    ctx.fillRect(tx, ty, ATLAS_TILE_SIZE, ATLAS_TILE_SIZE);
-
-    if (style.mode === "stripes") {
-      ctx.fillStyle = style.dark;
-      for (let x = 2; x < ATLAS_TILE_SIZE; x += 5) {
-        ctx.fillRect(tx + x, ty, 1, ATLAS_TILE_SIZE);
-      }
-      ctx.fillStyle = style.light;
-      for (let y = 3; y < ATLAS_TILE_SIZE; y += 6) {
-        ctx.fillRect(tx, ty + y, ATLAS_TILE_SIZE, 1);
-      }
-    } else if (style.mode === "crystal") {
-      ctx.fillStyle = style.light;
-      ctx.fillRect(tx + 3, ty + 2, 3, 10);
-      ctx.fillRect(tx + 9, ty + 5, 2, 8);
-      ctx.fillStyle = style.dark;
-      ctx.fillRect(tx + 6, ty + 1, 2, 13);
-      ctx.fillRect(tx + 12, ty + 7, 2, 7);
-    } else if (style.mode === "ore") {
-      ctx.fillStyle = style.dark;
-      for (let y = 0; y < ATLAS_TILE_SIZE; y += 4) {
-        ctx.fillRect(tx, ty + y, ATLAS_TILE_SIZE, 1);
-      }
-      ctx.fillStyle = style.light;
-      const spots = [[2, 3], [7, 1], [11, 5], [4, 10], [12, 12], [8, 8]];
-      for (const [x, y] of spots) {
-        ctx.fillRect(tx + x!, ty + y!, 2, 2);
-      }
-    } else {
-      for (let y = 0; y < ATLAS_TILE_SIZE; y++) {
-        for (let x = 0; x < ATLAS_TILE_SIZE; x++) {
-          const hash = (x * 17 + y * 31 + tile * 47 + x * y * 3) % 19;
-          if (hash === 0 || hash === 1) {
-            ctx.fillStyle = hash === 0 ? style.light : style.dark;
-            ctx.fillRect(tx + x, ty + y, 1, 1);
-          }
-        }
-      }
-    }
-
-    ctx.strokeStyle = "rgba(0,0,0,.12)";
-    ctx.strokeRect(tx + 0.5, ty + 0.5, ATLAS_TILE_SIZE - 1, ATLAS_TILE_SIZE - 1);
-  });
-
-  const texture = new THREE.CanvasTexture(canvas);
+export async function loadVoxelTextureAtlas(): Promise<THREE.Texture> {
+  const texture = await new THREE.TextureLoader().loadAsync(
+    VOXEL_ATLAS_URL,
+  );
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.magFilter = THREE.NearestFilter;
   texture.minFilter = THREE.NearestFilter;
   texture.generateMipmaps = false;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.needsUpdate = true;
   return texture;
+}
+
+export function createVoxelMaterial(): THREE.MeshStandardMaterial {
+  const material = new THREE.MeshStandardMaterial({
+    roughness: 0.92,
+    metalness: 0,
+  });
+
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.voxelAtlasGrid = {
+      value: new THREE.Vector2(ATLAS_COLUMNS, ATLAS_ROWS),
+    };
+    shader.uniforms.voxelTileInset = {
+      value: TILE_INSET,
+    };
+
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <uv_pars_vertex>",
+        `#include <uv_pars_vertex>
+attribute float voxelTile;
+varying vec2 vVoxelLocalUv;
+varying float vVoxelTile;`,
+      )
+      .replace(
+        "#include <uv_vertex>",
+        `#include <uv_vertex>
+vVoxelLocalUv = uv;
+vVoxelTile = voxelTile;`,
+      );
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <map_pars_fragment>",
+        `#include <map_pars_fragment>
+varying vec2 vVoxelLocalUv;
+varying float vVoxelTile;
+uniform vec2 voxelAtlasGrid;
+uniform float voxelTileInset;`,
+      )
+      .replace(
+        "#include <map_fragment>",
+        `#ifdef USE_MAP
+  float voxelTileIndex = floor(vVoxelTile + 0.5);
+  float voxelTileColumn = mod(voxelTileIndex, voxelAtlasGrid.x);
+  float voxelTileRow = floor(voxelTileIndex / voxelAtlasGrid.x);
+
+  vec2 voxelRepeatedUv = fract(vVoxelLocalUv);
+  vec2 voxelSafeUv = mix(
+    vec2(voxelTileInset),
+    vec2(1.0 - voxelTileInset),
+    voxelRepeatedUv
+  );
+
+  vec2 voxelAtlasUv = vec2(
+    (voxelTileColumn + voxelSafeUv.x) / voxelAtlasGrid.x,
+    1.0 -
+      (voxelTileRow + (1.0 - voxelSafeUv.y)) /
+      voxelAtlasGrid.y
+  );
+
+  vec4 sampledDiffuseColor = texture2D(map, voxelAtlasUv);
+  #ifdef DECODE_VIDEO_TEXTURE
+    sampledDiffuseColor = sRGBTransferEOTF(sampledDiffuseColor);
+  #endif
+  diffuseColor *= sampledDiffuseColor;
+#endif`,
+      );
+  };
+
+  material.customProgramCacheKey = () =>
+    "blockfall-voxel-tiled-atlas-v1";
+
+  return material;
+}
+
+export function atlasUvForLocal(
+  tile: number,
+  localU: number,
+  localV: number,
+): { u: number; v: number } {
+  const column = tile % ATLAS_COLUMNS;
+  const row = Math.floor(tile / ATLAS_COLUMNS);
+
+  const repeatedU = positiveFract(localU);
+  const repeatedV = positiveFract(localV);
+  const safeU =
+    TILE_INSET + repeatedU * (1 - TILE_INSET * 2);
+  const safeV =
+    TILE_INSET + repeatedV * (1 - TILE_INSET * 2);
+
+  return {
+    u: (column + safeU) / ATLAS_COLUMNS,
+    v:
+      1 -
+      (row + (1 - safeV)) /
+        ATLAS_ROWS,
+  };
+}
+
+function positiveFract(value: number): number {
+  return value - Math.floor(value);
 }

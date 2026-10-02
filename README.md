@@ -398,6 +398,48 @@ Wall/Gate/Turret possuem custos finitos de travessia. A IA pode:
 - atacar;
 - ou, no caso do Burrower, ignorar o blocker.
 
+## Voxel Texture Pipeline 16×16
+
+O terreno agora usa **assets PNG reais 16×16** em vez de gerar texturas proceduralmente em Canvas.
+
+Source tiles:
+
+```text
+0 Grass
+1 Dirt
+2 Stone
+3 Wood
+4 Crystal
+5 Bedrock
+6 Leaves
+7 Metal Ore
+```
+
+Arquivos fonte ficam em `src/assets/voxels/`.
+
+Pipeline:
+
+```text
+real 16×16 PNG tiles
+  -> packed 4×2 atlas (64×32)
+  -> TextureLoader
+  -> NearestFilter / no mipmaps
+  -> GreedyMesher
+       -> local UV 0..width / 0..height
+       -> voxelTile attribute
+  -> MeshStandardMaterial shader patch
+       -> fract(local UV)
+       -> half-pixel inset
+       -> selected atlas tile
+  -> one texture repetition per voxel
+```
+
+O greedy meshing continua ativo: uma superfície 10×10 pode continuar sendo um único quad geométrico, mas visualmente exibe 100 repetições da textura 16×16.
+
+Isso corrige o problema anterior em que uma única textura era esticada por toda uma face mesclada.
+
+A arquitetura também já aceita `atlasFaces` por bloco para permitir futuramente top/side/bottom diferentes.
+
 ## Pickaxe / Mining Tool
 
 Tool Mode agora usa uma **picareta física em primeira pessoa**.
@@ -618,7 +660,7 @@ Depois do vertical slice:
 4. Rapid / Machine Gun Turret ✅;
 5. Lane System v1 — 1 lane indestrutível ✅;
 6. Pickaxe / Mining Tool ✅;
-7. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling;
+7. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling ✅;
 8. Inventory 2.0;
 9. Crafting contextual v1;
 10. Shop;

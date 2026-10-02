@@ -17,6 +17,7 @@ workerScope.onmessage = (event): void => {
     response.positions.buffer,
     response.normals.buffer,
     response.uvs.buffer,
+    response.tiles.buffer,
     response.indices.buffer,
   ]);
 };
