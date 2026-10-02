@@ -504,29 +504,35 @@ Chunks vizinhos também ficam dirty quando a alteração toca a borda.
 
 # 7. Tamanho do mundo por run
 
-O primeiro Blockfall não precisa de mundo infinito.
+## Decisão de design: procedural, mas finito
 
-Mundo finito procedural é melhor para tower defense.
+O mundo de Blockfall **será procedural por seed, mas não será infinito**.
 
-Proposta inicial:
+Essa é uma decisão estrutural do jogo, não apenas uma limitação temporária do MVP. Cada run gera um mapa finito, delimitado e autocontido.
 
 ```text
-Core perto do centro
-spawn ring próximo das bordas
-mapa procedural limitado
-fog/storm delimitando a run
-POIs distribuídos pela seed
+seed da run
+  -> gera mapa finito
+  -> Core em região planejada do mapa
+  -> POIs e recursos distribuídos proceduralmente
+  -> zonas/spawn ring de inimigos próximos das bordas
+  -> limite visual e jogável por fog/storm/barreira temática
 ```
 
-Isso cria:
+O tamanho exato do mapa poderá variar por balanceamento, dificuldade, biome ou tipo de run, mas sempre haverá um limite definido.
 
-- exploração suficiente;
-- custo previsível de pathfinding;
-- performance previsível;
-- hordas que conseguem encontrar o Core;
-- runs com começo e fim.
+Isso é intencional porque favorece:
 
-Mundo “infinito” pode ser experimentado depois.
+- exploração com começo, meio e fim;
+- densidade controlada de POIs e recursos;
+- custo previsível de geração, memória, meshing e física;
+- pathfinding e flow fields com limites conhecidos;
+- hordas capazes de convergir para o Core;
+- planejamento defensivo baseado em geografia legível;
+- runs com duração e pacing controláveis;
+- melhor compatibilidade de performance com execução no navegador/Vercel.
+
+Blockfall **não tem como objetivo virar um sandbox de exploração infinita**. A geração procedural existe para tornar cada run diferente, não para produzir um mundo sem fim.
 
 ---
 
@@ -1036,6 +1042,8 @@ O jogador consegue alterar um mundo voxel 3D e a malha é reconstruída sem Mesh
 ---
 
 ## Fase 3 — Procedural world
+
+> O mundo gerado nesta fase é procedural e reproduzível por seed, porém **sempre finito e delimitado por run**.
 
 - seeded noise;
 - terrain height;
