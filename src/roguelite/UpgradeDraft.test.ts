@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RuleEngine } from "./RuleEngine";
 import { RunManager } from "./RunManager";
 import { UpgradeDraft } from "./UpgradeDraft";
+import { UPGRADES } from "./UpgradeRegistry";
 
 describe("UpgradeDraft", () => {
   it("draws three unique upgrades", () => {
@@ -34,11 +35,10 @@ describe("UpgradeDraft", () => {
   });
 
   it("applies an upgrade through the central RuleEngine", () => {
-    const run = new RunManager();
     const rules = new RuleEngine();
-    const choice = new UpgradeDraft(101, run)
-      .draw(3, 20)
-      .find((upgrade) => upgrade.id === "calibrated-turrets");
+    const choice = UPGRADES.find(
+      (upgrade) => upgrade.id === "calibrated-turrets",
+    );
 
     expect(choice).toBeDefined();
     const before = rules.turretDamageMultiplier;
