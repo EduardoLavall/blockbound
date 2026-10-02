@@ -11,6 +11,7 @@ export enum EnemyStatus {
 }
 
 export type DamageSource =
+  | "player-tool"
   | "player-melee"
   | "player-projectile"
   | "turret"
