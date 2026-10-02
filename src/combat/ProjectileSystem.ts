@@ -162,10 +162,22 @@ export class ProjectileSystem {
     enemy: NonNullable<ReturnType<ProjectileSystem["findSegmentHit"]>>,
   ): void {
     if (this.random.range(0, 1) < projectile.burnChance) {
-      this.enemies.applyStatus(enemy, EnemyStatus.Burn, 3.5, 1);
+      this.enemies.applyStatus(
+        enemy,
+        EnemyStatus.Burn,
+        3.5,
+        1,
+        "player-projectile",
+      );
     }
     if (this.random.range(0, 1) < projectile.shockChance) {
-      this.enemies.applyStatus(enemy, EnemyStatus.Shock, 2.6, 1);
+      this.enemies.applyStatus(
+        enemy,
+        EnemyStatus.Shock,
+        2.6,
+        1,
+        "player-projectile",
+      );
     }
     if (projectile.markDuration > 0) {
       this.enemies.applyStatus(
@@ -173,6 +185,7 @@ export class ProjectileSystem {
         EnemyStatus.Mark,
         projectile.markDuration,
         1,
+        "player-projectile",
       );
     }
   }
