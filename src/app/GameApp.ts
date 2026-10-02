@@ -1,4 +1,5 @@
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { RunTelemetry } from "../balance/RunTelemetry";
 import { GameSettings } from "./GameSettings";
 import { EnemySystem } from "../ai/EnemySystem";
 import { BreachPlanner } from "../ai/navigation/BreachPlanner";
@@ -147,6 +148,7 @@ export class GameApp {
   private upgradeDraft!: UpgradeDraft;
   private upgradeUi!: UpgradeDraftUI;
   private runRuleEffects!: RunRuleEffects;
+  private telemetry!: RunTelemetry;
 
   private loop!: GameLoop;
   private defeated = false;
@@ -398,6 +400,16 @@ export class GameApp {
       this.inventory,
     );
 
+    this.telemetry = new RunTelemetry(
+      seed.text,
+      this.playerStatus,
+      this.core,
+      this.inventory,
+      this.equipment,
+      this.run,
+    );
+    this.telemetry.checkpoint("run-start", 0);
+
     this.enemies.subscribeDamage((event) => {
       if (
         event.source === "player-melee" ||
@@ -420,6 +432,7 @@ export class GameApp {
       fixedUpdate: (dt) => {
         if (this.defeated || this.drafting || this.inventoryOpen) return;
 
+        this.telemetry.update(dt);
         this.playerVitals.update(dt);
         this.player.fixedUpdate(dt);
         this.physics.step(dt);
@@ -442,12 +455,14 @@ export class GameApp {
           this.audio.nightStart(
             transition.night >= FINAL_NIGHT,
           );
+          this.telemetry.checkpoint("night-start", transition.night);
         } else if (transition?.to === DayPhase.Day) {
           this.dayNight.holdTransition(false);
           this.waves.endNight();
           this.enemies.retreatAll();
           this.enemies.cleanupInactive();
           this.run.completeNight(transition.night);
+          this.telemetry.checkpoint("night-complete", transition.night);
           this.openUpgradeDraft(transition.night);
           return;
         }
@@ -593,6 +608,10 @@ export class GameApp {
   private chooseUpgrade(upgrade: UpgradeDefinition): void {
     upgrade.apply(this.rules);
     this.run.acquireUpgrade(upgrade.id);
+    this.telemetry.checkpoint(
+      "upgrade:" + upgrade.id,
+      this.dayNight.night,
+    );
     this.audio.choose();
     this.drafting = false;
 
@@ -624,11 +643,19 @@ export class GameApp {
     this.options.defeatText.textContent = text;
     this.options.restartButton.textContent =
       victory ? "NOVA RUN" : "REINICIAR RUN";
+    this.telemetry.finish(
+      victory ? "victory" : "defeat",
+      this.dayNight.night,
+    );
     this.options.runSummary.innerHTML = `
       <div><span>Nights</span><strong>${summary.nightsSurvived}</strong></div>
       <div><span>Player kills</span><strong>${summary.playerKills}</strong></div>
       <div><span>Upgrades</span><strong>${summary.upgrades.length}</strong></div>
+      <button id="telemetry-export-button">EXPORT TELEMETRY</button>
     `;
+    this.options.runSummary
+      .querySelector<HTMLButtonElement>("#telemetry-export-button")
+      ?.addEventListener("click", () => this.telemetry.download());
     this.options.defeatOverlay.classList.remove("hidden");
     if (victory) this.audio.victory();
     else this.audio.defeat();
