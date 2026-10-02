@@ -1173,6 +1173,121 @@ Uma run completa pode ser jogada do começo ao boss sem ferramentas de debug.
 
 ---
 
+## Fase 10 — Player Status
+
+Objetivo: criar uma fonte única e legível para os atributos atuais do jogador.
+
+- modelo de status do jogador;
+- HP / max HP;
+- dano melee;
+- dano ranged;
+- crit chance / crit multiplier;
+- velocidade/mobilidade;
+- redução de dano;
+- mining speed;
+- modificadores vindos de upgrades e equipamentos;
+- painel de status para visualizar valores finais da run;
+- separar claramente base stats, bônus temporários e bônus permanentes da run.
+
+### Aceite
+
+O jogo consegue explicar em uma única tela quais são os atributos atuais do jogador e de onde os principais modificadores vêm.
+
+---
+
+## Fase 11 — Inventário + Equipamento
+
+Objetivo: separar recursos de construção de itens/equipamentos utilizáveis.
+
+- inventário de itens;
+- stack/quantidade quando aplicável;
+- slots de equipamento;
+- armas equipáveis;
+- peças/acessórios de equipamento;
+- atributos de item;
+- integração com Player Status;
+- pickup/equip de loot;
+- comparação simples entre item equipado e item selecionado.
+
+### Aceite
+
+O jogador consegue obter um item, guardá-lo, equipá-lo e ver seus atributos refletidos no Player Status.
+
+---
+
+## Fase 12 — Crafting expandido
+
+Objetivo: evoluir as receitas diretas atuais para fabricação de itens/equipamentos sem criar uma árvore gigante de crafting.
+
+- receitas de recursos refinados;
+- componentes;
+- armas/equipamentos selecionados;
+- upgrades de equipamento;
+- custos legíveis;
+- integração com inventário;
+- crafting continua subordinado ao loop construir / sobreviver / melhorar.
+
+### Aceite
+
+O jogador consegue transformar recursos coletados em itens/equipamentos úteis para a próxima noite.
+
+---
+
+## Fase 13 — Shop
+
+Objetivo: criar uma segunda rota de decisão econômica além do crafting.
+
+- loja entre períodos seguros;
+- pool controlado de itens;
+- compra de equipamento/consumíveis/recursos especiais;
+- preços escaláveis;
+- integração com a economia da run;
+- loja não deve substituir exploração/mineração;
+- reroll/refresh somente se acrescentar decisão real.
+
+### Aceite
+
+Duas runs com recursos semelhantes podem tomar decisões econômicas diferentes entre comprar, craftar ou investir na defesa.
+
+---
+
+## Fase 14 — Level do jogador + Árvore de Talentos
+
+Objetivo: adicionar progressão estruturada do jogador sem substituir os upgrades roguelite da run.
+
+- XP;
+- player level;
+- pontos de talento;
+- árvore de talentos;
+- talentos com identidade clara;
+- integração com Player Status;
+- separar progressão de level dos upgrades aleatórios da run;
+- evitar talentos que sejam apenas duplicatas das cartas roguelite.
+
+### Aceite
+
+Level/talentos criam uma camada de progressão previsível enquanto as escolhas roguelite continuam sendo a camada variável de cada run.
+
+---
+
+## Fase 15 — Nível do Cristal / Core
+
+Objetivo: transformar o cristal/Core em uma progressão própria da defesa.
+
+- Crystal/Core level;
+- requisitos/custos de upgrade;
+- HP/defesa do Core;
+- desbloqueios ligados ao nível do cristal;
+- interação com torres/estruturas quando fizer sentido;
+- feedback visual do nível;
+- decisões de investimento concorrendo com equipamento, crafting e shop.
+
+### Aceite
+
+Subir o nível do cristal altera de forma perceptível a capacidade defensiva da run e cria uma decisão econômica real.
+
+---
+
 # 20. Ordem de prioridade real
 
 ```text
@@ -1184,12 +1299,21 @@ Uma run completa pode ser jogada do começo ao boss sem ferramentas de debug.
 6. torre funciona
 7. dia/noite + wave
 8. combate
-9. upgrades
-10. conteúdo
-11. polish
+9. upgrades roguelite
+10. enemy roster + boss
+11. vertical slice completo
+12. Player Status
+13. inventário + equipamento
+14. crafting expandido
+15. shop
+16. level do jogador + árvore de talentos
+17. nível do cristal/Core
+18. polish e expansão de conteúdo
 ```
 
-Não construir inventário gigante, crafting complexo ou dezenas de inimigos antes do item 5 funcionar.
+Não construir inventário gigante, crafting complexo ou progressões paralelas antes do core loop estar validado.
+
+A prioridade permanece terminar o **vertical slice** antes de aprofundar itemização, shop e progressões de level.
 
 Se o jogador não puder construir uma fortaleza em 3D e ver a horda reagindo a ela, ainda não temos Blockfall.
 
@@ -1249,3 +1373,43 @@ Não apagar história do Git.
 
 Recomeçar o código é aceitável.
 Recomeçar o aprendizado não é.
+
+
+---
+
+# 24. Novas decisões de roadmap adicionadas em 2026-10-01
+
+Itens novos solicitados e adicionados ao roadmap, sem duplicar sistemas que já estavam planejados:
+
+- **Player Status** → Fase 10;
+- **Inventário + Equipamento** → Fase 11;
+- **Crafting expandido** → Fase 12;
+- **Shop** → Fase 13;
+- **Level do jogador + Árvore de Talentos** → Fase 14;
+- **Nível do Cristal/Core** → Fase 15.
+
+Não foram adicionados novamente:
+
+- **cartinhas estilo ARAM/Desordem**, porque o draft 1-de-3, raridades, tags e sinergias já fazem parte da Fase 7 — Roguelite;
+- **torres**, porque já fazem parte das Fases 4–5 e possuem implementação funcional.
+
+## Ordem escolhida
+
+```text
+vertical slice
+  -> Player Status
+  -> inventário/equipamento
+  -> crafting expandido
+  -> shop
+  -> player level + árvore de talentos
+  -> crystal/Core level
+```
+
+Motivo:
+
+- Player Status vira a base de leitura dos atributos;
+- equipamento depende dessa base para alterar stats;
+- crafting precisa de inventário/itemização;
+- shop precisa de itens e economia já definidos;
+- level/talent tree passa a modificar uma camada de stats estável;
+- Crystal/Core level entra depois que economia, shop e progressão do jogador já possuem regras claras.
