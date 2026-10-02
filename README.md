@@ -363,16 +363,25 @@ A CI valida:
 Depois do vertical slice:
 
 1. Game Design — análise crítica de balanceamento;
-2. Player Status;
-3. Inventário + Equipamento;
-4. Crafting expandido;
-5. Shop;
-6. Level + Árvore de Talentos;
-7. Nível do Cristal/Core;
-8. Shaders + tochas + iluminação leve;
-9. Juicy Effects / Game Feel.
+2. Rapid / Machine Gun Turret;
+3. Sniper Turret;
+4. Electric / Tesla Turret;
+5. Explosive / Mortar Turret;
+6. Slow / Cryo Turret;
+7. Flamethrower Turret;
+8. Progressão e níveis das Torres;
+9. Player Status;
+10. Inventário + Equipamento;
+11. Crafting expandido;
+12. Shop;
+13. Level + Árvore de Talentos;
+14. Nível do Cristal/Core;
+15. Shaders + tochas + iluminação leve;
+16. Juicy Effects / Game Feel.
 
 A fase de balanceamento vem primeiro para revisar pacing, economia, armas, torres, inimigos, upgrades e dificuldade com runs completas antes de aprofundar novas progressões.
+
+Depois entram as novas torres **uma por vez**, cada uma com função própria: Rapid, Sniper, Tesla, Mortar, Cryo e Flamethrower. Só depois dos seis arquétipos básicos vem o sistema de níveis/especializações das torres.
 
 A iluminação será deliberadamente leve: Core, cristais, tochas e emissives com budget controlado, sem depender de iluminação dinâmica pesada.
 
