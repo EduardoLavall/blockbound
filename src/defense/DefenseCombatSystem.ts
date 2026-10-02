@@ -8,6 +8,13 @@ import type {
   StructureSystem,
 } from "../building/StructureSystem";
 import { StructureType } from "../building/StructureRegistry";
+import {
+  isTurretStructure,
+  turretDamageAgainst,
+  turretDefinition,
+  turretTargetPriority,
+  type TurretCombatDefinition,
+} from "./TurretRegistry";
 import { EnemyStatus } from "../combat/CombatTypes";
 import type { RuleEngine } from "../roguelite/RuleEngine";
 import { SeededRandom } from "../voxel/generation/SeededRandom";
@@ -25,9 +32,7 @@ export class DefenseCombatSystem {
   private readonly spikeCooldowns = new Map<string, number>();
   private readonly bolts: Bolt[] = [];
   private readonly boltGeometry = new THREE.BoxGeometry(0.08, 0.08, 0.28);
-  private readonly boltMaterial = new THREE.MeshBasicMaterial({
-    color: 0x77eee5,
-  });
+  private readonly boltMaterials = new Map<number, THREE.MeshBasicMaterial>();
   private readonly random: SeededRandom;
 
   constructor(
@@ -49,26 +54,37 @@ export class DefenseCombatSystem {
 
   private updateTurrets(): void {
     for (const structure of this.structures.all) {
-      if (structure.type !== StructureType.Turret) continue;
+      if (!isTurretStructure(structure.type)) continue;
 
       const cooldown = this.turretCooldowns.get(structure.id) ?? 0;
       if (cooldown > 0) continue;
 
-      const range = structure.definition.range ?? 10;
-      const target = this.enemies.findNearest(
-        structure.x,
-        structure.z,
-        range,
-      );
+      const definition = turretDefinition(structure.type);
+      if (!definition) continue;
+
+      const target = this.selectTurretTarget(structure, definition);
       if (!target) continue;
 
-      const damage = this.rules.modifyTurretDamage(21, target);
+      const baseDamage = turretDamageAgainst(
+        structure.type,
+        target.type,
+      );
+      const damage = this.rules.modifyTurretDamage(
+        baseDamage,
+        target,
+      );
+
       this.enemies.damage(target, damage, "turret");
       this.applyTurretStatuses(target);
-      this.spawnBolt(structure, target);
+      this.spawnBolt(
+        structure,
+        target,
+        definition.boltColor,
+      );
       this.turretCooldowns.set(
         structure.id,
-        0.72 * this.rules.turretCooldownMultiplier,
+        definition.cooldown *
+          this.rules.turretCooldownMultiplier,
       );
     }
   }
@@ -97,6 +113,33 @@ export class DefenseCombatSystem {
     }
   }
 
+  private selectTurretTarget(
+    turret: StructureInstance,
+    definition: TurretCombatDefinition,
+  ): EnemyInstance | null {
+    let target: EnemyInstance | null = null;
+    let bestScore = -Infinity;
+
+    for (const enemy of this.enemies.aliveEnemies) {
+      const distance = Math.hypot(
+        enemy.group.position.x - turret.x,
+        enemy.group.position.z - turret.z,
+      );
+      if (distance > definition.range) continue;
+
+      const score =
+        turretTargetPriority(turret.type, enemy.type) * 4 -
+        distance;
+
+      if (score > bestScore) {
+        target = enemy;
+        bestScore = score;
+      }
+    }
+
+    return target;
+  }
+
   private applyTurretStatuses(enemy: EnemyInstance): void {
     if (this.random.range(0, 1) < this.rules.turretBurnChance) {
       this.enemies.applyStatus(
@@ -121,10 +164,14 @@ export class DefenseCombatSystem {
   private spawnBolt(
     turret: StructureInstance,
     target: EnemyInstance,
+    color: number,
   ): void {
     const from = new THREE.Vector3(
       turret.x,
-      turret.y + 1.55,
+      turret.y +
+        (turret.type === StructureType.RapidTurret
+          ? 1.12
+          : 1.55),
       turret.z,
     );
     const to = target.group.position.clone();
@@ -132,7 +179,7 @@ export class DefenseCombatSystem {
 
     const mesh = new THREE.Mesh(
       this.boltGeometry,
-      this.boltMaterial,
+      this.materialForBolt(color),
     );
     mesh.position.copy(from);
     mesh.lookAt(to);
@@ -146,6 +193,15 @@ export class DefenseCombatSystem {
       age: 0,
       duration: 0.13,
     });
+  }
+
+  private materialForBolt(color: number): THREE.MeshBasicMaterial {
+    let material = this.boltMaterials.get(color);
+    if (!material) {
+      material = new THREE.MeshBasicMaterial({ color });
+      this.boltMaterials.set(color, material);
+    }
+    return material;
   }
 
   private updateBolts(dt: number): void {
