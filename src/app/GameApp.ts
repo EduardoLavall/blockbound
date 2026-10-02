@@ -22,6 +22,9 @@ import { FINAL_NIGHT } from "../defense/VerticalSliceRules";
 import { AudioSystem } from "../engine/audio/AudioSystem";
 import { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Renderer3D } from "../engine/render/Renderer3D";
+import { EquipmentSystem } from "../items/EquipmentSystem";
+import { ItemInventory } from "../items/ItemInventory";
+import { ItemLootSystem } from "../items/ItemLootSystem";
 import { FirstPersonHand } from "../player/FirstPersonHand";
 import { Hotbar } from "../player/Hotbar";
 import { InteractionMode } from "../player/InteractionMode";
@@ -38,6 +41,7 @@ import { ResourceDropSystem } from "../survival/ResourceDropSystem";
 import { CombatHUD } from "../ui/CombatHUD";
 import { DebugOverlay } from "../ui/DebugOverlay";
 import { HordeHUD } from "../ui/HordeHUD";
+import { ItemInventoryPanel } from "../ui/ItemInventoryPanel";
 import { SurvivalHUD } from "../ui/SurvivalHUD";
 import { PlayerStatusPanel } from "../ui/PlayerStatusPanel";
 import { UpgradeDraftUI } from "../ui/UpgradeDraftUI";
@@ -73,6 +77,7 @@ interface GameAppOptions {
   hordeHud: HTMLDivElement;
   combatHud: HTMLDivElement;
   playerStatusPanel: HTMLDivElement;
+  itemInventoryPanel: HTMLDivElement;
   hitMarker: HTMLDivElement;
   damageFlash: HTMLDivElement;
   upgradeOverlay: HTMLDivElement;
@@ -104,6 +109,11 @@ export class GameApp {
     this.rules,
     this.playerVitals,
   );
+  private readonly itemInventory = new ItemInventory();
+  private readonly equipment = new EquipmentSystem(
+    this.itemInventory,
+    this.playerStatus,
+  );
   private readonly settings = new GameSettings();
   private readonly audio = new AudioSystem();
 
@@ -115,6 +125,7 @@ export class GameApp {
   private chunks!: ChunkManager;
   private interaction!: VoxelInteractionController;
   private drops!: ResourceDropSystem;
+  private itemLoot!: ItemLootSystem;
   private structures!: StructureSystem;
   private core!: Core;
   private survivalHud!: SurvivalHUD;
@@ -130,6 +141,7 @@ export class GameApp {
 
   private combatHud!: CombatHUD;
   private playerStatusPanel!: PlayerStatusPanel;
+  private itemInventoryPanel!: ItemInventoryPanel;
   private projectiles!: ProjectileSystem;
   private playerCombat!: PlayerCombatSystem;
   private upgradeDraft!: UpgradeDraft;
@@ -139,6 +151,7 @@ export class GameApp {
   private loop!: GameLoop;
   private defeated = false;
   private drafting = false;
+  private inventoryOpen = false;
 
   constructor(private readonly options: GameAppOptions) {
     this.renderer = new Renderer3D(options.canvas);
@@ -272,6 +285,14 @@ export class GameApp {
       this.rules,
     );
 
+    this.itemLoot = new ItemLootSystem(
+      seed.value,
+      this.renderer.scene,
+      this.enemies,
+      this.player,
+      this.itemInventory,
+    );
+
     this.combatHud = new CombatHUD(
       this.options.combatHud,
       this.options.hitMarker,
@@ -348,6 +369,14 @@ export class GameApp {
       this.run,
     );
 
+    this.itemInventoryPanel = new ItemInventoryPanel(
+      this.options.itemInventoryPanel,
+      this.itemInventory,
+      this.equipment,
+      () => this.closeItemInventory(),
+    );
+    this.bindItemInventoryControls();
+
     this.hordeHud = new HordeHUD(
       this.options.hordeHud,
       this.dayNight,
@@ -389,7 +418,7 @@ export class GameApp {
 
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
-        if (this.defeated || this.drafting) return;
+        if (this.defeated || this.drafting || this.inventoryOpen) return;
 
         this.playerVitals.update(dt);
         this.player.fixedUpdate(dt);
@@ -401,6 +430,7 @@ export class GameApp {
         this.interaction.fixedUpdate(dt);
         this.projectiles.fixedUpdate(dt);
         this.drops.update(dt);
+        this.itemLoot.update(dt);
         this.core.update(dt);
 
         const transition = this.dayNight.update(dt);
@@ -522,6 +552,8 @@ export class GameApp {
               " F" + this.metadata.biomeCounts[BiomeId.Forest] +
               " R" + this.metadata.biomeCounts[BiomeId.Rocky],
             "DROPS     " + this.drops.count,
+            "ITEMS     " + this.itemInventory.all.length +
+              " inv / " + this.itemLoot.count + " world",
             "CHUNKS    " + chunkStats.chunks,
             "WORKERS   " + chunkStats.workersBusy +
               " busy / " + chunkStats.workersPending + " queued",
@@ -578,6 +610,8 @@ export class GameApp {
 
     this.defeated = true;
     this.drafting = false;
+    this.inventoryOpen = false;
+    this.itemInventoryPanel?.hide();
     this.waves.endNight();
     this.input.setEnabled(false);
     this.options.upgradeOverlay.classList.add("hidden");
@@ -623,6 +657,54 @@ export class GameApp {
       window.location.hash;
     window.history.replaceState(null, "", nextUrl);
     return seed;
+  }
+
+  private bindItemInventoryControls(): void {
+    window.addEventListener("keydown", (event) => {
+      if (
+        event.code !== "KeyI" ||
+        event.repeat ||
+        this.defeated ||
+        this.drafting
+      ) {
+        return;
+      }
+
+      if (!this.inventoryOpen && !this.controls.isLocked) return;
+
+      event.preventDefault();
+      if (this.inventoryOpen) this.closeItemInventory();
+      else this.openItemInventory();
+    });
+  }
+
+  private openItemInventory(): void {
+    if (
+      this.inventoryOpen ||
+      this.defeated ||
+      this.drafting
+    ) {
+      return;
+    }
+
+    this.inventoryOpen = true;
+    this.input.setEnabled(false);
+    this.options.overlay.classList.add("hidden");
+    this.itemInventoryPanel.show();
+
+    if (this.controls.isLocked) {
+      this.controls.unlock();
+    }
+  }
+
+  private closeItemInventory(): void {
+    if (!this.inventoryOpen) return;
+
+    this.inventoryOpen = false;
+    this.itemInventoryPanel.hide();
+    this.options.overlay.classList.add("hidden");
+    this.input.setEnabled(false);
+    this.controls.lock();
   }
 
   private bindSettings(): void {
@@ -673,11 +755,15 @@ export class GameApp {
 
     this.controls.addEventListener("lock", () => {
       this.options.overlay.classList.add("hidden");
-      this.input.setEnabled(!this.defeated && !this.drafting);
+      this.input.setEnabled(
+        !this.defeated &&
+        !this.drafting &&
+        !this.inventoryOpen,
+      );
     });
 
     this.controls.addEventListener("unlock", () => {
-      if (this.defeated || this.drafting) {
+      if (this.defeated || this.drafting || this.inventoryOpen) {
         this.options.overlay.classList.add("hidden");
         return;
       }
