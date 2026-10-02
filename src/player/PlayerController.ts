@@ -6,6 +6,12 @@ import type { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 
 const UP = new THREE.Vector3(0, 1, 0);
 
+export interface PlayerSpawn {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export class PlayerController {
   private readonly body: RAPIER.RigidBody;
   private readonly collider: RAPIER.Collider;
@@ -21,10 +27,11 @@ export class PlayerController {
     private readonly controls: PointerLockControls,
     private readonly input: Input,
     physics: PhysicsWorld,
+    spawn: PlayerSpawn,
   ) {
     this.body = physics.world.createRigidBody(
       RAPIER.RigidBodyDesc.kinematicPositionBased()
-        .setTranslation(0, 2.2, 8)
+        .setTranslation(spawn.x, spawn.y, spawn.z)
         .setCanSleep(false),
     );
 
@@ -47,17 +54,24 @@ export class PlayerController {
   fixedUpdate(dt: number): void {
     if (!this.controls.isLocked) return;
 
-    const walkSpeed = this.input.isDown("ShiftLeft") || this.input.isDown("ShiftRight") ? 8.4 : 5.4;
+    const walkSpeed =
+      this.input.isDown("ShiftLeft") || this.input.isDown("ShiftRight")
+        ? 8.4
+        : 5.4;
+
     this.camera.getWorldDirection(this.forward);
     this.forward.y = 0;
     if (this.forward.lengthSq() < 0.0001) this.forward.set(0, 0, -1);
     this.forward.normalize();
     this.right.crossVectors(this.forward, UP).normalize();
 
-    const forwardAxis = Number(this.input.isDown("KeyW")) - Number(this.input.isDown("KeyS"));
-    const rightAxis = Number(this.input.isDown("KeyD")) - Number(this.input.isDown("KeyA"));
+    const forwardAxis =
+      Number(this.input.isDown("KeyW")) - Number(this.input.isDown("KeyS"));
+    const rightAxis =
+      Number(this.input.isDown("KeyD")) - Number(this.input.isDown("KeyA"));
 
-    this.wish.set(0, 0, 0)
+    this.wish
+      .set(0, 0, 0)
       .addScaledVector(this.forward, forwardAxis)
       .addScaledVector(this.right, rightAxis);
 
@@ -98,7 +112,18 @@ export class PlayerController {
     this.camera.position.set(position.x, position.y + 0.55, position.z);
   }
 
-  getDebugState(): { x: number; y: number; z: number; verticalVelocity: number; grounded: boolean } {
+  getPosition(): { x: number; y: number; z: number } {
+    const position = this.body.translation();
+    return { x: position.x, y: position.y, z: position.z };
+  }
+
+  getDebugState(): {
+    x: number;
+    y: number;
+    z: number;
+    verticalVelocity: number;
+    grounded: boolean;
+  } {
     const position = this.body.translation();
     return {
       x: position.x,

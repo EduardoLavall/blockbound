@@ -12,7 +12,18 @@ export async function bootstrap(): Promise<void> {
   const playButton = required<HTMLButtonElement>("play-button");
   const loadingLabel = required<HTMLElement>("loading-label");
   const debug = required<HTMLDivElement>("debug");
+  const hotbar = required<HTMLDivElement>("hotbar");
+  const targetInfo = required<HTMLDivElement>("target-info");
 
-  const app = new GameApp({ canvas, overlay, playButton, loadingLabel, debug });
+  const app = new GameApp({
+    canvas,
+    overlay,
+    playButton,
+    loadingLabel,
+    debug,
+    hotbar,
+    targetInfo,
+  });
+
   await app.init();
 }
