@@ -362,16 +362,16 @@ A CI valida:
 
 Depois do vertical slice:
 
-1. Game Design — análise crítica de balanceamento;
-2. Rapid / Machine Gun Turret;
-3. Sniper Turret;
-4. Electric / Tesla Turret;
-5. Explosive / Mortar Turret;
-6. Slow / Cryo Turret;
-7. Flamethrower Turret;
-8. Progressão e níveis das Torres;
-9. Player Status;
-10. Inventário + Equipamento;
+1. Player Status;
+2. Inventário + Equipamento;
+3. Game Design — análise crítica de balanceamento;
+4. Rapid / Machine Gun Turret;
+5. Sniper Turret;
+6. Electric / Tesla Turret;
+7. Explosive / Mortar Turret;
+8. Slow / Cryo Turret;
+9. Flamethrower Turret;
+10. Progressão e níveis das Torres;
 11. Crafting expandido;
 12. Shop;
 13. Level + Árvore de Talentos;
@@ -379,7 +379,9 @@ Depois do vertical slice:
 15. Shaders + tochas + iluminação leve;
 16. Juicy Effects / Game Feel.
 
-A fase de balanceamento vem primeiro para revisar pacing, economia, armas, torres, inimigos, upgrades e dificuldade com runs completas antes de aprofundar novas progressões.
+**Player Status vem primeiro** para centralizar e expor os atributos reais da build. **Inventário + Equipamento vem em seguida** porque itemização altera DPS, sobrevivência e outras métricas que precisam existir antes de um balance pass sério.
+
+A análise crítica de balanceamento acontece então com uma build de jogador mais completa, considerando stats, equipamentos, cartas, economia, defesas, inimigos e Boss em conjunto.
 
 Depois entram as novas torres **uma por vez**, cada uma com função própria: Rapid, Sniper, Tesla, Mortar, Cryo e Flamethrower. Só depois dos seis arquétipos básicos vem o sistema de níveis/especializações das torres.
 
