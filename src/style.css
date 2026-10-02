@@ -666,3 +666,105 @@ small { display: block; color: #899685; margin-top: 13px; }
     grid-template-columns: 1fr;
   }
 }
+
+
+.settings-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 16px 0 18px;
+  padding: 12px;
+  background: rgba(7, 10, 8, .72);
+  border: 1px solid #303a2f;
+}
+
+.settings-title {
+  grid-column: 1 / -1;
+  color: #d9c277;
+  font: 900 10px ui-monospace, monospace;
+  letter-spacing: .12em;
+}
+
+.settings-panel label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: #0d130f;
+  border: 1px solid #283128;
+  color: #aeb8aa;
+  font: 800 9px ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.settings-panel input[type="range"] {
+  width: 90px;
+}
+
+.settings-panel input[type="checkbox"] {
+  accent-color: #dfbd61;
+}
+
+#horde-hud.boss-active {
+  border-color: rgba(235, 69, 93, .8);
+  box-shadow: 0 0 26px rgba(177, 34, 61, .18);
+}
+
+.boss-line {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(237, 86, 107, .35);
+}
+
+.boss-line > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 5px;
+  color: #ff8a9b;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.boss-health-track {
+  height: 8px;
+  overflow: hidden;
+  background: #210a10;
+  border: 1px solid #62303a;
+}
+
+.boss-health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a82c47, #ef6678);
+}
+
+.defeat-overlay.victory {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(26, 65, 53, .92), rgba(5, 12, 9, .98));
+}
+
+.defeat-overlay.victory .defeat-panel {
+  border-color: #55b99a;
+  box-shadow: 12px 12px 0 #06251c;
+}
+
+.defeat-overlay.victory .defeat-panel h1 {
+  color: #8be0bd;
+}
+
+body.reduced-fx #damage-flash,
+body.reduced-fx #hit-marker {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .settings-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-title {
+    grid-column: 1;
+  }
+}
