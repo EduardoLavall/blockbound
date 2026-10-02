@@ -26,6 +26,7 @@ import { Renderer3D } from "../engine/render/Renderer3D";
 import { EquipmentSystem } from "../items/EquipmentSystem";
 import { ItemInventory } from "../items/ItemInventory";
 import { ItemLootSystem } from "../items/ItemLootSystem";
+import { RunInventory } from "../inventory/RunInventory";
 import { FirstPersonHand } from "../player/FirstPersonHand";
 import { Hotbar } from "../player/Hotbar";
 import { InteractionMode } from "../player/InteractionMode";
@@ -100,7 +101,8 @@ export class GameApp {
   private readonly controls: PointerLockControls;
   private readonly debugOverlay: DebugOverlay;
   private readonly hotbar: Hotbar;
-  private readonly inventory = new Inventory();
+  private readonly runInventory = new RunInventory();
+  private readonly inventory = new Inventory(this.runInventory);
   private readonly mode = new InteractionMode();
   private readonly dayNight = new DayNightSystem();
   private readonly rules = new RuleEngine();
@@ -110,7 +112,9 @@ export class GameApp {
     this.rules,
     this.playerVitals,
   );
-  private readonly itemInventory = new ItemInventory();
+  private readonly itemInventory = new ItemInventory(
+    this.runInventory,
+  );
   private readonly equipment = new EquipmentSystem(
     this.itemInventory,
     this.playerStatus,
@@ -162,7 +166,10 @@ export class GameApp {
       options.canvas,
     );
     this.debugOverlay = new DebugOverlay(options.debug);
-    this.hotbar = new Hotbar(options.hotbar);
+    this.hotbar = new Hotbar(
+      options.hotbar,
+      this.runInventory,
+    );
     this.bindSettings();
 
     this.options.restartButton.addEventListener("click", () => {
@@ -374,6 +381,7 @@ export class GameApp {
 
     this.itemInventoryPanel = new ItemInventoryPanel(
       this.options.itemInventoryPanel,
+      this.runInventory,
       this.itemInventory,
       this.equipment,
       () => this.closeItemInventory(),
@@ -576,8 +584,11 @@ export class GameApp {
               " F" + this.metadata.biomeCounts[BiomeId.Forest] +
               " R" + this.metadata.biomeCounts[BiomeId.Rocky],
             "DROPS     " + this.drops.count,
+            "SLOTS     " +
+              this.runInventory.slots.filter(Boolean).length +
+              "/36",
             "ITEMS     " + this.itemInventory.all.length +
-              " inv / " + this.itemLoot.count + " world",
+              " grid / " + this.itemLoot.count + " world",
             "CHUNKS    " + chunkStats.chunks,
             "WORKERS   " + chunkStats.workersBusy +
               " busy / " + chunkStats.workersPending + " queued",
