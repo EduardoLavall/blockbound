@@ -5,6 +5,7 @@ import type { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import type { InteractionMode } from "../player/InteractionMode";
 import type { PlayerController } from "../player/PlayerController";
 import type { Inventory } from "../survival/Inventory";
+import type { RuleEngine } from "../roguelite/RuleEngine";
 import { Health } from "../survival/Health";
 import { formatCost, type ResourceCost } from "../survival/Resources";
 import { VOXEL_INTERACTION_DISTANCE } from "../voxel/constants";
@@ -78,6 +79,7 @@ export class StructureSystem {
     private readonly world: VoxelWorld,
     private readonly physics: PhysicsWorld,
     private readonly inventory: Inventory,
+    private readonly rules: RuleEngine,
     private readonly mode: InteractionMode,
     private readonly core: Core,
     private readonly bounds: WorldBounds,
@@ -522,10 +524,30 @@ export class StructureSystem {
       return;
     }
 
-    nearest.health.heal(nearest.definition.repairHealth);
+    nearest.health.heal(
+      this.rules.modifyRepairAmount(nearest.definition.repairHealth),
+    );
     this.feedback =
       `REPAIRED ${nearest.definition.name.toUpperCase()} · ${Math.round(nearest.health.current)}/${nearest.health.max}`;
     this.feedbackTime = 1.2;
+  }
+
+  repairMostDamaged(amount: number): boolean {
+    let target: StructureInstance | null = null;
+    let missing = 0;
+
+    for (const instance of this.instances) {
+      const currentMissing =
+        instance.health.max - instance.health.current;
+      if (currentMissing > missing) {
+        missing = currentMissing;
+        target = instance;
+      }
+    }
+
+    if (!target || missing <= 0) return false;
+    target.health.heal(amount);
+    return true;
   }
 
   private destroy(instance: StructureInstance): void {

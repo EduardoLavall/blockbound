@@ -6,7 +6,7 @@ O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`
 
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
-## Estado atual — Fase 5: Hordas + Navegação Dinâmica
+## Estado atual — Fases 6–7: Combate FPS + Roguelite
 
 O jogo agora possui o primeiro loop de Tower Defense funcional:
 
@@ -30,7 +30,70 @@ NIGHT
 
 A regra central já está implementada:
 
-> **construir uma base altera o comportamento da horda.**
+> **construir uma base altera o comportamento da horda — e o jogador luta dentro do mesmo ecossistema que suas defesas.**
+
+## Combate FPS
+
+O jogador alterna com `Q` entre:
+
+- **Tool** — mineração e interação com o mundo;
+- **Blade** — melee de curto alcance, burst e crit;
+- **Repeater** — projétil, pierce, burn, shock e mark via upgrades.
+
+O combate já possui:
+
+- HP do jogador;
+- dano de inimigos contra o jogador;
+- invulnerability window curta para evitar dano de contato por frame;
+- morte do jogador encerrando a run;
+- hit marker;
+- feedback de crítico/kill;
+- damage flash;
+- projéteis reais no mundo;
+- viewmodels próprios para Blade e Repeater;
+- status **Burn**, **Shock** e **Mark**;
+- atribuição de kills ao jogador ou às defesas.
+
+## Roguelite
+
+Ao sobreviver à noite:
+
+```text
+night ends
+  -> surviving horde retreats
+  -> simulação pausa
+  -> Pointer Lock é liberado
+  -> 3 cartas aparecem
+  -> jogador escolhe 1
+  -> RuleEngine aplica a regra
+  -> run continua
+```
+
+O registry atual possui **38 upgrades**, dentro das famílias:
+
+- Player;
+- Defense;
+- Economy;
+- System.
+
+Raridades:
+
+- common;
+- rare;
+- epic.
+
+Exemplos de sinergias já funcionais:
+
+- **Mark → Turret** causa dano extra em inimigos marcados;
+- **Shock → Spike** aumenta dano da armadilha;
+- **Burn → defenses** pode amplificar dano de defesa;
+- kills do jogador podem curar jogador/Core;
+- kills podem reparar automaticamente a defesa;
+- kills podem gerar Metal/Crystal;
+- upgrades podem acelerar mineração e aumentar yield;
+- low-health pode aumentar dano do jogador.
+
+As regras ficam centralizadas em `RuleEngine`, evitando lógica de upgrade espalhada pelos sistemas.
 
 ## Day / Night
 
@@ -154,15 +217,18 @@ O roster completo de papéis diferentes ainda pertence à fase posterior de cont
 
 ## Derrota
 
-O Core possui **500 HP**.
+A run termina se:
 
-Quando chega a zero:
+- o Core chegar a 0 HP;
+- o jogador chegar a 0 HP.
 
-- waves param;
-- input é bloqueado;
-- Pointer Lock é liberado;
-- aparece a tela **CORE DESTROYED**;
-- a run pode ser reiniciada mantendo a mesma seed pela URL.
+A tela final mostra:
+
+- noites sobrevividas;
+- kills do jogador;
+- número de upgrades adquiridos.
+
+Reiniciar mantém a mesma seed presente na URL.
 
 ## Survival + Build
 
@@ -237,7 +303,8 @@ A proceduralidade existe para variar runs, não para produzir exploração infin
 | WASD | mover |
 | Space | pular |
 | Shift | correr |
-| Hold LMB | minerar |
+| Q | alternar Tool / Blade / Repeater |
+| LMB | minerar / melee / disparar |
 | RMB | colocar bloco / construir |
 | 1–5 | escolher material |
 | B | Build Mode |
@@ -256,6 +323,17 @@ src/
       NavigationGrid.ts
       FlowField.ts
       BreachPlanner.ts
+  combat/
+    CombatTypes.ts
+    PlayerCombatSystem.ts
+    PlayerVitals.ts
+    ProjectileSystem.ts
+  roguelite/
+    RuleEngine.ts
+    RunManager.ts
+    RunRuleEffects.ts
+    UpgradeDraft.ts
+    UpgradeRegistry.ts
   defense/
     DayNightSystem.ts
     SpawnDirector.ts
@@ -268,8 +346,10 @@ src/
   survival/
   voxel/
   ui/
+    CombatHUD.ts
     HordeHUD.ts
     SurvivalHUD.ts
+    UpgradeDraftUI.ts
 ```
 
 ## Vercel é requisito permanente
@@ -281,11 +361,14 @@ build:     npm run build
 output:    dist
 ```
 
-A fase de hordas continua totalmente client-side:
+Combate, roguelite e hordas continuam totalmente client-side:
 
 - Navigation Grid no browser;
 - Flow Field no browser;
 - enemy simulation local;
+- ProjectileSystem local;
+- RuleEngine/UpgradeDraft locais;
+- seed do draft derivada da seed da run;
 - Three.js para render;
 - Rapier para player/estruturas;
 - nenhum backend obrigatório;
@@ -309,20 +392,20 @@ A CI valida:
 
 ## Próxima fase
 
-**Issue #8 — combate FPS + roguelite**
+**Issue #9 — enemy roster + boss + vertical slice**
 
 Próximos sistemas:
 
-- dano ativo do jogador contra inimigos;
-- melee;
-- ranged;
-- hit feedback;
-- status effects;
-- player death;
-- Upgrade Registry;
-- draft 1-of-3;
-- tags e sinergias;
-- Rule Engine.
+- Runner;
+- Brute;
+- Archer;
+- Support;
+- Burrower;
+- Boss;
+- diferenças reais de comportamento/prioridade;
+- fechamento da run de 5 noites;
+- vitória;
+- balance pass inicial.
 
 A regra central continua sendo:
 

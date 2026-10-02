@@ -5,15 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10170f" />
     <meta name="description" content="Blockfall — 3D voxel FPS tower defense roguelite." />
-    <title>Blockfall — Horde Defense</title>
+    <title>Blockfall — FPS Roguelite</title>
   </head>
   <body>
     <div id="app">
       <canvas id="game-canvas"></canvas>
+      <div id="damage-flash" aria-hidden="true"></div>
       <div id="crosshair" aria-hidden="true"></div>
-      <div id="debug"></div>
-      <div id="status">HORDE NAVIGATION · ISSUE #7</div>
+      <div id="hit-marker" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
 
+      <div id="debug"></div>
+      <div id="status">FPS + ROGUELITE · ISSUE #8</div>
+
+      <div id="combat-hud"></div>
       <div id="core-hud"></div>
       <div id="inventory-hud"></div>
       <div id="horde-hud"></div>
@@ -28,24 +34,28 @@
       <div id="buildbar" aria-label="Build recipes"></div>
       <div id="hotbar" aria-label="Material hotbar"></div>
 
+      <div id="upgrade-overlay" class="overlay upgrade-overlay hidden"></div>
+
       <div id="defeat-overlay" class="overlay defeat-overlay hidden">
         <div class="panel defeat-panel">
-          <div class="eyebrow">RUN FAILED</div>
-          <h1>CORE DESTROYED</h1>
-          <p>A horda atravessou suas defesas. Recarregue a mesma seed e tente uma arquitetura diferente.</p>
+          <div id="defeat-eyebrow" class="eyebrow">RUN FAILED</div>
+          <h1 id="defeat-title">CORE DESTROYED</h1>
+          <p id="defeat-text">A run terminou.</p>
+          <div id="run-summary" class="run-summary"></div>
           <button id="restart-button">REINICIAR RUN</button>
         </div>
       </div>
 
       <div id="start-overlay" class="overlay">
         <div class="panel">
-          <div class="eyebrow">BLOCKFALL · BUILD CHANGES THE HORDE</div>
-          <h1>HORDE DEFENSE</h1>
-          <p>Prepare a base durante o dia. À noite, a horda usa um Flow Field compartilhado e decide entre contornar sua construção ou quebrá-la.</p>
+          <div class="eyebrow">BLOCKFALL · FIGHT WITH YOUR DEFENSE</div>
+          <h1>FPS ROGUELITE</h1>
+          <p>Minere e construa durante o dia. À noite, lute junto das defesas. Sobreviva para escolher 1 de 3 upgrades e transformar a build da run.</p>
           <div class="controls">
             <span><b>WASD</b> mover</span>
             <span><b>Mouse</b> olhar</span>
-            <span><b>Hold LMB</b> minerar</span>
+            <span><b>Q</b> Tool / Blade / Repeater</span>
+            <span><b>LMB</b> minerar / atacar</span>
             <span><b>RMB</b> colocar/construir</span>
             <span><b>1–5</b> materiais</span>
             <span><b>B</b> Build Mode</span>
@@ -57,7 +67,7 @@
             <span><b>Esc</b> soltar mouse</span>
           </div>
           <button id="play-button">ENTRAR NA RUN</button>
-          <small id="loading-label">Preparando navegação da horda...</small>
+          <small id="loading-label">Preparando combate e regras da run...</small>
         </div>
       </div>
     </div>

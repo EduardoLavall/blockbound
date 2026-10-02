@@ -5,6 +5,9 @@ import { FlowField } from "../ai/navigation/FlowField";
 import { NavigationGrid } from "../ai/navigation/NavigationGrid";
 import { Core } from "../building/Core";
 import { StructureSystem } from "../building/StructureSystem";
+import { PlayerCombatSystem } from "../combat/PlayerCombatSystem";
+import { PlayerVitals } from "../combat/PlayerVitals";
+import { ProjectileSystem } from "../combat/ProjectileSystem";
 import { GameLoop } from "../core/GameLoop";
 import { Input } from "../core/Input";
 import {
@@ -21,11 +24,18 @@ import { Hotbar } from "../player/Hotbar";
 import { InteractionMode } from "../player/InteractionMode";
 import { PlayerController } from "../player/PlayerController";
 import { VoxelInteractionController } from "../player/VoxelInteractionController";
+import { RuleEngine } from "../roguelite/RuleEngine";
+import { RunManager } from "../roguelite/RunManager";
+import { RunRuleEffects } from "../roguelite/RunRuleEffects";
+import { UpgradeDraft } from "../roguelite/UpgradeDraft";
+import type { UpgradeDefinition } from "../roguelite/UpgradeRegistry";
 import { Inventory } from "../survival/Inventory";
 import { ResourceDropSystem } from "../survival/ResourceDropSystem";
+import { CombatHUD } from "../ui/CombatHUD";
 import { DebugOverlay } from "../ui/DebugOverlay";
 import { HordeHUD } from "../ui/HordeHUD";
 import { SurvivalHUD } from "../ui/SurvivalHUD";
+import { UpgradeDraftUI } from "../ui/UpgradeDraftUI";
 import { BiomeId } from "../voxel/generation/Biomes";
 import {
   createRandomRunSeed,
@@ -56,7 +66,15 @@ interface GameAppOptions {
   inventoryHud: HTMLDivElement;
   coreHud: HTMLDivElement;
   hordeHud: HTMLDivElement;
+  combatHud: HTMLDivElement;
+  hitMarker: HTMLDivElement;
+  damageFlash: HTMLDivElement;
+  upgradeOverlay: HTMLDivElement;
   defeatOverlay: HTMLDivElement;
+  defeatEyebrow: HTMLDivElement;
+  defeatTitle: HTMLHeadingElement;
+  defeatText: HTMLParagraphElement;
+  runSummary: HTMLDivElement;
   restartButton: HTMLButtonElement;
   status: HTMLDivElement;
 }
@@ -70,6 +88,9 @@ export class GameApp {
   private readonly inventory = new Inventory();
   private readonly mode = new InteractionMode();
   private readonly dayNight = new DayNightSystem();
+  private readonly rules = new RuleEngine();
+  private readonly run = new RunManager();
+  private readonly playerVitals = new PlayerVitals();
 
   private physics!: PhysicsWorld;
   private player!: PlayerController;
@@ -92,8 +113,16 @@ export class GameApp {
   private defenseCombat!: DefenseCombatSystem;
   private hordeHud!: HordeHUD;
 
+  private combatHud!: CombatHUD;
+  private projectiles!: ProjectileSystem;
+  private playerCombat!: PlayerCombatSystem;
+  private upgradeDraft!: UpgradeDraft;
+  private upgradeUi!: UpgradeDraftUI;
+  private runRuleEffects!: RunRuleEffects;
+
   private loop!: GameLoop;
   private defeated = false;
+  private drafting = false;
 
   constructor(private readonly options: GameAppOptions) {
     this.renderer = new Renderer3D(options.canvas);
@@ -192,26 +221,12 @@ export class GameApp {
       this.world,
       this.physics,
       this.inventory,
+      this.rules,
       this.mode,
       this.core,
       this.metadata.bounds,
       this.options.buildBar,
       this.options.buildInfo,
-    );
-
-    this.interaction = new VoxelInteractionController(
-      this.renderer.camera,
-      this.renderer.scene,
-      this.input,
-      this.player,
-      this.world,
-      this.chunks,
-      this.hotbar,
-      this.inventory,
-      this.drops,
-      this.mode,
-      this.options.targetInfo,
-      this.options.miningProgress,
     );
 
     this.navigation = new NavigationGrid(
@@ -233,6 +248,56 @@ export class GameApp {
       this.breachPlanner,
       this.structures,
       this.core,
+      this.player,
+      this.playerVitals,
+      this.rules,
+    );
+
+    this.combatHud = new CombatHUD(
+      this.options.combatHud,
+      this.options.hitMarker,
+      this.options.damageFlash,
+      this.playerVitals,
+    );
+
+    this.projectiles = new ProjectileSystem(
+      seed.value,
+      this.renderer.scene,
+      this.world,
+      this.enemies,
+      (_damage, killed, critical) => {
+        this.combatHud.showHit(killed, critical);
+      },
+    );
+
+    this.playerCombat = new PlayerCombatSystem(
+      seed.value,
+      this.renderer.camera,
+      this.input,
+      this.mode,
+      this.enemies,
+      this.projectiles,
+      this.rules,
+      this.playerVitals,
+      this.hand,
+      this.combatHud,
+    );
+
+    this.interaction = new VoxelInteractionController(
+      this.renderer.camera,
+      this.renderer.scene,
+      this.input,
+      this.player,
+      this.world,
+      this.chunks,
+      this.hotbar,
+      this.inventory,
+      this.drops,
+      this.mode,
+      this.rules,
+      () => this.playerCombat.canMine,
+      this.options.targetInfo,
+      this.options.miningProgress,
     );
 
     this.spawns = new SpawnDirector(
@@ -243,9 +308,11 @@ export class GameApp {
     );
     this.waves = new WaveDirector(this.spawns);
     this.defenseCombat = new DefenseCombatSystem(
+      seed.value,
       this.renderer.scene,
       this.structures,
       this.enemies,
+      this.rules,
     );
 
     this.survivalHud = new SurvivalHUD(
@@ -264,6 +331,18 @@ export class GameApp {
       this.flow,
     );
 
+    this.upgradeDraft = new UpgradeDraft(seed.value, this.run);
+    this.upgradeUi = new UpgradeDraftUI(this.options.upgradeOverlay);
+    this.runRuleEffects = new RunRuleEffects(
+      this.enemies,
+      this.rules,
+      this.run,
+      this.playerVitals,
+      this.core,
+      this.structures,
+      this.inventory,
+    );
+
     const size =
       this.metadata.bounds.maxXExclusive - this.metadata.bounds.minX;
     this.options.status.textContent =
@@ -271,20 +350,21 @@ export class GameApp {
 
     this.bindPointerLock();
     this.options.loadingLabel.textContent =
-      "Prepare a defesa. A primeira noite começa em " +
-      Math.ceil(this.dayNight.timeRemaining) +
-      "s.";
+      "Prepare a defesa. Q alterna Tool, Blade e Repeater.";
 
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
-        if (this.defeated) return;
+        if (this.defeated || this.drafting) return;
 
+        this.playerVitals.update(dt);
         this.player.fixedUpdate(dt);
         this.physics.step(dt);
         this.player.syncCamera();
 
         this.structures.fixedUpdate(dt);
+        this.playerCombat.fixedUpdate(dt);
         this.interaction.fixedUpdate(dt);
+        this.projectiles.fixedUpdate(dt);
         this.drops.update(dt);
         this.core.update(dt);
 
@@ -293,6 +373,10 @@ export class GameApp {
           this.waves.startNight(transition.night);
         } else if (transition?.to === DayPhase.Day) {
           this.waves.endNight();
+          this.enemies.retreatAll();
+          this.run.completeNight(transition.night);
+          this.openUpgradeDraft(transition.night);
+          return;
         }
 
         this.navigation.updateDirty();
@@ -307,7 +391,15 @@ export class GameApp {
         this.defenseCombat.fixedUpdate(dt);
 
         if (this.core.health.destroyed) {
-          this.handleDefeat();
+          this.endRun(
+            "CORE DESTROYED",
+            "A horda atravessou suas defesas.",
+          );
+        } else if (this.playerVitals.dead) {
+          this.endRun(
+            "PLAYER DOWN",
+            "Você caiu antes de conseguir defender o Core.",
+          );
         }
       },
       render: (frameMs) => {
@@ -325,6 +417,7 @@ export class GameApp {
         this.interaction.renderUpdate();
         this.survivalHud.update();
         this.hordeHud.update();
+        this.playerCombat.renderUpdate(frameMs);
         this.hand.update(frameMs);
 
         const phaseLabel =
@@ -337,7 +430,9 @@ export class GameApp {
           size +
           "×" +
           size +
-          " · SEED " +
+          " · " +
+          this.run.acquiredUpgrades.length +
+          " UPGRADES · SEED " +
           seed.text;
 
         this.renderer.render();
@@ -354,6 +449,11 @@ export class GameApp {
             "PHASE     " + phaseLabel,
             "ENEMIES   " + this.enemies.aliveCount,
             "WAVE Q    " + wave.remainingToSpawn,
+            "PLAYER HP " + Math.ceil(this.playerVitals.health.current) +
+              "/" + this.playerVitals.health.max,
+            "KILLS     " + this.run.playerKills,
+            "UPGRADES  " + this.run.acquiredUpgrades.length,
+            "PROJECTILES " + this.projectiles.count,
             "NAV DIRTY " + this.navigation.pendingCells,
             "NAV MS    " + this.navigation.lastRebuildMs.toFixed(2),
             "FLOW MS   " + this.flow.rebuildMs.toFixed(2),
@@ -366,6 +466,7 @@ export class GameApp {
             "CHUNKS    " + chunkStats.chunks,
             "WORKERS   " + chunkStats.workersBusy +
               " busy / " + chunkStats.workersPending + " queued",
+            ...this.playerCombat.getDebugLines(),
             ...this.structures.getDebugLines(),
             ...this.interaction.getDebugLines(),
           ],
@@ -376,11 +477,55 @@ export class GameApp {
     this.loop.start();
   }
 
-  private handleDefeat(): void {
+  private openUpgradeDraft(night: number): void {
     if (this.defeated) return;
+
+    const choices = this.upgradeDraft.draw(night, 3);
+    if (choices.length === 0) return;
+
+    this.drafting = true;
+    this.input.setEnabled(false);
+    this.options.overlay.classList.add("hidden");
+
+    if (this.controls.isLocked) {
+      this.controls.unlock();
+    }
+
+    this.upgradeUi.show(
+      night,
+      choices,
+      (upgrade) => this.chooseUpgrade(upgrade),
+    );
+  }
+
+  private chooseUpgrade(upgrade: UpgradeDefinition): void {
+    upgrade.apply(this.rules);
+    this.run.acquireUpgrade(upgrade.id);
+    this.drafting = false;
+
+    this.options.overlay.classList.add("hidden");
+    this.input.setEnabled(false);
+    this.controls.lock();
+  }
+
+  private endRun(title: string, text: string): void {
+    if (this.defeated) return;
+
     this.defeated = true;
+    this.drafting = false;
     this.waves.endNight();
     this.input.setEnabled(false);
+    this.options.upgradeOverlay.classList.add("hidden");
+
+    const summary = this.run.summary();
+    this.options.defeatEyebrow.textContent = "RUN FAILED";
+    this.options.defeatTitle.textContent = title;
+    this.options.defeatText.textContent = text;
+    this.options.runSummary.innerHTML = `
+      <div><span>Nights</span><strong>${summary.nightsSurvived}</strong></div>
+      <div><span>Player kills</span><strong>${summary.playerKills}</strong></div>
+      <div><span>Upgrades</span><strong>${summary.upgrades.length}</strong></div>
+    `;
     this.options.defeatOverlay.classList.remove("hidden");
 
     if (this.controls.isLocked) {
@@ -417,11 +562,11 @@ export class GameApp {
 
     this.controls.addEventListener("lock", () => {
       this.options.overlay.classList.add("hidden");
-      this.input.setEnabled(!this.defeated);
+      this.input.setEnabled(!this.defeated && !this.drafting);
     });
 
     this.controls.addEventListener("unlock", () => {
-      if (this.defeated) {
+      if (this.defeated || this.drafting) {
         this.options.overlay.classList.add("hidden");
         return;
       }
