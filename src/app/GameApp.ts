@@ -17,6 +17,7 @@ import {
 import { DefenseCombatSystem } from "../defense/DefenseCombatSystem";
 import { SpawnDirector } from "../defense/SpawnDirector";
 import { WaveDirector } from "../defense/WaveDirector";
+import { FINAL_NIGHT } from "../defense/VerticalSliceRules";
 import { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Renderer3D } from "../engine/render/Renderer3D";
 import { FirstPersonHand } from "../player/FirstPersonHand";
@@ -371,9 +372,14 @@ export class GameApp {
         const transition = this.dayNight.update(dt);
         if (transition?.to === DayPhase.Night) {
           this.waves.startNight(transition.night);
+          this.dayNight.holdTransition(
+            transition.night >= FINAL_NIGHT,
+          );
         } else if (transition?.to === DayPhase.Day) {
+          this.dayNight.holdTransition(false);
           this.waves.endNight();
           this.enemies.retreatAll();
+          this.enemies.cleanupInactive();
           this.run.completeNight(transition.night);
           this.openUpgradeDraft(transition.night);
           return;
@@ -389,6 +395,21 @@ export class GameApp {
         );
         this.enemies.fixedUpdate(dt);
         this.defenseCombat.fixedUpdate(dt);
+
+        if (
+          this.dayNight.phase === DayPhase.Night &&
+          this.dayNight.night >= FINAL_NIGHT &&
+          this.waves.complete &&
+          this.enemies.aliveCount === 0
+        ) {
+          this.run.completeNight(FINAL_NIGHT);
+          this.endRun(
+            "SIEGE WARDEN FALLEN",
+            "O Core sobreviveu às cinco noites. Vertical slice concluído.",
+            true,
+          );
+          return;
+        }
 
         if (this.core.health.destroyed) {
           this.endRun(
@@ -508,7 +529,11 @@ export class GameApp {
     this.controls.lock();
   }
 
-  private endRun(title: string, text: string): void {
+  private endRun(
+    title: string,
+    text: string,
+    victory = false,
+  ): void {
     if (this.defeated) return;
 
     this.defeated = true;
@@ -518,9 +543,13 @@ export class GameApp {
     this.options.upgradeOverlay.classList.add("hidden");
 
     const summary = this.run.summary();
-    this.options.defeatEyebrow.textContent = "RUN FAILED";
+    this.options.defeatOverlay.classList.toggle("victory", victory);
+    this.options.defeatEyebrow.textContent =
+      victory ? "RUN COMPLETE" : "RUN FAILED";
     this.options.defeatTitle.textContent = title;
     this.options.defeatText.textContent = text;
+    this.options.restartButton.textContent =
+      victory ? "NOVA RUN" : "REINICIAR RUN";
     this.options.runSummary.innerHTML = `
       <div><span>Nights</span><strong>${summary.nightsSurvived}</strong></div>
       <div><span>Player kills</span><strong>${summary.playerKills}</strong></div>
