@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import atlasUrl from "../../assets/voxels/atlas.png?url";
+import { VOXEL_ATLAS_URL } from "../../assets/voxels/manifest";
 import {
   ATLAS_COLUMNS,
   ATLAS_ROWS,
@@ -9,7 +9,9 @@ import {
 const TILE_INSET = 0.5 / ATLAS_TILE_SIZE;
 
 export async function loadVoxelTextureAtlas(): Promise<THREE.Texture> {
-  const texture = await new THREE.TextureLoader().loadAsync(atlasUrl);
+  const texture = await new THREE.TextureLoader().loadAsync(
+    VOXEL_ATLAS_URL,
+  );
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.magFilter = THREE.NearestFilter;
   texture.minFilter = THREE.NearestFilter;
