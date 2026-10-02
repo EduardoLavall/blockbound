@@ -1290,7 +1290,169 @@ Existe uma análise crítica documentada do vertical slice e os primeiros ajuste
 
 ---
 
-## Fase 11 — Player Status
+## Fase 11 — Rapid / Machine Gun Turret
+
+Objetivo: criar a primeira torre especializada em **DPS sustentado contra grupos leves**.
+
+- alta cadência;
+- dano baixo por tiro;
+- tracking rápido;
+- bom desempenho contra Runner e Grunt;
+- desempenho ruim contra Brute/Boss sem sinergias;
+- forte interação com Mark, Burn e efeitos on-hit;
+- consumo visual/energético legível;
+- range menor que Sniper;
+- não pode substituir todas as outras torres apenas por DPS bruto.
+
+### Aceite
+
+A Rapid Turret é claramente melhor contra alvos leves frequentes e claramente pior contra alvos resistentes/long-range.
+
+---
+
+## Fase 12 — Sniper Turret
+
+Objetivo: criar uma torre de **alto dano, baixa cadência e grande alcance**.
+
+- maior alcance entre as torres convencionais;
+- aquisição de alvo priorizando inimigos valiosos;
+- alto dano por tiro;
+- cooldown alto;
+- boa contra Archer, Support e alvos prioritários;
+- possibilidade futura de weak-point/crit;
+- precisa de linha de visão clara;
+- posicionamento vertical deve importar.
+
+### Aceite
+
+A Sniper Turret recompensa posição, linha de visão e seleção de alvo, em vez de competir por DPS sustentado.
+
+---
+
+## Fase 13 — Electric / Tesla Turret
+
+Objetivo: criar uma torre de **controle e dano em cadeia**.
+
+- dano elétrico;
+- chain entre inimigos próximos;
+- número máximo de saltos;
+- queda de dano por salto quando necessário;
+- sinergia forte com Shock;
+- interação com inimigos agrupados;
+- deve recompensar killzones compactas;
+- efeitos elétricos precisam ser legíveis e baratos.
+
+### Aceite
+
+A Tesla Turret cria valor crescente contra grupos densos sem virar a melhor opção contra alvo único.
+
+---
+
+## Fase 14 — Explosive / Mortar Turret
+
+Objetivo: criar uma torre de **AoE pesado com cadence baixa**.
+
+- projectile arc ou mortar shot;
+- explosão em área;
+- splash damage;
+- friendly-fire em estruturas inicialmente desativado;
+- boa contra grupos grandes/lentos;
+- ruim contra Runner isolado e alvos muito próximos;
+- telegraph claro da área de impacto;
+- forte interação com Burn/Explosion tags futuramente.
+
+### Aceite
+
+A Mortar Turret resolve densidade de horda, mas possui fraquezas claras de cadência, precisão e distância mínima.
+
+---
+
+## Fase 15 — Slow / Cryo Turret
+
+Objetivo: criar uma torre primariamente de **controle de rota**, não de DPS.
+
+- aplica Slow;
+- baixo dano direto;
+- duração e intensidade limitadas;
+- diminishing returns ou limite de stacking;
+- forte sinergia com Spike, Mortar, Tesla e killzones;
+- precisa ser útil mesmo sem matar;
+- não pode trivializar Boss/Brute com slow infinito.
+
+### Aceite
+
+A Cryo Turret aumenta o tempo que a horda permanece dentro da killzone sem substituir torres de dano.
+
+---
+
+## Fase 16 — Flamethrower Turret
+
+Objetivo: criar uma torre de **curto alcance e dano contínuo em cone/área**.
+
+- alcance curto;
+- cone frontal;
+- damage-over-time;
+- Burn;
+- ótima contra grupos atravessando choke points;
+- posicionamento/orientação importam;
+- vulnerável a Archer e ataques fora do alcance;
+- desempenho limitado contra inimigos que não permanecem no cone.
+
+### Aceite
+
+A Flamethrower Turret recompensa choke points e corredores bem construídos e não funciona como torre genérica de qualquer posição.
+
+---
+
+## Fase 17 — Progressão e níveis das Torres
+
+Objetivo: permitir investimento em torres sem transformar cada uma numa árvore enorme.
+
+- level da torre;
+- custo crescente;
+- melhoria de dano/range/cadência conforme arquétipo;
+- 1–2 decisões de especialização por torre;
+- upgrades precisam preservar identidade;
+- UI clara do próximo nível;
+- custo compete com Core, equipamento, crafting e novas torres;
+- integração com cartas DEFENSE;
+- possibilidade futura de vender/desmontar/reembolsar parcialmente.
+
+Exemplos:
+
+```text
+Rapid
+  -> mais fire rate
+  -> ou maior chance de aplicar status
+
+Sniper
+  -> maior alcance/crit
+  -> ou armor penetration
+
+Tesla
+  -> mais chains
+  -> ou chain damage
+
+Mortar
+  -> splash maior
+  -> ou impacto mais rápido
+
+Cryo
+  -> slow mais forte
+  -> ou duração maior
+
+Flamethrower
+  -> cone maior
+  -> ou Burn mais forte
+```
+
+### Aceite
+
+Investir níveis muda perceptivelmente a função da torre sem apagar a diferença entre os arquétipos.
+
+---
+
+## Fase 18 — Player Status
 
 Objetivo: criar uma fonte única e legível para os atributos atuais do jogador.
 
@@ -1312,7 +1474,7 @@ O jogo consegue explicar em uma única tela quais são os atributos atuais do jo
 
 ---
 
-## Fase 12 — Inventário + Equipamento
+## Fase 19 — Inventário + Equipamento
 
 Objetivo: separar recursos de construção de itens/equipamentos utilizáveis.
 
@@ -1332,7 +1494,7 @@ O jogador consegue obter um item, guardá-lo, equipá-lo e ver seus atributos re
 
 ---
 
-## Fase 13 — Crafting expandido
+## Fase 20 — Crafting expandido
 
 Objetivo: evoluir as receitas diretas atuais para fabricação de itens/equipamentos sem criar uma árvore gigante de crafting.
 
@@ -1350,7 +1512,7 @@ O jogador consegue transformar recursos coletados em itens/equipamentos úteis p
 
 ---
 
-## Fase 14 — Shop
+## Fase 21 — Shop
 
 Objetivo: criar uma segunda rota de decisão econômica além do crafting.
 
@@ -1368,7 +1530,7 @@ Duas runs com recursos semelhantes podem tomar decisões econômicas diferentes 
 
 ---
 
-## Fase 15 — Level do jogador + Árvore de Talentos
+## Fase 22 — Level do jogador + Árvore de Talentos
 
 Objetivo: adicionar progressão estruturada do jogador sem substituir os upgrades roguelite da run.
 
@@ -1387,7 +1549,7 @@ Level/talentos criam uma camada de progressão previsível enquanto as escolhas 
 
 ---
 
-## Fase 16 — Nível do Cristal / Core
+## Fase 23 — Nível do Cristal / Core
 
 Objetivo: transformar o cristal/Core em uma progressão própria da defesa.
 
@@ -1405,7 +1567,7 @@ Subir o nível do cristal altera de forma perceptível a capacidade defensiva da
 
 ---
 
-## Fase 17 — Shaders, tochas e iluminação leve
+## Fase 24 — Shaders, tochas e iluminação leve
 
 Objetivo: melhorar leitura espacial, atmosfera e identidade visual sem transformar iluminação em um gargalo de performance no navegador.
 
@@ -1463,7 +1625,7 @@ A noite fica claramente mais atmosférica e legível com Core/tochas/emissives s
 
 ---
 
-## Fase 18 — Juicy Effects / Game Feel
+## Fase 25 — Juicy Effects / Game Feel
 
 Objetivo: aumentar impacto, clareza e prazer das ações sem esconder informação importante em excesso de efeitos.
 
@@ -1547,15 +1709,22 @@ As ações principais — atirar, acertar, matar, minerar, construir, sofrer dan
 10. enemy roster + boss
 11. vertical slice completo
 12. análise crítica de game design + balanceamento
-13. Player Status
-14. inventário + equipamento
-15. crafting expandido
-16. shop
-17. level do jogador + árvore de talentos
-18. nível do cristal/Core
-19. shaders + tochas + iluminação leve
-20. juicy effects / game feel
-21. expansão de conteúdo
+13. Rapid / Machine Gun Turret
+14. Sniper Turret
+15. Electric / Tesla Turret
+16. Explosive / Mortar Turret
+17. Slow / Cryo Turret
+18. Flamethrower Turret
+19. progressão e níveis das torres
+20. Player Status
+21. inventário + equipamento
+22. crafting expandido
+23. shop
+24. level do jogador + árvore de talentos
+25. nível do cristal/Core
+26. shaders + tochas + iluminação leve
+27. juicy effects / game feel
+28. expansão de conteúdo
 ```
 
 Não construir inventário gigante, crafting complexo ou progressões paralelas antes do core loop estar validado.
@@ -1629,25 +1798,39 @@ Recomeçar o aprendizado não é.
 Itens novos solicitados e adicionados ao roadmap, sem duplicar sistemas que já estavam planejados:
 
 - **Game Design: análise crítica e balanceamento** → Fase 10;
-- **Player Status** → Fase 11;
-- **Inventário + Equipamento** → Fase 12;
-- **Crafting expandido** → Fase 13;
-- **Shop** → Fase 14;
-- **Level do jogador + Árvore de Talentos** → Fase 15;
-- **Nível do Cristal/Core** → Fase 16;
-- **Shaders, tochas e iluminação leve** → Fase 17;
-- **Juicy Effects / Game Feel** → Fase 18.
+- **Rapid / Machine Gun Turret** → Fase 11;
+- **Sniper Turret** → Fase 12;
+- **Electric / Tesla Turret** → Fase 13;
+- **Explosive / Mortar Turret** → Fase 14;
+- **Slow / Cryo Turret** → Fase 15;
+- **Flamethrower Turret** → Fase 16;
+- **Progressão e níveis das Torres** → Fase 17;
+- **Player Status** → Fase 18;
+- **Inventário + Equipamento** → Fase 19;
+- **Crafting expandido** → Fase 20;
+- **Shop** → Fase 21;
+- **Level do jogador + Árvore de Talentos** → Fase 22;
+- **Nível do Cristal/Core** → Fase 23;
+- **Shaders, tochas e iluminação leve** → Fase 24;
+- **Juicy Effects / Game Feel** → Fase 25.
 
 Não foram adicionados novamente:
 
 - **cartinhas estilo ARAM/Desordem**, porque o draft 1-de-3, raridades, tags e sinergias já fazem parte da Fase 7 — Roguelite;
-- **torres**, porque já fazem parte das Fases 4–5 e possuem implementação funcional.
+- **Basic Turret**, porque já faz parte das Fases 4–5 e possui implementação funcional. As novas torres entram como arquétipos próprios nas Fases 11–16.
 
 ## Ordem escolhida
 
 ```text
 vertical slice
   -> análise crítica de game design + balanceamento
+  -> Rapid Turret
+  -> Sniper Turret
+  -> Tesla Turret
+  -> Mortar Turret
+  -> Cryo Turret
+  -> Flamethrower Turret
+  -> níveis/upgrades das torres
   -> Player Status
   -> inventário/equipamento
   -> crafting expandido
@@ -1661,6 +1844,9 @@ vertical slice
 Motivo:
 
 - primeiro fazemos uma análise crítica do vertical slice para evitar aprofundar progressões sobre um balanceamento ruim;
+- depois expandimos o arsenal de torres porque variedade de defesa é parte do core Tower Defense e deve amadurecer antes das progressões mais RPG;
+- cada torre entra separadamente para ser testada e balanceada como um arquétipo próprio;
+- níveis/upgrades entram apenas depois que todos os arquétipos básicos estiverem jogáveis;
 - Player Status vira a base de leitura dos atributos;
 - equipamento depende dessa base para alterar stats;
 - crafting precisa de inventário/itemização;
@@ -1693,3 +1879,22 @@ Foram adicionadas três frentes novas:
    - entra depois da fundação de iluminação;
    - cobre recoil, câmera, partículas, impacto, construção, mineração, torres, cartas, dano e Boss;
    - deve possuir reduced-effects e respeitar performance/legibilidade.
+
+
+---
+
+# 26. Expansão de torres adicionada em 2026-10-02
+
+A **Basic Turret já existente não foi duplicada**.
+
+Novas torres foram adicionadas como entregas separadas:
+
+1. **Rapid / Machine Gun Turret** — DPS sustentado contra hordas leves;
+2. **Sniper Turret** — longo alcance e alvo prioritário;
+3. **Electric / Tesla Turret** — chain + Shock;
+4. **Explosive / Mortar Turret** — AoE e controle de densidade;
+5. **Slow / Cryo Turret** — controle de velocidade/killzone;
+6. **Flamethrower Turret** — cone curto, Burn e choke points;
+7. **Progressão e níveis das Torres** — evolução/especialização depois dos seis arquétipos.
+
+Cada torre deve ser implementada e balanceada individualmente antes de considerar o arsenal concluído.
