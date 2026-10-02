@@ -1,13 +1,13 @@
 import { BlockId } from "../blocks";
 import { CHUNK_HEIGHT, CHUNK_SIZE } from "../constants";
 import { VoxelWorld } from "../VoxelWorld";
+import { buildPrimaryLane } from "../../world/LaneSystem";
 import { BiomeId, biomeAt } from "./Biomes";
 import { coordinateRandom, coordinateRandom3, fbm2D } from "./Noise";
 import { SeededRandom } from "./SeededRandom";
 import type { RunSeed } from "./Seed";
 import type {
   PoiMarker,
-  SpawnZone,
   WorldBounds,
   WorldMetadata,
   WorldPoint,
@@ -86,13 +86,8 @@ export function generateWorld(
   generateTrees(world, seed.value, bounds, core);
   const pois = generatePois(world, seed.value, bounds, core);
   buildCoreClearing(world, core);
-
-  const spawnZones: SpawnZone[] = [
-    { id: "north", x: core.x, z: bounds.minZ + 4 },
-    { id: "south", x: core.x, z: bounds.maxZExclusive - 5 },
-    { id: "west", x: bounds.minX + 4, z: core.z },
-    { id: "east", x: bounds.maxXExclusive - 5, z: core.z },
-  ];
+  const lane = buildPrimaryLane(world, bounds, core);
+  const spawnZones = [lane.entry];
 
   const playerSpawn = { x: core.x, z: core.z + 7 };
 
@@ -104,6 +99,7 @@ export function generateWorld(
       core,
       playerSpawn,
       spawnZones,
+      lane,
       pois,
       biomeCounts,
       chunkRadius,
