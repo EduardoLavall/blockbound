@@ -9,18 +9,23 @@ import type { PlayerVitals } from "./PlayerVitals";
 import { SeededRandom } from "../voxel/generation/SeededRandom";
 import type { CombatHUD } from "../ui/CombatHUD";
 import type { ProjectileSystem } from "./ProjectileSystem";
+import { PICKAXE } from "../survival/MiningTool";
+import { raycastVoxels } from "../voxel/VoxelRaycast";
+import type { VoxelWorld } from "../voxel/VoxelWorld";
 
 export class PlayerCombatSystem {
   private readonly direction = new THREE.Vector3();
   private readonly random: SeededRandom;
   private modeValue = PlayerActionMode.Tool;
   private cooldown = 0;
+  private toolTargetingEnemy = false;
 
   constructor(
     seed: number,
     private readonly camera: THREE.PerspectiveCamera,
     private readonly input: Input,
     private readonly interactionMode: InteractionMode,
+    private readonly world: VoxelWorld,
     private readonly enemies: EnemySystem,
     private readonly projectiles: ProjectileSystem,
     private readonly status: PlayerStatus,
@@ -37,7 +42,10 @@ export class PlayerCombatSystem {
   }
 
   get canMine(): boolean {
-    return this.modeValue === PlayerActionMode.Tool;
+    return (
+      this.modeValue === PlayerActionMode.Tool &&
+      !this.toolTargetingEnemy
+    );
   }
 
   fixedUpdate(dt: number): void {
@@ -49,7 +57,18 @@ export class PlayerCombatSystem {
       this.cycleMode();
     }
 
-    if (this.modeValue === PlayerActionMode.Blade) {
+    this.toolTargetingEnemy = false;
+
+    if (this.modeValue === PlayerActionMode.Tool) {
+      this.camera.getWorldDirection(this.direction);
+      const target = this.bestMeleeTarget(PICKAXE.combatRange);
+      if (target && !this.voxelOccludesTarget(target)) {
+        this.toolTargetingEnemy = true;
+        if (this.input.isDown("Mouse0") && this.cooldown <= 0) {
+          this.swingPickaxe(target);
+        }
+      }
+    } else if (this.modeValue === PlayerActionMode.Blade) {
       if (this.input.consumePressed("Mouse0") && this.cooldown <= 0) {
         this.swingBlade();
       }
@@ -72,7 +91,8 @@ export class PlayerCombatSystem {
     return [
       `ACTION    ${this.modeValue}`,
       `PLAYER HP ${Math.ceil(this.vitals.health.current)}/${this.vitals.health.max}`,
-      `PROJECTILE CD ${this.cooldown.toFixed(2)}`,
+      `ACTION CD ${this.cooldown.toFixed(2)}`,
+      `PICKAXE TARGET ${this.toolTargetingEnemy ? "ENEMY" : "MINING"}`,
     ];
   }
 
@@ -86,6 +106,22 @@ export class PlayerCombatSystem {
 
     this.cooldown = Math.min(this.cooldown, 0.1);
     this.hand.setActionMode(this.modeValue);
+  }
+
+  private swingPickaxe(target: EnemyInstance): void {
+    const damage =
+      PICKAXE.combatDamage *
+      this.status.outgoingDamageMultiplier();
+
+    this.hand.triggerAttack(0.9);
+    this.cooldown = PICKAXE.combatCooldown;
+
+    const killed = this.enemies.damage(
+      target,
+      damage,
+      "player-tool",
+    );
+    this.hud.showHit(killed, false);
   }
 
   private swingBlade(): void {
@@ -167,6 +203,24 @@ export class PlayerCombatSystem {
     }
 
     return target;
+  }
+
+  private voxelOccludesTarget(target: EnemyInstance): boolean {
+    const center = target.group.position.clone();
+    center.y += 0.9;
+    const enemyDistance = center.distanceTo(this.camera.position);
+
+    const hit = raycastVoxels(
+      this.world,
+      this.camera.position,
+      this.direction,
+      PICKAXE.combatRange,
+    );
+
+    return Boolean(
+      hit &&
+      hit.distance + 0.12 < enemyDistance,
+    );
   }
 
   private applyPlayerStatuses(
