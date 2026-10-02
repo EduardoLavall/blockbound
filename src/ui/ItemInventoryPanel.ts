@@ -185,28 +185,44 @@ export class ItemInventoryPanel {
       const hotbarIndex = Number(event.code.slice(5)) - 1;
       if (
         hotbarIndex < 0 ||
-        hotbarIndex >= HOTBAR_SIZE ||
-        this.selectedIndex === null
+        hotbarIndex >= HOTBAR_SIZE
       ) {
         return;
       }
 
       event.preventDefault();
-      this.storage.moveToHotbar(
-        this.selectedIndex,
-        hotbarIndex,
-      );
+      if (this.held) {
+        this.held = this.storage.placeAll(
+          hotbarIndex,
+          this.held,
+        );
+      } else if (this.selectedIndex !== null) {
+        this.storage.moveToHotbar(
+          this.selectedIndex,
+          hotbarIndex,
+        );
+      }
       this.selectedIndex = hotbarIndex;
       this.render(true);
     });
   }
 
   private equipSelected(): void {
-    if (this.selectedIndex === null) return;
-    const stack = this.storage.slot(this.selectedIndex);
-    if (stack?.kind !== "item") return;
+    let uid: string | null = null;
 
-    this.equipment.equip(stack.uid);
+    if (this.held?.kind === "item") {
+      uid = this.held.uid;
+      if (!this.storage.insertDetachedStack(this.held, "backpack")) {
+        return;
+      }
+      this.held = null;
+    } else if (this.selectedIndex !== null) {
+      const stack = this.storage.slot(this.selectedIndex);
+      if (stack?.kind === "item") uid = stack.uid;
+    }
+
+    if (!uid) return;
+    this.equipment.equip(uid);
     this.render(true);
   }
 
@@ -224,9 +240,10 @@ export class ItemInventoryPanel {
 
     const occupied = this.storage.slots.filter(Boolean).length;
     const selected =
-      this.selectedIndex === null
+      (this.selectedIndex === null
         ? null
-        : this.storage.slot(this.selectedIndex);
+        : this.storage.slot(this.selectedIndex)) ??
+      this.held;
 
     this.element.innerHTML = `
       <div class="inventory2-shell">
