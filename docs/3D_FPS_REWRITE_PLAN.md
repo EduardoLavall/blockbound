@@ -1232,7 +1232,65 @@ Uma run completa pode ser jogada do começo ao boss sem ferramentas de debug.
 
 ---
 
-## Fase 10 — Player Status
+## Fase 10 — Game Design: análise crítica e balanceamento
+
+Objetivo: fazer uma revisão crítica do jogo já jogável antes de adicionar novas camadas de progressão.
+
+A análise deve tratar o Blockfall como um sistema inteiro, não como uma soma de features.
+
+### Avaliar
+
+- duração real de dia/noite;
+- ritmo da run de 5 noites;
+- dificuldade por noite;
+- TTK de jogador, torres e inimigos;
+- pressão simultânea de horda;
+- diferença real entre os arquétipos inimigos;
+- custo/benefício de Wall, Turret, Spike e Gate;
+- economia de Wood / Stone / Metal / Crystal;
+- disponibilidade de recursos por seed;
+- risco/recompensa de explorar longe do Core;
+- mining speed;
+- tempo gasto construindo vs. lutando;
+- força relativa de Blade e Repeater;
+- cartas dominantes / cartas irrelevantes;
+- sinergias fortes demais ou que nunca valem a pena;
+- estratégias degeneradas;
+- possibilidade de uma única build resolver quase todas as runs;
+- dificuldade do Siege Warden;
+- dano e resistência do Core;
+- legibilidade das decisões;
+- frustração vs. desafio;
+- quanto cada sistema reforça o loop construir → sobreviver → melhorar.
+
+### Método
+
+- rodar runs completas com seeds diferentes;
+- registrar tempo, recursos, dano, kills, estruturas e upgrades;
+- comparar builds distintas;
+- identificar gargalos e estratégias dominantes;
+- documentar hipóteses antes de alterar números;
+- preferir mudanças de regra/comportamento quando o problema não for apenas numérico.
+
+### Entrega
+
+Criar um documento de balanceamento contendo:
+
+- problemas encontrados;
+- evidências;
+- severidade;
+- hipótese da causa;
+- mudança proposta;
+- risco da mudança;
+- resultado depois do novo playtest.
+
+### Aceite
+
+Existe uma análise crítica documentada do vertical slice e os primeiros ajustes de balanceamento são baseados em dados/playtest, não apenas sensação isolada.
+
+---
+
+## Fase 11 — Player Status
 
 Objetivo: criar uma fonte única e legível para os atributos atuais do jogador.
 
@@ -1254,7 +1312,7 @@ O jogo consegue explicar em uma única tela quais são os atributos atuais do jo
 
 ---
 
-## Fase 11 — Inventário + Equipamento
+## Fase 12 — Inventário + Equipamento
 
 Objetivo: separar recursos de construção de itens/equipamentos utilizáveis.
 
@@ -1274,7 +1332,7 @@ O jogador consegue obter um item, guardá-lo, equipá-lo e ver seus atributos re
 
 ---
 
-## Fase 12 — Crafting expandido
+## Fase 13 — Crafting expandido
 
 Objetivo: evoluir as receitas diretas atuais para fabricação de itens/equipamentos sem criar uma árvore gigante de crafting.
 
@@ -1292,7 +1350,7 @@ O jogador consegue transformar recursos coletados em itens/equipamentos úteis p
 
 ---
 
-## Fase 13 — Shop
+## Fase 14 — Shop
 
 Objetivo: criar uma segunda rota de decisão econômica além do crafting.
 
@@ -1310,7 +1368,7 @@ Duas runs com recursos semelhantes podem tomar decisões econômicas diferentes 
 
 ---
 
-## Fase 14 — Level do jogador + Árvore de Talentos
+## Fase 15 — Level do jogador + Árvore de Talentos
 
 Objetivo: adicionar progressão estruturada do jogador sem substituir os upgrades roguelite da run.
 
@@ -1329,7 +1387,7 @@ Level/talentos criam uma camada de progressão previsível enquanto as escolhas 
 
 ---
 
-## Fase 15 — Nível do Cristal / Core
+## Fase 16 — Nível do Cristal / Core
 
 Objetivo: transformar o cristal/Core em uma progressão própria da defesa.
 
@@ -1347,6 +1405,133 @@ Subir o nível do cristal altera de forma perceptível a capacidade defensiva da
 
 ---
 
+## Fase 17 — Shaders, tochas e iluminação leve
+
+Objetivo: melhorar leitura espacial, atmosfera e identidade visual sem transformar iluminação em um gargalo de performance no navegador.
+
+### Sistema de iluminação
+
+- iluminação global simples para dia/noite;
+- luz do Core;
+- tochas colocáveis;
+- emissive para cristais, projéteis, estruturas e efeitos;
+- luzes locais apenas onde realmente melhoram gameplay;
+- limite explícito de luzes dinâmicas simultâneas;
+- distância/culling de luz;
+- qualidade configurável quando necessário;
+- iluminação deve continuar compatível com o budget WebGL/Vercel.
+
+### Tochas
+
+- item/estrutura simples e barata;
+- ilumina áreas da base, minas e caminhos;
+- feedback visual forte sem ser obrigatória para jogar;
+- pode funcionar como marcador espacial durante a noite.
+
+### Shaders leves
+
+Priorizar shaders baratos e legíveis:
+
+- fog melhorado;
+- emissive pulse do Core/cristal;
+- impacto simples;
+- dissolve/fade de inimigo quando fizer sentido;
+- água/vento/folhagem somente se custo for aceitável;
+- evitar pós-processamento pesado como requisito base.
+
+Não começar com:
+
+- dezenas de shadow-casting point lights;
+- iluminação volumétrica cara;
+- ray tracing;
+- pipelines que prejudiquem máquinas médias.
+
+### Budget
+
+Medir:
+
+- frame time;
+- draw calls;
+- shadow maps;
+- quantidade de lights ativas;
+- custo de material/shader;
+- impacto durante Night 5.
+
+### Aceite
+
+A noite fica claramente mais atmosférica e legível com Core/tochas/emissives sem causar queda relevante de performance no cenário de maior carga.
+
+---
+
+## Fase 18 — Juicy Effects / Game Feel
+
+Objetivo: aumentar impacto, clareza e prazer das ações sem esconder informação importante em excesso de efeitos.
+
+### Combate
+
+- recoil visual;
+- muzzle flash;
+- hit stop muito curto quando apropriado;
+- camera kick moderado;
+- screen shake com intensidade limitada;
+- sparks/debris no impacto;
+- death burst;
+- feedback diferente para crit;
+- feedback diferente para armor/breach;
+- telegraph mais forte para ataques perigosos.
+
+### Construção / mineração
+
+- partículas de bloco;
+- pequeno punch de colocação;
+- ghost → construção com transição curta;
+- impacto visual de reparo;
+- material pickup feedback;
+- quebra de voxel mais satisfatória.
+
+### Tower Defense
+
+- muzzle flash de Turret;
+- trilhas/projéteis mais legíveis;
+- Spike activation;
+- Gate feedback;
+- dano estrutural visível;
+- Core reagindo a dano;
+- feedback de breach.
+
+### Roguelite
+
+- animação de entrada das cartas;
+- rarity feedback;
+- escolha de upgrade com confirmação forte;
+- efeitos visuais para sinergias relevantes.
+
+### Boss
+
+- telegraphs;
+- pulse anticipation;
+- entrada/apresentação do Siege Warden;
+- hit reactions;
+- fase final/low-health feedback se o balanceamento justificar.
+
+### Regra de UX
+
+Juice não pode prejudicar:
+
+- mira;
+- leitura da horda;
+- visualização de rotas;
+- performance;
+- acessibilidade.
+
+Manter opção de **reduced effects** nas settings.
+
+### Aceite
+
+As ações principais — atirar, acertar, matar, minerar, construir, sofrer dano, ativar defesa e escolher upgrade — possuem feedback audiovisual imediato e legível, mantendo o jogo performático.
+
+---
+
 # 20. Ordem de prioridade real
 
 ```text
@@ -1361,13 +1546,16 @@ Subir o nível do cristal altera de forma perceptível a capacidade defensiva da
 9. upgrades roguelite
 10. enemy roster + boss
 11. vertical slice completo
-12. Player Status
-13. inventário + equipamento
-14. crafting expandido
-15. shop
-16. level do jogador + árvore de talentos
-17. nível do cristal/Core
-18. polish e expansão de conteúdo
+12. análise crítica de game design + balanceamento
+13. Player Status
+14. inventário + equipamento
+15. crafting expandido
+16. shop
+17. level do jogador + árvore de talentos
+18. nível do cristal/Core
+19. shaders + tochas + iluminação leve
+20. juicy effects / game feel
+21. expansão de conteúdo
 ```
 
 Não construir inventário gigante, crafting complexo ou progressões paralelas antes do core loop estar validado.
@@ -1440,12 +1628,15 @@ Recomeçar o aprendizado não é.
 
 Itens novos solicitados e adicionados ao roadmap, sem duplicar sistemas que já estavam planejados:
 
-- **Player Status** → Fase 10;
-- **Inventário + Equipamento** → Fase 11;
-- **Crafting expandido** → Fase 12;
-- **Shop** → Fase 13;
-- **Level do jogador + Árvore de Talentos** → Fase 14;
-- **Nível do Cristal/Core** → Fase 15.
+- **Game Design: análise crítica e balanceamento** → Fase 10;
+- **Player Status** → Fase 11;
+- **Inventário + Equipamento** → Fase 12;
+- **Crafting expandido** → Fase 13;
+- **Shop** → Fase 14;
+- **Level do jogador + Árvore de Talentos** → Fase 15;
+- **Nível do Cristal/Core** → Fase 16;
+- **Shaders, tochas e iluminação leve** → Fase 17;
+- **Juicy Effects / Game Feel** → Fase 18.
 
 Não foram adicionados novamente:
 
@@ -1456,19 +1647,49 @@ Não foram adicionados novamente:
 
 ```text
 vertical slice
+  -> análise crítica de game design + balanceamento
   -> Player Status
   -> inventário/equipamento
   -> crafting expandido
   -> shop
   -> player level + árvore de talentos
   -> crystal/Core level
+  -> shaders + tochas + iluminação leve
+  -> juicy effects
 ```
 
 Motivo:
 
+- primeiro fazemos uma análise crítica do vertical slice para evitar aprofundar progressões sobre um balanceamento ruim;
 - Player Status vira a base de leitura dos atributos;
 - equipamento depende dessa base para alterar stats;
 - crafting precisa de inventário/itemização;
 - shop precisa de itens e economia já definidos;
 - level/talent tree passa a modificar uma camada de stats estável;
-- Crystal/Core level entra depois que economia, shop e progressão do jogador já possuem regras claras.
+- Crystal/Core level entra depois que economia, shop e progressão do jogador já possuem regras claras;
+- iluminação leve entra depois que gameplay/progressão estão estabilizados, servindo de base visual para efeitos;
+- Juicy Effects vêm depois da iluminação para aproveitar emissive, flashes e shaders sem retrabalho.
+
+
+---
+
+# 25. Novas decisões de roadmap adicionadas em 2026-10-02
+
+Foram adicionadas três frentes novas:
+
+1. **Game Design — análise crítica de balanceamento**
+   - entra imediatamente após o vertical slice;
+   - deve usar runs completas, dados e comparação de estratégias;
+   - precisa avaliar pacing, economia, dificuldade, armas, inimigos, estruturas, upgrades e Boss;
+   - objetivo principal: detectar estratégias dominantes, sistemas irrelevantes e números que mascaram problemas de design.
+
+2. **Shaders, tochas e sistema de iluminação leve**
+   - entra depois das progressões principais;
+   - deve priorizar legibilidade e atmosfera com budget explícito;
+   - Core, Crystal e tochas são as fontes visuais principais;
+   - evitar iluminação dinâmica pesada como requisito do jogo.
+
+3. **Juicy Effects / Game Feel**
+   - entra depois da fundação de iluminação;
+   - cobre recoil, câmera, partículas, impacto, construção, mineração, torres, cartas, dano e Boss;
+   - deve possuir reduced-effects e respeitar performance/legibilidade.
