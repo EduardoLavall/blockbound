@@ -211,66 +211,115 @@ Sistemas que já consomem o Player Status diretamente:
 
 Isso impede o painel de virar uma calculadora separada do gameplay.
 
-## Inventário + Equipamento
+## Inventory 2.0 + Equipamento
 
-`I` abre o inventário da run.
+`I` abre o **Field Inventory** e pausa a simulação.
 
-Esse inventário é separado do inventário de recursos usado por construção/mineração.
-
-Fluxo atual:
+Agora existe um único container físico para recursos e loot:
 
 ```text
-enemy dies
-  -> deterministic loot roll
-  -> physical item drop
-  -> pickup magnetism
-  -> ItemInventory
-  -> select / compare
-  -> equip Weapon / Armor / Charm
-  -> EquipmentSystem
-  -> EquipmentStatModifiers
-  -> PlayerStatus
-  -> gameplay changes immediately
+RunInventory
+├─ Hotbar: 9 slots
+├─ Backpack: 27 slots
+└─ Equipment
+    ├─ Weapon
+    ├─ Armor
+    └─ Charm
 ```
 
-A primeira kill da run garante um equipamento comum para que o sistema possa ser testado sem depender de sorte. Depois disso, cada arquétipo possui uma chance própria de drop; Brute, Support e Burrower possuem chances maiores e o Boss usa rarity epic quando rola item.
+Os 36 slots carregam tanto:
 
-Slots atuais:
+- recursos de mineração/construção;
+- itens/equipamentos dropados.
 
-- **Weapon** — especializa Blade ou Repeater;
-- **Armor** — sobrevivência/mobilidade;
-- **Charm** — utility, status e build interactions.
+As APIs antigas continuam funcionando como fachadas:
+
+```text
+Resource Inventory
+  -> consulta/consome recursos no RunInventory
+
+ItemInventory
+  -> consulta/adiciona itens no mesmo RunInventory
+
+EquipmentSystem
+  -> move item da grade para Weapon / Armor / Charm
+```
+
+### Stacks
+
+Recursos usam stacks de até **64**.
+
+Equipamentos atuais continuam:
+
+- `stackLimit = 1`;
+- UID único por instância;
+- non-stackable.
+
+Pickup primeiro completa stacks compatíveis e depois procura slots vazios.
+
+Recursos preferem slots vazios da hotbar para manter mineração/construção fluida. Loot de equipamento prefere o backpack.
+
+Se os 36 slots estiverem cheios:
+
+- recurso não cabe → drop permanece no mundo;
+- equipamento não cabe → drop permanece no mundo.
+
+### Controles do inventário
+
+- **LMB** — pegar/soltar stack, merge ou swap;
+- **RMB** — pegar metade / depositar uma unidade;
+- **drag & drop** — mover/swap;
+- **Shift+Click** — quick-move Hotbar ↔ Backpack;
+- **double-click** — consolidar stacks iguais;
+- **1–9 com inventário aberto** — mandar stack selecionada/cursor para um slot da hotbar;
+- **1–9 durante gameplay** — selecionar hotbar;
+- **mouse wheel** — navegar pela hotbar.
+
+### Hotbar e voxel placement
+
+A hotbar deixou de ser uma lista fixa de materiais.
+
+Ela agora representa os **9 slots reais** do inventário.
+
+Recursos selecionados podem mapear para voxel colocável:
+
+```text
+Soil    -> Dirt
+Wood    -> Wood
+Stone   -> Stone
+Crystal -> Crystal
+Metal   -> não-placeable
+```
+
+Selecionar um equipamento ou Metal na hotbar não tenta colocar voxel.
+
+O Build Mode continua com seus próprios atalhos de estrutura.
+
+### Equipment
+
+Equipar um item:
+
+```text
+backpack/hotbar
+  -> remove o ItemStack da grade
+  -> EquipmentSystem
+  -> Weapon / Armor / Charm
+  -> PlayerStatus
+```
+
+Unequip devolve o item para a grade. Se não houver espaço, o item permanece equipado em vez de ser perdido.
+
+A UI mantém:
+
+- rarity;
+- descrição;
+- modifiers;
+- comparação com o equipamento atual;
+- equip/unequip.
 
 Pool inicial: **12 equipamentos**.
 
-Weapon:
-- Serrated Grip;
-- Duelist Guard;
-- Tension Module;
-- Rail Coupler;
-- Ember Chamber.
-
-Armor:
-- Scrap Plating;
-- Runner Mesh;
-- Shockweave Coat.
-
-Charm:
-- Miner Sigil;
-- Repair Servo;
-- Hunter Lens;
-- Berserker Core.
-
-A UI permite:
-
-- selecionar item;
-- ver rarity/slot/tags;
-- ler modificadores;
-- comparar com o equipamento atual do mesmo slot;
-- equipar;
-- unequipar.
-
-Abrir o inventário pausa a simulação e libera Pointer Lock.
+Abrir o inventário libera Pointer Lock e fechar retorna ao gameplay.
 
 ## Roguelite
 
@@ -661,7 +710,7 @@ Depois do vertical slice:
 5. Lane System v1 — 1 lane indestrutível ✅;
 6. Pickaxe / Mining Tool ✅;
 7. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling ✅;
-8. Inventory 2.0;
+8. Inventory 2.0 ✅;
 9. Crafting contextual v1;
 10. Shop;
 11. Level + Árvore de Talentos;

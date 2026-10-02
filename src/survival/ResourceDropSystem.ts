@@ -82,8 +82,15 @@ export class ResourceDropSystem {
       }
 
       if (distance < 0.72) {
-        this.inventory.add(drop.resource, drop.amount);
-        this.removeAt(i);
+        const accepted = this.inventory.add(
+          drop.resource,
+          drop.amount,
+        );
+        if (accepted >= drop.amount) {
+          this.removeAt(i);
+        } else if (accepted > 0) {
+          drop.amount -= accepted;
+        }
       }
     }
   }

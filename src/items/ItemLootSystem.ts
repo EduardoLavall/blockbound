@@ -64,8 +64,13 @@ export class ItemLootSystem {
       }
 
       if (distance < 0.78) {
-        this.inventory.add(drop.definition.id, 1);
-        this.removeAt(index);
+        const inserted = this.inventory.add(
+          drop.definition.id,
+          1,
+        );
+        if (inserted.length > 0) {
+          this.removeAt(index);
+        }
       }
     }
   }

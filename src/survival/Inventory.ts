@@ -1,23 +1,17 @@
+import { RunInventory } from "../inventory/RunInventory";
 import { ResourceId, type ResourceCost } from "./Resources";
 
 export class Inventory {
-  private readonly counts = new Map<ResourceId, number>();
-  private readonly listeners = new Set<() => void>();
-
-  constructor() {
-    for (const resource of Object.values(ResourceId)) {
-      this.counts.set(resource, 0);
-    }
-  }
+  constructor(
+    readonly storage: RunInventory = new RunInventory(),
+  ) {}
 
   get(resource: ResourceId): number {
-    return this.counts.get(resource) ?? 0;
+    return this.storage.resourceCount(resource);
   }
 
-  add(resource: ResourceId, amount: number): void {
-    if (amount <= 0) return;
-    this.counts.set(resource, this.get(resource) + amount);
-    this.emit();
+  add(resource: ResourceId, amount: number): number {
+    return this.storage.addResource(resource, amount);
   }
 
   canAfford(cost: ResourceCost): boolean {
@@ -30,12 +24,13 @@ export class Inventory {
     if (!this.canAfford(cost)) return false;
 
     for (const [resource, amount] of Object.entries(cost)) {
-      this.counts.set(
+      const requested = amount ?? 0;
+      if (requested <= 0) continue;
+      this.storage.consumeResource(
         resource as ResourceId,
-        this.get(resource as ResourceId) - (amount ?? 0),
+        requested,
       );
     }
-    this.emit();
     return true;
   }
 
@@ -50,12 +45,6 @@ export class Inventory {
   }
 
   subscribe(listener: () => void): () => void {
-    this.listeners.add(listener);
-    listener();
-    return () => this.listeners.delete(listener);
-  }
-
-  private emit(): void {
-    for (const listener of this.listeners) listener();
+    return this.storage.subscribe(listener);
   }
 }

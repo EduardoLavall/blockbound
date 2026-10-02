@@ -72,3 +72,21 @@ export function formatCost(cost: ResourceCost): string {
     })
     .join(" · ");
 }
+
+
+export function resourcePlacementBlock(
+  resource: ResourceId,
+): BlockId | null {
+  switch (resource) {
+    case ResourceId.Soil:
+      return BlockId.Dirt;
+    case ResourceId.Wood:
+      return BlockId.Wood;
+    case ResourceId.Stone:
+      return BlockId.Stone;
+    case ResourceId.Crystal:
+      return BlockId.Crystal;
+    case ResourceId.Metal:
+      return null;
+  }
+}

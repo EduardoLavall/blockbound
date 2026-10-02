@@ -1882,7 +1882,7 @@ As ações principais — atirar, acertar, matar, minerar, construir, sofrer dan
 16. Lane System v1 — 1 lane indestrutível ✅
 17. Pickaxe / Mining Tool ✅
 18. Voxel Texture Pipeline — texturas reais 16×16 + greedy tiling ✅
-19. Inventory 2.0
+19. Inventory 2.0 ✅
 20. Crafting contextual v1
 21. shop
 22. level do jogador + árvore de talentos
@@ -2110,7 +2110,7 @@ A Fase 12 deve considerar builds reais de equipamento e upgrades, não apenas os
 
 Estes itens entram no roadmap como **planos formais**. Não representam implementação concluída.
 
-## 28.1 Inventory 2.0 — ergonomia inspirada no Minecraft, UI original
+## 28.1 Inventory 2.0 ✅ implementação base concluída — ergonomia inspirada no Minecraft, UI original
 
 Referência de interação pesquisada:
 
@@ -2170,6 +2170,96 @@ Direção Blockfall:
 ### Aceite
 
 Gerenciar dezenas de recursos/blocos durante uma run deve ser rápido sem transformar o inventário num menu lento ou excessivamente RPG.
+
+### Implementação atual
+
+Estrutura:
+
+- `RunInventory.ts` é o source of truth;
+- 9 slots de hotbar;
+- 27 slots de backpack;
+- 36 slots físicos compartilhados;
+- Weapon / Armor / Charm permanecem fora da grade;
+- `Inventory.ts` de recursos é uma fachada sobre a grade;
+- `ItemInventory.ts` também é fachada sobre a mesma grade.
+
+Stacks:
+
+- recursos: stack limit 64;
+- equipamentos: stack limit 1;
+- equipamentos preservam UID único;
+- pickup completa stacks antes de usar slots vazios;
+- recursos preferem hotbar para manter fluxo de gameplay;
+- itens preferem backpack;
+- inventário cheio mantém drops físicos no mundo.
+
+Operações:
+
+- LMB take/place;
+- merge;
+- swap;
+- RMB split half;
+- RMB place one;
+- drag/drop;
+- Shift+Click quick-move;
+- double-click consolidate;
+- 1–9 move stack selecionada/cursor para hotbar;
+- 1–9 seleciona hotbar durante gameplay;
+- mouse wheel percorre hotbar.
+
+Gameplay:
+
+- hotbar visual possui 9 slots reais;
+- voxel placement lê o recurso do slot selecionado;
+- Soil → Dirt;
+- Wood → Wood;
+- Stone → Stone;
+- Crystal → Crystal;
+- Metal/equipment não são colocados como voxel;
+- Build Mode mantém seleção de estruturas independente.
+
+Equipment:
+
+- equip remove o item dos 36 slots;
+- slot Weapon/Armor/Charm armazena o ItemStack real;
+- unequip devolve o item à grade;
+- unequip falha de forma segura se não houver espaço;
+- PlayerStatus continua sendo atualizado pelo EquipmentSystem.
+
+UI:
+
+- design original Blockfall;
+- Backpack 3×9;
+- Hotbar 1×9;
+- três slots de equipamento;
+- detalhes de recurso/item;
+- rarity;
+- modifiers;
+- comparação de equipamento;
+- ajuda de controles na própria tela.
+
+### Testes
+
+Cobrem:
+
+- 9 + 27 = 36 slots;
+- stack limit 64;
+- spill para novo slot;
+- UID único de equipamento;
+- take/place/swap;
+- split half/place one;
+- quick-move;
+- consolidate;
+- inventário totalmente cheio;
+- rejeição de novos drops;
+- equipamento saindo da grade e retornando ao unequip.
+
+### Pendências
+
+- smoke visual/manual completo no navegador;
+- validar ergonomia de drag/drop e double-click com Pointer Lock;
+- containers/chests continuam futuros;
+- drag distribution por múltiplos slots continua fora da v1.
 
 ---
 

@@ -58,6 +58,35 @@ describe("EquipmentSystem", () => {
     expect(snapshot.mobility.walkSpeed).toBeCloseTo(5.4 * 1.08);
   });
 
+  it("moves equipped items out of the 36-slot grid and returns them on unequip", () => {
+    const inventory = new ItemInventory();
+    const status = new PlayerStatus(
+      new RuleEngine(),
+      new PlayerVitals(),
+    );
+    const equipment = new EquipmentSystem(inventory, status);
+    const [weapon] = inventory.add("serrated-grip");
+
+    expect(inventory.all).toHaveLength(1);
+    expect(
+      inventory.storage.slots.filter(Boolean),
+    ).toHaveLength(1);
+
+    expect(equipment.equip(weapon!.uid)).toBe(true);
+    expect(inventory.get(weapon!.uid)).toBeUndefined();
+    expect(inventory.all).toHaveLength(0);
+    expect(
+      inventory.storage.slots.filter(Boolean),
+    ).toHaveLength(0);
+    expect(equipment.equippedStack("weapon")?.uid).toBe(weapon!.uid);
+
+    expect(equipment.unequip("weapon")).toBe(true);
+    expect(inventory.get(weapon!.uid)).toBeDefined();
+    expect(
+      inventory.storage.slots.filter(Boolean),
+    ).toHaveLength(1);
+  });
+
   it("returns the slot to neutral modifiers when unequipped", () => {
     const inventory = new ItemInventory();
     const status = new PlayerStatus(

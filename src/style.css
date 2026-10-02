@@ -1292,3 +1292,249 @@ body.reduced-fx #hit-marker {
     border-top: 1px solid #303a2e;
   }
 }
+
+
+/* Inventory 2.0 */
+#hotbar .hotbar-slot {
+  width: 64px;
+  min-width: 0;
+  grid-template-columns: 19px 1fr;
+  padding: 6px;
+}
+
+.hotbar-empty {
+  color: #556054;
+  font: 900 15px ui-monospace, monospace;
+  text-align: center;
+}
+
+.hotbar-count {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  color: #f4e4a3;
+  font: 1000 10px ui-monospace, monospace;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.inventory2-shell {
+  width: min(1180px, 96vw);
+  max-height: 94vh;
+  overflow: hidden;
+  background: #090e0a;
+  border: 2px solid #66725f;
+  box-shadow: 14px 14px 0 rgba(0, 0, 0, .52);
+}
+
+.inventory2-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #30392d;
+  background:
+    linear-gradient(180deg, rgba(92, 103, 79, .22), transparent);
+}
+
+.inventory2-header h2 {
+  margin: 5px 0 0;
+  color: #eadb9c;
+  font-size: clamp(25px, 3.4vw, 42px);
+  line-height: .95;
+}
+
+.inventory2-header small {
+  margin-top: 6px;
+  font: 800 8px ui-monospace, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.inventory2-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inventory2-cursor-label {
+  max-width: 300px;
+  padding: 8px 10px;
+  border: 1px solid #303a2e;
+  color: #748071;
+  background: #0e150f;
+  font: 900 8px ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.inventory2-cursor-label.held {
+  border-color: #bca95e;
+  color: #f1dc83;
+}
+
+.inventory2-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  min-height: 0;
+  max-height: calc(94vh - 90px);
+}
+
+.inventory2-storage {
+  overflow-y: auto;
+  padding: 14px 16px 18px;
+}
+
+.inventory2-storage section + section {
+  margin-top: 16px;
+}
+
+.inventory2-equipment .equipment-slots {
+  padding: 0;
+  border: 0;
+}
+
+.inventory2-equipment-slot {
+  min-height: 72px;
+  background: #0e150f;
+}
+
+.inventory2-grid {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.inventory2-slot {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid #354033;
+  background: #101611;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .22);
+  color: #c8d0c0;
+  cursor: pointer;
+}
+
+.inventory2-slot:hover {
+  border-color: #798872;
+  background: #172019;
+}
+
+.inventory2-slot.selected {
+  border-color: #efd06e;
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, .22),
+    0 0 0 1px #8c793c;
+}
+
+.inventory2-slot.empty {
+  opacity: .68;
+}
+
+.inventory2-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin: 4px auto 3px;
+  background: var(--item-swatch);
+  border: 2px solid rgba(255, 255, 255, .18);
+  box-shadow: inset -4px -4px 0 rgba(0, 0, 0, .18);
+}
+
+.inventory2-icon.rarity-rare {
+  outline: 1px solid #668db3;
+}
+
+.inventory2-icon.rarity-epic {
+  outline: 1px solid #a36cc0;
+}
+
+.inventory2-stack-name {
+  display: block;
+  overflow: hidden;
+  color: #bdc7b7;
+  font: 800 7px ui-monospace, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.inventory2-stack-count {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  color: #f4e4a3;
+  font: 1000 9px ui-monospace, monospace;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.inventory2-slot-key {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  color: #d9ba60;
+  font: 1000 8px ui-monospace, monospace;
+}
+
+.inventory2-slot-section {
+  display: none;
+}
+
+.hotbar-inventory-grid {
+  padding: 6px;
+  border: 1px solid #565f48;
+  background: rgba(224, 194, 95, .04);
+}
+
+.inventory2-help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.inventory2-help span {
+  padding: 5px 7px;
+  border: 1px solid #293329;
+  background: #0d130e;
+  color: #788474;
+  font: 800 7px ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.inventory2-details {
+  overflow-y: auto;
+  border-left: 1px solid #30392d;
+  background: rgba(3, 6, 4, .52);
+}
+
+@media (max-width: 900px) {
+  #hotbar .hotbar-slot {
+    width: 48px;
+  }
+
+  #hotbar .hotbar-name {
+    display: none;
+  }
+
+  .inventory2-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .inventory2-details {
+    border-left: 0;
+    border-top: 1px solid #30392d;
+  }
+
+  .inventory2-grid {
+    grid-template-columns: repeat(9, minmax(42px, 1fr));
+    min-width: 430px;
+  }
+
+  .inventory2-storage {
+    overflow-x: auto;
+  }
+}

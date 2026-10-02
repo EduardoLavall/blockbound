@@ -71,7 +71,7 @@ export class VoxelInteractionController {
       return;
     }
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 9; i++) {
       if (this.input.consumePressed(`Digit${i + 1}`)) {
         this.hotbar.select(i);
       }
@@ -139,7 +139,11 @@ export class VoxelInteractionController {
       this.targetInfo.textContent =
         `MINING ${definition.name.toUpperCase()} · ${Math.round(this.miningRatio * 100)}%`;
     } else {
-      const cost = placementCost(this.hotbar.selectedBlock);
+      const selectedBlock = this.hotbar.selectedBlock;
+      const cost =
+        selectedBlock === null
+          ? null
+          : placementCost(selectedBlock);
       this.targetInfo.textContent =
         `${definition.name.toUpperCase()} · ${target.distance.toFixed(1)}m · PLACE ${cost ? formatCost(cost) : "N/A"}`;
     }
@@ -262,7 +266,14 @@ export class VoxelInteractionController {
     if (this.world.getBlock(x, y, z) !== BlockId.Air) return;
     if (this.intersectsPlayer(x, y, z)) return;
 
-    const cost = placementCost(this.hotbar.selectedBlock);
+    const selectedBlock = this.hotbar.selectedBlock;
+    if (selectedBlock === null) {
+      this.feedback = "SELECT A PLACEABLE RESOURCE";
+      this.feedbackTime = 1.1;
+      return;
+    }
+
+    const cost = placementCost(selectedBlock);
     if (!cost) {
       this.feedback = "THIS BLOCK CANNOT BE PLACED";
       this.feedbackTime = 1.1;
@@ -279,7 +290,7 @@ export class VoxelInteractionController {
       x,
       y,
       z,
-      this.hotbar.selectedBlock,
+      selectedBlock,
     );
 
     if (!edit.changed) return;

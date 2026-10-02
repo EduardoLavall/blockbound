@@ -5,7 +5,8 @@ import {
   NEUTRAL_EQUIPMENT_MODIFIERS,
 } from "../player/PlayerStats";
 import type { PlayerStatus } from "../player/PlayerStatus";
-import type { ItemInventory, ItemStack } from "./ItemInventory";
+import type { ItemStack } from "../inventory/RunInventory";
+import type { ItemInventory } from "./ItemInventory";
 import {
   itemDefinition,
   type EquipmentSlot,
@@ -28,7 +29,7 @@ const MULTIPLIERS: readonly (keyof EquipmentStatModifiers)[] = [
 ];
 
 export class EquipmentSystem {
-  private readonly equipped = new Map<EquipmentSlot, string>();
+  private readonly equipped = new Map<EquipmentSlot, ItemStack>();
   private readonly listeners = new Set<EquipmentListener>();
 
   constructor(
@@ -47,22 +48,34 @@ export class EquipmentSystem {
       return false;
     }
 
-    this.equipped.set(definition.slot, uid);
+    const detached = this.inventory.take(uid);
+    if (!detached) return false;
+
+    const previous = this.equipped.get(definition.slot) ?? null;
+    if (previous && !this.inventory.put(previous)) {
+      this.inventory.put(detached);
+      return false;
+    }
+
+    this.equipped.set(definition.slot, detached);
     this.apply();
     this.emit();
     return true;
   }
 
   unequip(slot: EquipmentSlot): boolean {
-    if (!this.equipped.delete(slot)) return false;
+    const stack = this.equipped.get(slot);
+    if (!stack) return false;
+    if (!this.inventory.put(stack)) return false;
+
+    this.equipped.delete(slot);
     this.apply();
     this.emit();
     return true;
   }
 
   equippedStack(slot: EquipmentSlot): ItemStack | null {
-    const uid = this.equipped.get(slot);
-    return uid ? this.inventory.get(uid) ?? null : null;
+    return this.equipped.get(slot) ?? null;
   }
 
   equippedDefinition(slot: EquipmentSlot): ItemDefinition | null {
@@ -71,7 +84,9 @@ export class EquipmentSystem {
   }
 
   isEquipped(uid: string): boolean {
-    return [...this.equipped.values()].includes(uid);
+    return [...this.equipped.values()].some(
+      (stack) => stack.uid === uid,
+    );
   }
 
   get slots(): Readonly<Record<EquipmentSlot, ItemStack | null>> {
@@ -87,9 +102,7 @@ export class EquipmentSystem {
       ...NEUTRAL_EQUIPMENT_MODIFIERS,
     };
 
-    for (const uid of this.equipped.values()) {
-      const stack = this.inventory.get(uid);
-      if (!stack) continue;
+    for (const stack of this.equipped.values()) {
       const modifiers = itemDefinition(stack.definitionId).modifiers;
 
       for (const [key, value] of Object.entries(modifiers) as [
