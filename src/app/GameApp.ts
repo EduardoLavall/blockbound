@@ -26,6 +26,7 @@ import { FirstPersonHand } from "../player/FirstPersonHand";
 import { Hotbar } from "../player/Hotbar";
 import { InteractionMode } from "../player/InteractionMode";
 import { PlayerController } from "../player/PlayerController";
+import { PlayerStatus } from "../player/PlayerStatus";
 import { VoxelInteractionController } from "../player/VoxelInteractionController";
 import { RuleEngine } from "../roguelite/RuleEngine";
 import { RunManager } from "../roguelite/RunManager";
@@ -38,6 +39,7 @@ import { CombatHUD } from "../ui/CombatHUD";
 import { DebugOverlay } from "../ui/DebugOverlay";
 import { HordeHUD } from "../ui/HordeHUD";
 import { SurvivalHUD } from "../ui/SurvivalHUD";
+import { PlayerStatusPanel } from "../ui/PlayerStatusPanel";
 import { UpgradeDraftUI } from "../ui/UpgradeDraftUI";
 import { BiomeId } from "../voxel/generation/Biomes";
 import {
@@ -70,6 +72,7 @@ interface GameAppOptions {
   coreHud: HTMLDivElement;
   hordeHud: HTMLDivElement;
   combatHud: HTMLDivElement;
+  playerStatusPanel: HTMLDivElement;
   hitMarker: HTMLDivElement;
   damageFlash: HTMLDivElement;
   upgradeOverlay: HTMLDivElement;
@@ -97,6 +100,10 @@ export class GameApp {
   private readonly rules = new RuleEngine();
   private readonly run = new RunManager();
   private readonly playerVitals = new PlayerVitals();
+  private readonly playerStatus = new PlayerStatus(
+    this.rules,
+    this.playerVitals,
+  );
   private readonly settings = new GameSettings();
   private readonly audio = new AudioSystem();
 
@@ -122,6 +129,7 @@ export class GameApp {
   private hordeHud!: HordeHUD;
 
   private combatHud!: CombatHUD;
+  private playerStatusPanel!: PlayerStatusPanel;
   private projectiles!: ProjectileSystem;
   private playerCombat!: PlayerCombatSystem;
   private upgradeDraft!: UpgradeDraft;
@@ -201,6 +209,7 @@ export class GameApp {
       this.renderer.camera,
       this.controls,
       this.input,
+      this.playerStatus,
       this.physics,
       {
         x: spawnX,
@@ -230,7 +239,7 @@ export class GameApp {
       this.world,
       this.physics,
       this.inventory,
-      this.rules,
+      this.playerStatus,
       this.mode,
       this.core,
       this.metadata.bounds,
@@ -259,6 +268,7 @@ export class GameApp {
       this.core,
       this.player,
       this.playerVitals,
+      this.playerStatus,
       this.rules,
     );
 
@@ -286,7 +296,7 @@ export class GameApp {
       this.mode,
       this.enemies,
       this.projectiles,
-      this.rules,
+      this.playerStatus,
       this.playerVitals,
       this.hand,
       this.combatHud,
@@ -303,7 +313,7 @@ export class GameApp {
       this.inventory,
       this.drops,
       this.mode,
-      this.rules,
+      this.playerStatus,
       () => this.playerCombat.canMine,
       this.options.targetInfo,
       this.options.miningProgress,
@@ -329,6 +339,13 @@ export class GameApp {
       this.core,
       this.options.inventoryHud,
       this.options.coreHud,
+    );
+
+    this.playerStatusPanel = new PlayerStatusPanel(
+      this.options.playerStatusPanel,
+      this.input,
+      this.playerStatus,
+      this.run,
     );
 
     this.hordeHud = new HordeHUD(
@@ -459,6 +476,7 @@ export class GameApp {
         this.survivalHud.update();
         this.hordeHud.update();
         this.playerCombat.renderUpdate(frameMs);
+        this.playerStatusPanel.update();
         this.hand.update(frameMs);
 
         const phaseLabel =

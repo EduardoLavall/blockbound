@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { Input } from "../core/Input";
+import type { PlayerStatus } from "./PlayerStatus";
 import type { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -26,6 +27,7 @@ export class PlayerController {
     private readonly camera: THREE.PerspectiveCamera,
     private readonly controls: PointerLockControls,
     private readonly input: Input,
+    private readonly status: PlayerStatus,
     physics: PhysicsWorld,
     spawn: PlayerSpawn,
   ) {
@@ -54,10 +56,11 @@ export class PlayerController {
   fixedUpdate(dt: number): void {
     if (!this.controls.isLocked) return;
 
+    const stats = this.status.snapshot();
     const walkSpeed =
       this.input.isDown("ShiftLeft") || this.input.isDown("ShiftRight")
-        ? 8.4
-        : 5.4;
+        ? stats.mobility.sprintSpeed
+        : stats.mobility.walkSpeed;
 
     this.camera.getWorldDirection(this.forward);
     this.forward.y = 0;
@@ -78,7 +81,7 @@ export class PlayerController {
     if (this.wish.lengthSq() > 1) this.wish.normalize();
 
     if (this.input.consumePressed("Space") && this.grounded) {
-      this.verticalVelocity = 7.2;
+      this.verticalVelocity = stats.mobility.jumpSpeed;
       this.grounded = false;
     }
 

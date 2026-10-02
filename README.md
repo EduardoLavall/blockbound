@@ -169,6 +169,48 @@ Já existe:
 - player death;
 - atribuição de kills.
 
+## Player Status
+
+Segure `Tab` durante a run para abrir o **Live Build Sheet**.
+
+O Player Status é agora a fonte central dos atributos do jogador. Ele combina:
+
+```text
+BASE
+  + modificadores da RUN / RuleEngine
+  + modificadores de EQUIPAMENTO
+  -> FINAL
+```
+
+A camada de equipamento já existe como contrato neutro (`EquipmentStatModifiers`) e será preenchida pela próxima fase.
+
+O painel mostra:
+
+- HP atual / máximo;
+- walk / sprint / jump;
+- Blade damage, cooldown, attacks/sec, range e DPS antes de crit;
+- Repeater damage, cooldown, shots/sec, projectile speed, pierce e DPS antes de crit;
+- crit chance / multiplier;
+- damage reduction;
+- mining speed;
+- resource yield;
+- repair power;
+- Burn / Shock / Mark;
+- low-HP damage bonus;
+- upgrades adquiridos na run.
+
+Sistemas que já consomem o Player Status diretamente:
+
+- movimento;
+- Blade;
+- Repeater;
+- dano recebido do jogador;
+- mineração;
+- resource yield;
+- reparo manual.
+
+Isso impede o painel de virar uma calculadora separada do gameplay.
+
 ## Roguelite
 
 Ao sobreviver às noites 1–4:
@@ -310,6 +352,7 @@ Passes já presentes:
 | Space | pular |
 | Shift | correr |
 | Q | Tool / Blade / Repeater |
+| Hold Tab | Player Status / Live Build Sheet |
 | LMB | minerar / atacar |
 | RMB | colocar bloco / construir |
 | 1–5 | escolher material |
@@ -362,7 +405,7 @@ A CI valida:
 
 Depois do vertical slice:
 
-1. Player Status;
+1. Player Status ✅;
 2. Inventário + Equipamento;
 3. Game Design — análise crítica de balanceamento;
 4. Rapid / Machine Gun Turret;

@@ -1,5 +1,6 @@
 import type { EnemyInstance } from "../ai/EnemySystem";
 import { EnemyStatus } from "../combat/CombatTypes";
+import { BASE_PLAYER_STATS } from "../player/PlayerStats";
 
 export class RuleEngine {
   meleeDamageMultiplier = 1;
@@ -11,8 +12,8 @@ export class RuleEngine {
   projectileSpeedMultiplier = 1;
   projectilePierceBonus = 0;
 
-  critChance = 0.05;
-  critMultiplier = 1.75;
+  critChance = BASE_PLAYER_STATS.critChance;
+  critMultiplier = BASE_PLAYER_STATS.critMultiplier;
 
   playerDamageReduction = 0;
   structureDamageReduction = 0;
@@ -28,9 +29,9 @@ export class RuleEngine {
   spikeCooldownMultiplier = 1;
   shockedSpikeBonus = 0;
 
-  miningSpeedMultiplier = 1;
-  resourceYieldBonus = 0;
-  repairMultiplier = 1;
+  miningSpeedMultiplier = BASE_PLAYER_STATS.miningSpeedMultiplier;
+  resourceYieldBonus = BASE_PLAYER_STATS.resourceYieldBonus;
+  repairMultiplier = BASE_PLAYER_STATS.repairMultiplier;
 
   playerBurnChance = 0;
   playerShockChance = 0;

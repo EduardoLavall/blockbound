@@ -11,6 +11,7 @@ import {
 } from "../combat/CombatTypes";
 import type { PlayerVitals } from "../combat/PlayerVitals";
 import type { PlayerController } from "../player/PlayerController";
+import type { PlayerStatus } from "../player/PlayerStatus";
 import type { RuleEngine } from "../roguelite/RuleEngine";
 import { Health } from "../survival/Health";
 import {
@@ -99,6 +100,7 @@ export class EnemySystem {
     private readonly core: Core,
     private readonly player: PlayerController,
     private readonly playerVitals: PlayerVitals,
+    private readonly playerStatus: PlayerStatus,
     private readonly rules: RuleEngine,
   ) {}
 
@@ -508,7 +510,7 @@ export class EnemySystem {
     if (enemy.attackCooldown > 0) return;
     const support = this.supportModifiers(enemy);
     this.playerVitals.damage(
-      this.rules.modifyPlayerIncomingDamage(
+      this.playerStatus.modifyIncomingDamage(
         enemy.attackDamage * support.damage,
       ),
     );
@@ -521,7 +523,7 @@ export class EnemySystem {
     const target = this.player.getPosition();
     const support = this.supportModifiers(enemy);
     this.playerVitals.damage(
-      this.rules.modifyPlayerIncomingDamage(
+      this.playerStatus.modifyIncomingDamage(
         enemy.attackDamage * support.damage,
       ),
     );
@@ -574,7 +576,7 @@ export class EnemySystem {
       Math.hypot(center.x - player.x, center.z - player.z) <= radius
     ) {
       this.playerVitals.damage(
-        this.rules.modifyPlayerIncomingDamage(damage),
+        this.playerStatus.modifyIncomingDamage(damage),
       );
     }
 

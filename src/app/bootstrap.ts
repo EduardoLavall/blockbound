@@ -21,6 +21,7 @@ export async function bootstrap(): Promise<void> {
   const coreHud = required<HTMLDivElement>("core-hud");
   const hordeHud = required<HTMLDivElement>("horde-hud");
   const combatHud = required<HTMLDivElement>("combat-hud");
+  const playerStatusPanel = required<HTMLDivElement>("player-status-panel");
   const hitMarker = required<HTMLDivElement>("hit-marker");
   const damageFlash = required<HTMLDivElement>("damage-flash");
   const upgradeOverlay = required<HTMLDivElement>("upgrade-overlay");
@@ -50,6 +51,7 @@ export async function bootstrap(): Promise<void> {
     coreHud,
     hordeHud,
     combatHud,
+    playerStatusPanel,
     hitMarker,
     damageFlash,
     upgradeOverlay,
