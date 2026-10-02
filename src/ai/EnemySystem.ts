@@ -427,9 +427,21 @@ export class EnemySystem {
 
   private updateStatuses(enemy: EnemyInstance, dt: number): void {
     const scale = enemy.definition.scale;
-    enemy.group.scale.lerp(
-      new THREE.Vector3(scale, scale, scale),
-      Math.min(1, dt * 16),
+    const alpha = Math.min(1, dt * 16);
+    enemy.group.scale.x = THREE.MathUtils.lerp(
+      enemy.group.scale.x,
+      scale,
+      alpha,
+    );
+    enemy.group.scale.y = THREE.MathUtils.lerp(
+      enemy.group.scale.y,
+      scale,
+      alpha,
+    );
+    enemy.group.scale.z = THREE.MathUtils.lerp(
+      enemy.group.scale.z,
+      scale,
+      alpha,
     );
 
     for (const [status, state] of enemy.statuses) {
