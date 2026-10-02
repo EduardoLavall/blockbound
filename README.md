@@ -163,9 +163,14 @@ src/
 
 **Issue #5 — procedural world**
 
+### Decisão de mundo
+
+O mundo será **procedural por seed, mas não infinito**. Cada run terá um mapa finito e delimitado, com tamanho controlado. A proceduralidade existe para variar terreno, biomas, recursos e POIs entre runs — não para criar exploração sem fim.
+
 Próximos sistemas:
 
 - seed reproduzível;
+- limites finitos do mapa por run;
 - height/noise;
 - biomas iniciais;
 - árvores;
