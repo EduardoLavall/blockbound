@@ -1500,7 +1500,7 @@ O jogo consegue explicar em uma única tela quais são os atributos atuais do jo
 
 
 
-## Fase 11 — Inventário + Equipamento
+## Fase 11 ✅ implementação base concluída — Inventário + Equipamento
 
 Objetivo: separar recursos de construção de itens/equipamentos utilizáveis.
 
@@ -1517,6 +1517,39 @@ Objetivo: separar recursos de construção de itens/equipamentos utilizáveis.
 ### Aceite
 
 O jogador consegue obter um item, guardá-lo, equipá-lo e ver seus atributos refletidos no Player Status.
+
+### Implementação atual
+
+- `ItemRegistry.ts` com 12 equipamentos iniciais;
+- raridades common / rare / epic;
+- slots Weapon / Armor / Charm;
+- `ItemInventory.ts` separado do inventário de recursos;
+- instâncias com UID e suporte de stack por definição;
+- `EquipmentSystem.ts`;
+- composição dos `EquipmentStatModifiers`;
+- troca de item substitui apenas o mesmo slot;
+- unequip retorna o slot aos modifiers neutros;
+- `ItemLootSystem.ts` com RNG seedado;
+- primeira kill garante drop comum;
+- chances de drop por arquétipo;
+- loot físico com magnetismo/pickup;
+- `I` abre inventário e pausa a simulação;
+- Pointer Lock é liberado durante a tela;
+- seleção/comparação selected vs. equipped;
+- equip/unequip pela UI;
+- Player Status muda imediatamente;
+- testes de inventário, equipamento, composição e loot determinístico.
+
+### Limites desta fase
+
+Não entram ainda:
+
+- crafting de itens;
+- shop;
+- upgrades/níveis de item;
+- sockets;
+- consumíveis ativos;
+- persistência meta entre runs.
 
 ---
 
@@ -1843,7 +1876,7 @@ Itens novos solicitados e adicionados ao roadmap, sem duplicar sistemas que já 
 Não foram adicionados novamente:
 
 - **cartinhas estilo ARAM/Desordem**, porque o draft 1-de-3, raridades, tags e sinergias já fazem parte da Fase 7 — Roguelite;
-- **Basic Turret**, porque já faz parte das Fases 4–5 e possui implementação funcional. As novas torres entram como arquétipos próprios nas Fases 11–16.
+- **Basic Turret**, porque já faz parte das Fases 4–5 e possui implementação funcional. As novas torres entram como arquétipos próprios nas Fases 13–18.
 
 ## Ordem escolhida
 
