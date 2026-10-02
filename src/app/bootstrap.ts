@@ -19,6 +19,9 @@ export async function bootstrap(): Promise<void> {
   const miningProgress = required<HTMLDivElement>("mining-progress-fill");
   const inventoryHud = required<HTMLDivElement>("inventory-hud");
   const coreHud = required<HTMLDivElement>("core-hud");
+  const hordeHud = required<HTMLDivElement>("horde-hud");
+  const defeatOverlay = required<HTMLDivElement>("defeat-overlay");
+  const restartButton = required<HTMLButtonElement>("restart-button");
   const status = required<HTMLDivElement>("status");
 
   const app = new GameApp({
@@ -34,6 +37,9 @@ export async function bootstrap(): Promise<void> {
     miningProgress,
     inventoryHud,
     coreHud,
+    hordeHud,
+    defeatOverlay,
+    restartButton,
     status,
   });
 
