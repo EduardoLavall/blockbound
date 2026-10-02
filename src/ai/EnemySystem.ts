@@ -4,6 +4,14 @@ import type {
   StructureInstance,
   StructureSystem,
 } from "../building/StructureSystem";
+import {
+  DamageSource,
+  EnemyStatus,
+  type EnemyStatusState,
+} from "../combat/CombatTypes";
+import type { PlayerVitals } from "../combat/PlayerVitals";
+import type { PlayerController } from "../player/PlayerController";
+import type { RuleEngine } from "../roguelite/RuleEngine";
 import { Health } from "../survival/Health";
 import type { FlowField } from "./navigation/FlowField";
 import type { BreachPlanner } from "./navigation/BreachPlanner";
@@ -16,6 +24,7 @@ export interface EnemyInstance {
   id: number;
   group: THREE.Group;
   health: Health;
+  statuses: Map<EnemyStatus, EnemyStatusState>;
   speed: number;
   attackDamage: number;
   attackInterval: number;
@@ -23,8 +32,17 @@ export interface EnemyInstance {
   alive: boolean;
 }
 
+export interface EnemyDamageEvent {
+  enemy: EnemyInstance;
+  amount: number;
+  source: DamageSource;
+  killed: boolean;
+}
+
 export class EnemySystem {
   private readonly enemies: EnemyInstance[] = [];
+  private readonly damageListeners =
+    new Set<(event: EnemyDamageEvent) => void>();
   private nextId = 1;
 
   private readonly bodyGeometry = new THREE.BoxGeometry(0.62, 0.8, 0.48);
@@ -51,6 +69,9 @@ export class EnemySystem {
     private readonly breachPlanner: BreachPlanner,
     private readonly structures: StructureSystem,
     private readonly core: Core,
+    private readonly player: PlayerController,
+    private readonly playerVitals: PlayerVitals,
+    private readonly rules: RuleEngine,
   ) {}
 
   spawn(cell: NavigationCell, health = 70, speed = 2.35): EnemyInstance {
@@ -66,6 +87,7 @@ export class EnemySystem {
       id: this.nextId++,
       group,
       health: new Health(health),
+      statuses: new Map(),
       speed,
       attackDamage: 13,
       attackInterval: 0.78,
@@ -81,9 +103,27 @@ export class EnemySystem {
   fixedUpdate(dt: number): void {
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
+
       enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
+      this.updateStatuses(enemy, dt);
+      if (!enemy.alive) continue;
 
       const position = enemy.group.position;
+      const player = this.player.getPosition();
+      const playerDistance = Math.hypot(
+        position.x - player.x,
+        position.z - player.z,
+      );
+
+      if (
+        !this.playerVitals.dead &&
+        playerDistance <= 1.35 &&
+        Math.abs(position.y - player.y) < 2
+      ) {
+        this.attackPlayer(enemy);
+        continue;
+      }
+
       const corePosition = this.core.group.position;
       const coreDistance = Math.hypot(
         position.x - corePosition.x,
@@ -148,6 +188,13 @@ export class EnemySystem {
     return this.enemies.filter((enemy) => enemy.alive);
   }
 
+  subscribeDamage(
+    listener: (event: EnemyDamageEvent) => void,
+  ): () => void {
+    this.damageListeners.add(listener);
+    return () => this.damageListeners.delete(listener);
+  }
+
   findNearest(
     x: number,
     z: number,
@@ -185,17 +232,68 @@ export class EnemySystem {
     });
   }
 
-  damage(enemy: EnemyInstance, amount: number): boolean {
-    if (!enemy.alive) return false;
-    enemy.health.damage(amount);
+  damage(
+    enemy: EnemyInstance,
+    amount: number,
+    source: DamageSource = "player-melee",
+  ): boolean {
+    if (!enemy.alive || amount <= 0) return false;
 
-    if (enemy.health.destroyed) {
+    const dealt = enemy.health.damage(amount);
+    const killed = enemy.health.destroyed;
+
+    if (killed) {
       enemy.alive = false;
       enemy.group.visible = false;
-      return true;
+    } else {
+      enemy.group.scale.set(1.06, 0.96, 1.06);
     }
 
-    return false;
+    const event: EnemyDamageEvent = {
+      enemy,
+      amount: dealt,
+      source,
+      killed,
+    };
+    for (const listener of this.damageListeners) listener(event);
+    return killed;
+  }
+
+  applyStatus(
+    enemy: EnemyInstance,
+    status: EnemyStatus,
+    duration: number,
+    magnitude = 1,
+  ): void {
+    if (!enemy.alive || duration <= 0) return;
+
+    const current = enemy.statuses.get(status);
+    enemy.statuses.set(status, {
+      remaining: Math.max(duration, current?.remaining ?? 0),
+      magnitude: Math.max(magnitude, current?.magnitude ?? 0),
+      tick: current?.tick ?? 0.5,
+    });
+  }
+
+  private updateStatuses(enemy: EnemyInstance, dt: number): void {
+    enemy.group.scale.lerp(new THREE.Vector3(1, 1, 1), Math.min(1, dt * 16));
+
+    for (const [status, state] of enemy.statuses) {
+      state.remaining -= dt;
+
+      if (status === EnemyStatus.Burn) {
+        state.tick -= dt;
+        if (state.tick <= 0) {
+          state.tick += 0.5;
+          this.damage(enemy, 5 * state.magnitude, "burn");
+          if (!enemy.alive) return;
+        }
+      }
+
+      if (state.remaining <= 0) {
+        enemy.statuses.delete(status);
+      }
+    }
   }
 
   private handleBlocker(
@@ -218,7 +316,7 @@ export class EnemySystem {
       if (enemy.attackCooldown <= 0) {
         this.structures.damageStructure(
           blocker.id,
-          enemy.attackDamage,
+          this.rules.modifyStructureIncomingDamage(enemy.attackDamage),
         );
         enemy.attackCooldown = enemy.attackInterval;
       }
@@ -235,9 +333,19 @@ export class EnemySystem {
     );
   }
 
+  private attackPlayer(enemy: EnemyInstance): void {
+    if (enemy.attackCooldown > 0) return;
+    this.playerVitals.damage(
+      this.rules.modifyPlayerIncomingDamage(enemy.attackDamage),
+    );
+    enemy.attackCooldown = enemy.attackInterval;
+  }
+
   private attackCore(enemy: EnemyInstance): void {
     if (enemy.attackCooldown > 0) return;
-    this.core.damage(enemy.attackDamage);
+    this.core.damage(
+      this.rules.modifyCoreIncomingDamage(enemy.attackDamage),
+    );
     enemy.attackCooldown = enemy.attackInterval;
   }
 
@@ -268,9 +376,12 @@ export class EnemySystem {
       dz /= normalized;
     }
 
+    const shock = enemy.statuses.get(EnemyStatus.Shock);
+    const shockScale = shock ? this.rules.shockSlowFactor : 1;
+
     const distanceStep = Math.min(
       distance,
-      enemy.speed * speedScale * dt,
+      enemy.speed * speedScale * shockScale * dt,
     );
 
     position.x += dx * distanceStep;
@@ -311,27 +422,18 @@ export class EnemySystem {
   private createVisual(): THREE.Group {
     const group = new THREE.Group();
 
-    const body = new THREE.Mesh(
-      this.bodyGeometry,
-      this.bodyMaterial,
-    );
+    const body = new THREE.Mesh(this.bodyGeometry, this.bodyMaterial);
     body.position.y = 0.92;
     body.castShadow = true;
     group.add(body);
 
-    const head = new THREE.Mesh(
-      this.headGeometry,
-      this.headMaterial,
-    );
+    const head = new THREE.Mesh(this.headGeometry, this.headMaterial);
     head.position.y = 1.57;
     head.castShadow = true;
     group.add(head);
 
     for (const x of [-0.17, 0.17]) {
-      const leg = new THREE.Mesh(
-        this.legGeometry,
-        this.bodyMaterial,
-      );
+      const leg = new THREE.Mesh(this.legGeometry, this.bodyMaterial);
       leg.position.set(x, 0.3, 0);
       leg.castShadow = true;
       group.add(leg);
