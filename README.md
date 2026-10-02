@@ -1,32 +1,39 @@
 # Blockfall
 
-Blockfall está sendo reescrito como um **FPS 3D voxel + Tower Defense + Roguelite** para navegador, usando **HTML, CSS, TypeScript, Vite, Three.js e Rapier**.
+Blockfall é um **FPS 3D voxel + Tower Defense + Roguelite** para navegador, usando **HTML, CSS, TypeScript, Vite, Three.js e Rapier**.
 
 O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`.
 
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
-## Estado atual — Fase 0/1
+## Estado atual — Fase 2: Voxel Engine
 
-A branch de implementação 3D começa validando a fundação antes da voxel engine:
+A fundação FPS já evoluiu para um mundo voxel editável:
 
-- renderer WebGL com Three.js;
 - câmera FPS com Pointer Lock;
-- WASD;
-- sprint;
-- pulo;
-- gravidade;
-- colisão e character controller com Rapier;
-- autostep e snap-to-ground;
-- cenário 3D temporário para testes;
-- fixed timestep a 60 Hz;
-- crosshair;
-- debug overlay com FPS, posição, grounded, draw calls e triângulos;
-- testes unitários do fixed-step clock;
-- CI executando testes + typecheck + build;
-- configuração explícita para deploy estático na Vercel.
+- WASD, sprint, pulo e gravidade;
+- character controller e colisão com Rapier;
+- chunks `16x16x24`;
+- voxels armazenados em `Uint16Array`;
+- suporte correto a chunks/coordenadas negativas;
+- greedy meshing;
+- meshing em pool de Web Workers;
+- culling de faces entre chunks por snapshot com borda;
+- uma `BufferGeometry` agregada por chunk;
+- um collider trimesh agregado por chunk;
+- rebuild assíncrono apenas de chunks alterados;
+- chunks vizinhos invalidados quando uma edição acontece na borda;
+- raycast DDA diretamente no grid voxel;
+- highlight do bloco mirado;
+- quebrar e colocar blocos;
+- hotbar de blocos;
+- atlas pixel-art original gerado pelo próprio jogo;
+- debug de FPS, posição, draw calls, triângulos, chunks e fila de Workers;
+- testes de coordenadas, raycast, invalidação de bordas e greedy meshing.
 
-### Controles atuais
+O terreno atual é **somente um mapa técnico determinístico**. Geração procedural por seed pertence à Issue #5.
+
+## Controles
 
 | Controle | Ação |
 | --- | --- |
@@ -34,9 +41,48 @@ A branch de implementação 3D começa validando a fundação antes da voxel eng
 | WASD | mover |
 | Space | pular |
 | Shift | correr |
+| LMB | quebrar bloco |
+| RMB | colocar bloco |
+| 1–5 | escolher bloco da hotbar |
 | Esc | liberar Pointer Lock |
 
-O cenário atual **não é o mapa final**. Os cubos existem somente para testar movimentação e colisão antes da Issue #4, onde começa a voxel engine.
+Blocos atuais:
+
+1. Grass
+2. Dirt
+3. Stone
+4. Wood
+5. Crystal
+
+O Bedrock existe como camada estrutural e não pode ser destruído.
+
+## Arquitetura voxel
+
+```text
+VoxelWorld
+  -> Chunk (Uint16Array)
+  -> padded snapshot
+  -> MeshWorkerPool
+  -> mesher.worker.ts
+  -> GreedyMesher
+  -> positions / normals / UVs / indices
+  -> Three.js BufferGeometry
+  -> Rapier trimesh collider
+```
+
+Ao editar um bloco:
+
+```text
+raycast DDA
+  -> VoxelWorld.setBlock
+  -> marca chunk dirty
+  -> marca vizinho se edição estiver na borda
+  -> Web Worker remesh
+  -> troca BufferGeometry
+  -> recria collider do chunk
+```
+
+O mundo **não usa um Mesh nem um collider por bloco**.
 
 ## Desenvolvimento
 
@@ -53,18 +99,16 @@ Validação completa:
 npm run check
 ```
 
-Build de produção:
+Build:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Vercel é requisito
+## Vercel é requisito permanente
 
-Blockfall é desenvolvido para continuar compatível com **Vercel** durante toda a implementação.
-
-A aplicação é client-side e o build de produção é estático:
+Blockfall precisa continuar deployável na **Vercel** durante todas as fases.
 
 ```text
 framework: Vite
@@ -73,56 +117,63 @@ build:     npm run build
 output:    dist
 ```
 
-Essas definições também estão versionadas em `vercel.json`.
+O arquivo `vercel.json` mantém essas definições versionadas.
 
-Regras do projeto relacionadas à Vercel:
+A voxel engine preserva isso:
 
-- nenhum servidor Node é obrigatório para iniciar o jogo;
-- código de gameplay precisa executar no browser;
-- assets devem ser empacotáveis/servíveis pelo Vite;
-- workers futuros devem usar URLs compatíveis com Vite;
-- Rapier usa `@dimforge/rapier3d-compat`, que embute o WASM no JavaScript para reduzir problemas de bundling/deploy;
-- `npm run build` deve permanecer verde antes de mergear;
-- branches podem ser usadas como Preview Deployments quando o repo estiver ligado a um projeto Vercel.
+- gameplay totalmente client-side;
+- nenhum servidor Node necessário;
+- Rapier via `@dimforge/rapier3d-compat`;
+- Workers carregados com `new URL(..., import.meta.url)`, para o Vite gerar os assets corretos;
+- atlas gerado em runtime, sem dependência externa;
+- CI executa testes + build de produção antes de merge.
 
-## Estrutura atual
+## Estrutura relevante
 
 ```text
 src/
   app/
-    GameApp.ts
-    bootstrap.ts
   core/
-    FixedStepAccumulator.ts
-    GameLoop.ts
-    Input.ts
   engine/
     physics/
-      PhysicsWorld.ts
     render/
-      Renderer3D.ts
   player/
+    Hotbar.ts
     PlayerController.ts
-  ui/
-    DebugOverlay.ts
-  world/
-    createTestArena.ts
-  main.ts
-  style.css
+    VoxelInteractionController.ts
+  voxel/
+    blocks.ts
+    Chunk.ts
+    ChunkSnapshot.ts
+    constants.ts
+    VoxelRaycast.ts
+    VoxelWorld.ts
+    mesh/
+      GreedyMesher.ts
+      MeshWorkerPool.ts
+      protocol.ts
+    render/
+      ChunkManager.ts
+      TextureAtlas.ts
+  workers/
+    mesher.worker.ts
 ```
 
-## Próximas fases
+## Próxima fase
 
-1. FPS foundation.
-2. Voxel engine com chunks e greedy meshing.
-3. Mundo procedural por seed.
-4. Mineração e construção.
-5. Navegação dinâmica + Tower Defense.
-6. Combate.
-7. Roguelite.
-8. Enemy roster + boss.
-9. Vertical slice completo.
+**Issue #5 — procedural world**
 
-A principal regra de design continua sendo:
+Próximos sistemas:
+
+- seed reproduzível;
+- height/noise;
+- biomas iniciais;
+- árvores;
+- recursos/minérios;
+- POIs;
+- Core perto do centro;
+- spawn ring para hordas.
+
+A regra principal continua sendo:
 
 **construir → sobreviver → melhorar → tentar novamente**
