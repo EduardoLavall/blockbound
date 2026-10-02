@@ -121,14 +121,14 @@ export class PlayerStatus {
 
     const critChance = clamp(
       BASE_PLAYER_STATS.critChance +
-        (this.rules.critChance - 0.05) +
+        (this.rules.critChance - BASE_PLAYER_STATS.critChance) +
         this.equipment.critChanceBonus,
       0,
       0.75,
     );
     const critMultiplier =
       BASE_PLAYER_STATS.critMultiplier +
-      (this.rules.critMultiplier - 1.75) +
+      (this.rules.critMultiplier - BASE_PLAYER_STATS.critMultiplier) +
       this.equipment.critMultiplierBonus;
 
     const damageReduction = clamp(
@@ -288,8 +288,8 @@ export class PlayerStatus {
       line("Repeater", "Projectile speed", BASE_PLAYER_STATS.projectileSpeed, mul(this.rules.projectileSpeedMultiplier), mul(e.projectileSpeedMultiplier), s.ranged.projectileSpeed, "m/s"),
       line("Repeater", "Pierce", BASE_PLAYER_STATS.projectilePierce, signed(this.rules.projectilePierceBonus), signed(e.projectilePierceBonus), s.ranged.pierce),
       line("Repeater", "DPS before crit", BASE_PLAYER_STATS.rangedDamage / BASE_PLAYER_STATS.rangedCooldown, "derived", "derived", s.ranged.dpsBeforeCrit),
-      line("Combat", "Crit chance", BASE_PLAYER_STATS.critChance * 100, signed((this.rules.critChance - 0.05) * 100), signed(e.critChanceBonus * 100), s.crit.chance * 100, "%"),
-      line("Combat", "Crit multiplier", BASE_PLAYER_STATS.critMultiplier, signed(this.rules.critMultiplier - 1.75), signed(e.critMultiplierBonus), s.crit.multiplier, "×"),
+      line("Combat", "Crit chance", BASE_PLAYER_STATS.critChance * 100, signed((this.rules.critChance - BASE_PLAYER_STATS.critChance) * 100), signed(e.critChanceBonus * 100), s.crit.chance * 100, "%"),
+      line("Combat", "Crit multiplier", BASE_PLAYER_STATS.critMultiplier, signed(this.rules.critMultiplier - BASE_PLAYER_STATS.critMultiplier), signed(e.critMultiplierBonus), s.crit.multiplier, "×"),
       line("Defense", "Damage reduction", 0, signed(this.rules.playerDamageReduction * 100), signed(e.damageReductionBonus * 100), s.defense.damageReduction * 100, "%"),
       line("Utility", "Mining speed", 100, mul(this.rules.miningSpeedMultiplier), mul(e.miningSpeedMultiplier), s.utility.miningSpeedMultiplier * 100, "%"),
       line("Utility", "Resource yield", BASE_PLAYER_STATS.resourceYieldBonus, signed(this.rules.resourceYieldBonus), signed(e.resourceYieldBonus), s.utility.resourceYieldBonus),
