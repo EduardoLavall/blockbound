@@ -60,10 +60,9 @@ function createLaneSurface(
     Math.max(1, laneLength / LANE_TEXTURE_REPEAT_METERS),
   );
 
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshBasicMaterial({
     map: texture,
-    roughness: 0.92,
-    metalness: 0.04,
+    toneMapped: false,
     polygonOffset: true,
     polygonOffsetFactor: -1,
     polygonOffsetUnits: -1,
@@ -82,7 +81,6 @@ function createLaneSurface(
     world.highestSolidY(metadata.lane.entry.x, minZ) + 0.035,
     minZ + laneLength / 2,
   );
-  lane.receiveShadow = true;
   lane.renderOrder = 1;
 
   group.add(lane);
