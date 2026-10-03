@@ -1,10 +1,13 @@
 {
   "name": "blockfall",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "assets:verify": "node scripts/verify-png-assets.mjs",
+    "pretest": "npm run assets:verify",
+    "prebuild": "npm run assets:verify",
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "check": "npm run test && npm run build",
