@@ -2,6 +2,9 @@ import * as THREE from "three";
 import type { WorldMetadata } from "../voxel/generation/WorldMetadata";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
 
+const LANE_TEXTURE_URL = "/textures/lane-indestructible.png";
+const LANE_TEXTURE_REPEAT_METERS = 4;
+
 export function createWorldLandmarks(
   scene: THREE.Scene,
   world: VoxelWorld,
@@ -10,29 +13,7 @@ export function createWorldLandmarks(
   const group = new THREE.Group();
   group.name = "world-landmarks";
 
-  const laneMaterial = new THREE.MeshBasicMaterial({
-    color: 0xd2a849,
-    transparent: true,
-    opacity: 0.16,
-    depthWrite: false,
-  });
-  const laneGeometry = new THREE.BoxGeometry(0.94, 0.025, 0.94);
-  const lane = new THREE.InstancedMesh(
-    laneGeometry,
-    laneMaterial,
-    metadata.lane.cells.length,
-  );
-  lane.name = "primary-lane";
-  lane.renderOrder = 1;
-
-  const matrix = new THREE.Matrix4();
-  metadata.lane.cells.forEach((cell, index) => {
-    const y = world.highestSolidY(cell.x, cell.z) + 0.03;
-    matrix.makeTranslation(cell.x + 0.5, y, cell.z + 0.5);
-    lane.setMatrixAt(index, matrix);
-  });
-  lane.instanceMatrix.needsUpdate = true;
-  group.add(lane);
+  createLaneSurface(group, world, metadata);
 
   const spawnMaterial = new THREE.MeshBasicMaterial({
     color: 0xd45963,
@@ -52,4 +33,57 @@ export function createWorldLandmarks(
 
   scene.add(group);
   return group;
+}
+
+function createLaneSurface(
+  group: THREE.Group,
+  world: VoxelWorld,
+  metadata: WorldMetadata,
+): void {
+  if (metadata.lane.cells.length === 0) return;
+
+  const rows = [
+    ...new Set(metadata.lane.cells.map((cell) => cell.z)),
+  ].sort((a, b) => a - b);
+
+  const minZ = rows[0]!;
+  const maxZ = rows[rows.length - 1]!;
+  const laneLength = maxZ - minZ + 1;
+  const laneWidth = Math.max(0.9, metadata.lane.width - 0.08);
+
+  const texture = new THREE.TextureLoader().load(LANE_TEXTURE_URL);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(
+    1,
+    Math.max(1, laneLength / LANE_TEXTURE_REPEAT_METERS),
+  );
+
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    roughness: 0.92,
+    metalness: 0.04,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+
+  const geometry = new THREE.PlaneGeometry(
+    laneWidth,
+    laneLength - 0.06,
+  );
+  geometry.rotateX(-Math.PI / 2);
+
+  const lane = new THREE.Mesh(geometry, material);
+  lane.name = "primary-lane-texture";
+  lane.position.set(
+    metadata.lane.entry.x + 0.5,
+    world.highestSolidY(metadata.lane.entry.x, minZ) + 0.035,
+    minZ + laneLength / 2,
+  );
+  lane.receiveShadow = true;
+  lane.renderOrder = 1;
+
+  group.add(lane);
 }
