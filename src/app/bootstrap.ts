@@ -1,4 +1,5 @@
 import { GameApp } from "./GameApp";
+import { GAME_VERSION_LABEL } from "../version";
 
 function required<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -36,6 +37,12 @@ export async function bootstrap(): Promise<void> {
   const settingsEffects = required<HTMLInputElement>("settings-effects");
   const settingsDebug = required<HTMLInputElement>("settings-debug");
   const status = required<HTMLDivElement>("status");
+  const startVersion = required<HTMLDivElement>("start-version");
+  const gameVersionHud = required<HTMLDivElement>("game-version-hud");
+
+  startVersion.textContent = GAME_VERSION_LABEL;
+  gameVersionHud.textContent = GAME_VERSION_LABEL;
+  document.title = `Blockfall ${GAME_VERSION_LABEL} — Five Night Siege`;
 
   const app = new GameApp({
     canvas,

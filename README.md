@@ -683,6 +683,25 @@ Tudo permanece client-side:
 
 Nenhum servidor Node é necessário para jogar.
 
+
+## Versionamento visível
+
+A versão pública do jogo tem uma única fonte de verdade:
+
+```json
+package.json -> version
+```
+
+`src/version.ts` lê esse valor diretamente e o expõe para a interface.
+
+Toda nova versão deve incrementar o campo `version` seguindo SemVer. O mesmo número aparece automaticamente:
+
+- no menu inicial;
+- durante o gameplay, no canto inferior direito;
+- no título da aba do navegador.
+
+Não manter números de versão hardcoded separados no HTML/UI.
+
 ## Desenvolvimento
 
 Requer Node.js 22.12+.
