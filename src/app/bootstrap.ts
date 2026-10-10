@@ -42,7 +42,7 @@ export async function bootstrap(): Promise<void> {
 
   startVersion.textContent = GAME_VERSION_LABEL;
   gameVersionHud.textContent = GAME_VERSION_LABEL;
-  document.title = `Blockfall ${GAME_VERSION_LABEL} — Five Night Siege`;
+  document.title = `Blockbound ${GAME_VERSION_LABEL} — O Último Cristal`;
 
   const app = new GameApp({
     canvas,

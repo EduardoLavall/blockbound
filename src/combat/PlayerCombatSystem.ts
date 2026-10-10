@@ -10,7 +10,8 @@ import { SeededRandom } from "../voxel/generation/SeededRandom";
 import type { CombatHUD } from "../ui/CombatHUD";
 import type { ProjectileSystem } from "./ProjectileSystem";
 import { PICKAXE } from "../survival/MiningTool";
-import { raycastVoxels } from "../voxel/VoxelRaycast";
+import { coverDistance } from "./CombatTrace";
+import type { StructureSystem } from "../building/StructureSystem";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
 
 export class PlayerCombatSystem {
@@ -32,6 +33,8 @@ export class PlayerCombatSystem {
     private readonly vitals: PlayerVitals,
     private readonly hand: FirstPersonHand,
     private readonly hud: CombatHUD,
+    private readonly structures: StructureSystem,
+    private readonly onAttack: (mode: PlayerActionMode) => void = () => {},
   ) {
     this.random = new SeededRandom(seed ^ 0x6d93ac41);
     this.hand.setActionMode(this.modeValue);
@@ -69,7 +72,7 @@ export class PlayerCombatSystem {
         }
       }
     } else if (this.modeValue === PlayerActionMode.Blade) {
-      if (this.input.consumePressed("Mouse0") && this.cooldown <= 0) {
+      if (this.input.isDown("Mouse0") && this.cooldown <= 0) {
         this.swingBlade();
       }
     } else if (this.modeValue === PlayerActionMode.Repeater) {
@@ -104,7 +107,7 @@ export class PlayerCombatSystem {
           ? PlayerActionMode.Repeater
           : PlayerActionMode.Tool;
 
-    this.cooldown = Math.min(this.cooldown, 0.1);
+    // Switching weapons must not bypass the previous attack's recovery.
     this.hand.setActionMode(this.modeValue);
   }
 
@@ -114,6 +117,7 @@ export class PlayerCombatSystem {
       this.status.outgoingDamageMultiplier();
 
     this.hand.triggerAttack(0.9);
+    this.onAttack(PlayerActionMode.Tool);
     this.cooldown = PICKAXE.combatCooldown;
 
     const killed = this.enemies.damage(
@@ -131,6 +135,7 @@ export class PlayerCombatSystem {
     const target = this.bestMeleeTarget(range);
 
     this.hand.triggerAttack(1);
+    this.onAttack(PlayerActionMode.Blade);
     this.cooldown = stats.melee.cooldown;
 
     if (!target) return;
@@ -159,9 +164,7 @@ export class PlayerCombatSystem {
       this.status.outgoingDamageMultiplier();
     const damage = critical ? base * stats.crit.multiplier : base;
 
-    const origin = this.camera.position
-      .clone()
-      .addScaledVector(this.direction, 0.5);
+    const origin = this.camera.position.clone();
 
     this.projectiles.spawn({
       origin,
@@ -176,6 +179,7 @@ export class PlayerCombatSystem {
     });
 
     this.hand.triggerAttack(0.45);
+    this.onAttack(PlayerActionMode.Repeater);
     this.cooldown = stats.ranged.cooldown;
   }
 
@@ -186,7 +190,7 @@ export class PlayerCombatSystem {
 
     for (const enemy of this.enemies.aliveEnemies) {
       const center = enemy.group.position.clone();
-      center.y += 0.9;
+      center.y += 0.95 * enemy.definition.scale;
 
       const offset = center.sub(origin);
       const distance = offset.length();
@@ -194,6 +198,7 @@ export class PlayerCombatSystem {
 
       const dot = offset.normalize().dot(this.direction);
       if (dot < 0.62) continue;
+      if (this.voxelOccludesTarget(enemy)) continue;
 
       const score = dot * 2 - distance / range;
       if (score > bestScore) {
@@ -207,20 +212,12 @@ export class PlayerCombatSystem {
 
   private voxelOccludesTarget(target: EnemyInstance): boolean {
     const center = target.group.position.clone();
-    center.y += 0.9;
+    center.y += 0.95 * target.definition.scale;
     const enemyDistance = center.distanceTo(this.camera.position);
 
-    const hit = raycastVoxels(
-      this.world,
-      this.camera.position,
-      this.direction,
-      PICKAXE.combatRange,
-    );
-
-    return Boolean(
-      hit &&
-      hit.distance + 0.12 < enemyDistance,
-    );
+    center.sub(this.camera.position).normalize();
+    return coverDistance(this.world, this.camera.position, center,
+      enemyDistance, this.structures.all) + 0.12 < enemyDistance;
   }
 
   private applyPlayerStatuses(

@@ -20,6 +20,8 @@ import {
 import type { VoxelWorld } from "../voxel/VoxelWorld";
 import type { PlayerController } from "./PlayerController";
 import type { Hotbar } from "./Hotbar";
+import { MiningCracks } from "./MiningCracks";
+import { miningSwingCount } from "../survival/MiningTool";
 
 export class VoxelInteractionController {
   private readonly direction = new THREE.Vector3();
@@ -31,6 +33,7 @@ export class VoxelInteractionController {
   private miningDurationValue = 0;
   private feedback = "";
   private feedbackTime = 0;
+  private readonly cracks: MiningCracks;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -47,7 +50,9 @@ export class VoxelInteractionController {
     private readonly canMinePrimary: () => boolean,
     private readonly targetInfo: HTMLElement,
     private readonly miningProgress: HTMLElement,
+    private readonly onBreak: (position: THREE.Vector3, block: BlockId, broken: boolean) => void = () => {},
   ) {
+    this.cracks = new MiningCracks(scene);
     const outline = new THREE.EdgesGeometry(
       new THREE.BoxGeometry(1.01, 1.01, 1.01),
     );
@@ -94,6 +99,7 @@ export class VoxelInteractionController {
     this.refreshTarget();
     const target = this.target;
     const miningEnabled = this.canMinePrimary();
+    this.cracks.update(this.mode.buildMode ? null : target, this.miningRatio);
 
     this.miningProgress.style.width =
       `${Math.round(this.miningRatio * 100)}%`;
@@ -219,8 +225,14 @@ export class VoxelInteractionController {
       this.miningElapsed = 0;
     }
 
+    const cycles = miningSwingCount(duration);
+    const previousSwing = Math.floor(this.miningElapsed / duration * cycles);
     this.miningElapsed += dt;
     this.miningRatio = Math.min(1, this.miningElapsed / duration);
+    if (Math.floor(this.miningElapsed / duration * cycles) > previousSwing && this.miningRatio < 1) {
+      this.onBreak(new THREE.Vector3(target.voxel.x + 0.5, target.voxel.y + 0.6,
+        target.voxel.z + 0.5), target.block, false);
+    }
 
     if (this.miningElapsed < duration) return;
 
@@ -233,6 +245,8 @@ export class VoxelInteractionController {
     );
 
     if (edit.changed) {
+      this.onBreak(new THREE.Vector3(target.voxel.x + 0.5, target.voxel.y + 0.5,
+        target.voxel.z + 0.5), target.block, true);
       this.chunks.requestRebuild(edit.dirtyChunkKeys);
       if (drop) {
         this.drops.spawn(

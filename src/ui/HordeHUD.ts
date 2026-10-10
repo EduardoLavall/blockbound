@@ -8,6 +8,7 @@ import {
 import type { WaveDirector } from "../defense/WaveDirector";
 
 export class HordeHUD {
+  private previousMarkup = "";
   constructor(
     private readonly element: HTMLDivElement,
     private readonly dayNight: DayNightSystem,
@@ -31,15 +32,15 @@ export class HordeHUD {
 
     const phaseLabel =
       phase === DayPhase.Day
-        ? "DAY"
+        ? `PREPARAR · ${this.dayNight.night + 1}/5`
         : stats.bossNight
-          ? "NIGHT 5 · FINAL SIEGE"
-          : "NIGHT " + this.dayNight.night;
+          ? "NOITE 5 · ÚLTIMO CERCO"
+          : "NOITE " + this.dayNight.night + " / 5";
 
     const timeLabel =
-      stats.bossNight && phase === DayPhase.Night && seconds <= 0
-        ? "UNTIL CLEARED"
-        : seconds + "s";
+      phase === DayPhase.Night
+        ? `${this.enemies.aliveCount + stats.remainingToSpawn} restantes`
+        : seconds + "s · N para iniciar";
 
     const bossMarkup = boss
       ? `
@@ -55,21 +56,25 @@ export class HordeHUD {
       `
       : "";
 
-    this.element.innerHTML = `
+    const progress = phase === DayPhase.Day ? this.dayNight.phaseProgress :
+      1 - (this.enemies.aliveCount + stats.remainingToSpawn) / Math.max(1, stats.total);
+    const markup = `
       <div class="phase-title">
         <strong>${phaseLabel}</strong>
         <span>${timeLabel}</span>
       </div>
       <div class="phase-track">
-        <div class="phase-fill" style="width:${Math.round(this.dayNight.phaseProgress * 100)}%"></div>
+        <div class="phase-fill" style="width:${Math.round(progress * 100)}%"></div>
       </div>
       ${bossMarkup}
       <div class="wave-line">
-        enemies <b>${this.enemies.aliveCount}</b>
-        · queued <b>${stats.remainingToSpawn}</b>
-        · nav <b>${this.navigation.lastRebuildMs.toFixed(1)}ms</b>
-        · flow <b>${this.flow.rebuildMs.toFixed(1)}ms</b>
+        ${phase === DayPhase.Day ? "Torres ao lado da rota · espinhos sobre ela" :
+          `Em combate <b>${this.enemies.aliveCount}</b> · chegando <b>${stats.remainingToSpawn}</b>`}
       </div>
     `;
+    if (markup !== this.previousMarkup) {
+      this.element.innerHTML = markup;
+      this.previousMarkup = markup;
+    }
   }
 }

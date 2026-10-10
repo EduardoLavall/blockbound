@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import type { PlayControls } from "./PlayControls";
 import { PlayerActionMode } from "../combat/CombatTypes";
 import type { Input } from "../core/Input";
 import { miningSwingCount } from "../survival/MiningTool";
@@ -24,10 +24,13 @@ export class FirstPersonHand {
   private miningActive = false;
   private miningProgress = 0;
   private miningDuration = 0;
+  private readonly muzzle = new THREE.Mesh(new THREE.OctahedronGeometry(0.15),
+    new THREE.MeshBasicMaterial({ color: 0xffda86, depthTest: false, depthWrite: false }));
+  effects = true;
 
   constructor(
     camera: THREE.PerspectiveCamera,
-    private readonly controls: PointerLockControls,
+    private readonly controls: PlayControls,
     private readonly input: Input,
     private readonly player: PlayerController,
   ) {
@@ -73,6 +76,10 @@ export class FirstPersonHand {
     this.createPickaxe();
     this.createBlade();
     this.createRepeater();
+    this.muzzle.position.set(0, 0.03, -2.32);
+    this.muzzle.renderOrder = 1001;
+    this.muzzle.visible = false;
+    this.repeater.add(this.muzzle);
 
     this.root.add(
       this.arm,
@@ -160,6 +167,8 @@ export class FirstPersonHand {
     }
 
     this.attackTime = Math.min(1, this.attackTime + dt / 0.22);
+    this.muzzle.visible = this.effects && this.actionMode === PlayerActionMode.Repeater && this.attackTime < 0.22;
+    this.muzzle.rotation.z += dt * 18;
     const attackWave =
       Math.sin(this.attackTime * Math.PI) * this.attackStrength;
 
@@ -178,7 +187,7 @@ export class FirstPersonHand {
     const bladeFactor =
       this.actionMode === PlayerActionMode.Blade ? 1.25 : 1;
 
-    const forward =
+    const forward = this.actionMode === PlayerActionMode.Repeater ? -attackWave * 0.12 :
       attackWave * 0.32 * bladeFactor +
       toolWave * 0.12;
     const down =

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CHUNK_SIZE } from "../constants";
 import { createRunSeed } from "./Seed";
 import { generateWorld } from "./WorldGenerator";
+import { BlockId } from "../blocks";
 
 function checksum(seedText: string): number {
   const { world } = generateWorld(createRunSeed(seedText), 1);
@@ -18,6 +19,21 @@ function checksum(seedText: string): number {
 }
 
 describe("generateWorld", () => {
+  it.each(["blockbound-review", "forest-spacing", "dense-forest"])("keeps trees rooted on terrain with separated canopies: %s", seed => {
+    const { world, metadata } = generateWorld(createRunSeed(seed));
+    const roots: { x: number; z: number }[] = [];
+    for (let z = metadata.bounds.minZ; z < metadata.bounds.maxZExclusive; z++) {
+      for (let x = metadata.bounds.minX; x < metadata.bounds.maxXExclusive; x++) {
+        for (let y = 1; y < 22; y++) {
+          if (world.getBlock(x, y, z) !== BlockId.Wood || world.getBlock(x, y - 1, z) === BlockId.Wood) continue;
+          expect([BlockId.Grass, BlockId.Dirt, BlockId.Stone]).toContain(world.getBlock(x, y - 1, z));
+          expect(roots.every(root => Math.max(Math.abs(x - root.x), Math.abs(z - root.z)) >= 6)).toBe(true);
+          roots.push({ x, z });
+        }
+      }
+    }
+    expect(roots.length).toBeGreaterThan(5);
+  });
   it("reproduces the same world for the same seed", () => {
     expect(checksum("same-seed")).toBe(checksum("same-seed"));
   });

@@ -76,7 +76,7 @@ export const ENEMIES: Readonly<Record<EnemyType, EnemyDefinition>> = {
     emissive: 0x26122a,
     playerAggroRange: 1.55,
     rangedRange: 0,
-    structureDamageMultiplier: 2.4,
+    structureDamageMultiplier: 1.8,
     coreDamageMultiplier: 1.35,
   },
   [EnemyType.Archer]: {
@@ -141,13 +141,13 @@ export const ENEMIES: Readonly<Record<EnemyType, EnemyDefinition>> = {
     playerAggroRange: 2.3,
     rangedRange: 0,
     structureDamageMultiplier: 3.2,
-    coreDamageMultiplier: 1.8,
+    coreDamageMultiplier: 1.3,
     supportRadius: 7,
     supportSpeedMultiplier: 1.12,
     supportDamageMultiplier: 1.18,
     bossPulseRadius: 6.5,
-    bossPulseDamage: 18,
-    bossPulseInterval: 5.5,
+    bossPulseDamage: 14,
+    bossPulseInterval: 6.5,
   },
 };
 

@@ -101,7 +101,7 @@ export class ChunkManager {
       const mesh = new THREE.Mesh(geometry, this.material);
       mesh.position.set(chunk.cx * CHUNK_SIZE, 0, chunk.cz * CHUNK_SIZE);
       mesh.receiveShadow = true;
-      mesh.castShadow = false;
+      mesh.castShadow = true;
       this.scene.add(mesh);
       entry = { mesh };
       this.entries.set(chunk.key, entry);

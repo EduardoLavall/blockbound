@@ -13,9 +13,9 @@ describe("BalanceHarness", () => {
     const repeater = snapshot.weapons.find((weapon) => weapon.name === "Repeater")!;
 
     expect(expectedCritMultiplier()).toBeCloseTo(1.0375);
-    expect(blade.expectedDps).toBeCloseTo(73.4896, 3);
-    expect(repeater.expectedDps).toBeCloseTo(73.2353, 3);
-    expect(blade.expectedDps / repeater.expectedDps).toBeCloseTo(1.00347, 3);
+    expect(blade.expectedDps).toBeCloseTo(108.4659, 3);
+    expect(repeater.expectedDps).toBeCloseTo(83, 3);
+    expect(blade.expectedDps / repeater.expectedDps).toBeCloseTo(1.30682, 3);
   });
 
   it("captures current breach pressure", () => {
@@ -24,10 +24,10 @@ describe("BalanceHarness", () => {
     const boss = snapshot.enemies.find((enemy) => enemy.type === EnemyType.Boss)!;
     const burrower = snapshot.enemies.find((enemy) => enemy.type === EnemyType.Burrower)!;
 
-    expect(brute.wallBreachSeconds).toBeCloseTo(2.8395, 3);
+    expect(brute.wallBreachSeconds).toBeCloseTo(3.7860, 3);
     expect(boss.wallBreachSeconds).toBeCloseTo(1.5441, 3);
     expect(burrower.wallBreachSeconds).toBeNull();
-    expect(boss.coreKillSeconds).toBeCloseTo(8.5784, 3);
+    expect(boss.coreKillSeconds).toBeCloseTo(11.878, 2);
   });
 
   it("captures authored wave pressure", () => {
@@ -36,7 +36,7 @@ describe("BalanceHarness", () => {
     expect(snapshot.waves).toHaveLength(5);
     expect(snapshot.waves[0]!.approximateTotalHealth).toBeCloseTo(699.6, 1);
     expect(snapshot.waves[4]!.approximateTotalHealth).toBeCloseTo(4771.29, 1);
-    expect(snapshot.waves[4]!.playerOnlyClearSeconds).toBeGreaterThan(65);
+    expect(snapshot.waves[4]!.playerOnlyClearSeconds).toBeGreaterThan(55);
   });
 
   it("exposes defense and content baselines", () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BASE_PLAYER_STATS } from "../player/PlayerStats";
 import { PlayerVitals } from "../combat/PlayerVitals";
 import { PlayerStatus } from "../player/PlayerStatus";
 import { RuleEngine } from "../roguelite/RuleEngine";
@@ -24,7 +25,7 @@ describe("EquipmentSystem", () => {
 
     const snapshot = status.snapshot();
 
-    expect(snapshot.melee.damage).toBeCloseTo(34 * 1.18);
+    expect(snapshot.melee.damage).toBeCloseTo(BASE_PLAYER_STATS.meleeDamage * 1.18);
     expect(snapshot.defense.damageReduction).toBeCloseTo(0.12);
     expect(snapshot.mobility.sprintSpeed).toBeCloseTo(8.4 * 0.96);
     expect(snapshot.utility.miningSpeedMultiplier).toBeCloseTo(1.18);
@@ -52,9 +53,9 @@ describe("EquipmentSystem", () => {
     expect(equipment.isEquipped(melee!.uid)).toBe(false);
 
     const snapshot = status.snapshot();
-    expect(snapshot.melee.damage).toBeCloseTo(34);
+    expect(snapshot.melee.damage).toBeCloseTo(BASE_PLAYER_STATS.meleeDamage);
     expect(snapshot.ranged.damage).toBeCloseTo(24 * 1.18);
-    expect(snapshot.ranged.projectileSpeed).toBeCloseTo(25 * 1.15);
+    expect(snapshot.ranged.projectileSpeed).toBeCloseTo(BASE_PLAYER_STATS.projectileSpeed * 1.15);
     expect(snapshot.mobility.walkSpeed).toBeCloseTo(5.4 * 1.08);
   });
 

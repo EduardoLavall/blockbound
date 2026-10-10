@@ -19,6 +19,7 @@ export class Hotbar {
   constructor(
     private readonly element: HTMLDivElement,
     private readonly inventory: RunInventory,
+    private readonly active: () => boolean = () => Boolean(document.pointerLockElement),
   ) {
     this.inventory.subscribe(() => this.refresh());
     this.bindScroll();
@@ -70,7 +71,7 @@ export class Hotbar {
     window.addEventListener(
       "wheel",
       (event) => {
-        if (!document.pointerLockElement) return;
+        if (!this.active()) return;
         if (Math.abs(event.deltaY) < 0.01) return;
         event.preventDefault();
         this.cycle(event.deltaY > 0 ? 1 : -1);

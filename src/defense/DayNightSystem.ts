@@ -16,7 +16,7 @@ export class DayNightSystem {
   private transitionHeld = false;
 
   constructor(
-    readonly dayDuration = 45,
+    readonly dayDuration = 75,
     readonly nightDuration = 55,
   ) {}
 
@@ -56,6 +56,25 @@ export class DayNightSystem {
 
   holdTransition(held: boolean): void {
     this.transitionHeld = held;
+  }
+
+  startNightEarly(): PhaseTransition | null {
+    if (this.phaseValue !== DayPhase.Day) return null;
+    return this.transition();
+  }
+
+  completeNight(): PhaseTransition | null {
+    if (this.phaseValue !== DayPhase.Night) return null;
+    return this.transition();
+  }
+
+  private transition(): PhaseTransition {
+    const from = this.phaseValue;
+    this.elapsed = 0;
+    this.transitionHeld = false;
+    this.phaseValue = from === DayPhase.Day ? DayPhase.Night : DayPhase.Day;
+    if (this.phaseValue === DayPhase.Night) this.nightValue++;
+    return { from, to: this.phaseValue, night: this.nightValue };
   }
 
   update(dt: number): PhaseTransition | null {

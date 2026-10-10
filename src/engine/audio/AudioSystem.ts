@@ -3,6 +3,7 @@ export class AudioSystem {
   private master: GainNode | null = null;
   private volumeValue = 0.28;
   private enabled = true;
+  private noiseBuffer: AudioBuffer | null = null;
 
   setVolume(value: number): void {
     this.volumeValue = Math.max(0, Math.min(1, value));
@@ -68,6 +69,35 @@ export class AudioSystem {
       [523, 0.05],
       [784, 0.09],
     ], "triangle", 0.11);
+  }
+
+  shoot(): void {
+    this.impactNoise(0.065, 1500, 0.18);
+    this.tone(120, 0.055, "sawtooth", 0.085);
+    this.tone(720, 0.025, "triangle", 0.045);
+  }
+  swing(): void { this.tone(180, 0.09, "triangle", 0.055); }
+  mine(): void {
+    this.impactNoise(0.08, 700, 0.12);
+    this.tone(320, 0.055, "square", 0.07);
+    this.tone(190, 0.075, "triangle", 0.05, 0.025);
+  }
+
+  private impactNoise(duration: number, frequency: number, volume: number): void {
+    if (!this.enabled || !this.context || !this.master) return;
+    if (!this.noiseBuffer) {
+      this.noiseBuffer = this.context.createBuffer(1, this.context.sampleRate, this.context.sampleRate);
+      const samples = this.noiseBuffer.getChannelData(0);
+      for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+    }
+    const source = this.context.createBufferSource(); source.buffer = this.noiseBuffer;
+    const filter = this.context.createBiquadFilter(); filter.type = "bandpass"; filter.frequency.value = frequency;
+    const envelope = this.context.createGain();
+    const now = this.context.currentTime;
+    envelope.gain.setValueAtTime(volume, now);
+    envelope.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    source.connect(filter); filter.connect(envelope); envelope.connect(this.master);
+    source.start(now); source.stop(now + duration);
   }
 
   victory(): void {

@@ -2,7 +2,8 @@ import * as THREE from "three";
 import type { EnemySystem } from "../ai/EnemySystem";
 import { EnemyStatus } from "./CombatTypes";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
-import { isSolidBlock } from "../voxel/blocks";
+import { coverDistance, enemyHitDistance } from "./CombatTrace";
+import type { StructureSystem } from "../building/StructureSystem";
 import { SeededRandom } from "../voxel/generation/SeededRandom";
 
 export interface PlayerProjectileSpec {
@@ -16,7 +17,6 @@ export interface PlayerProjectileSpec {
   markDuration: number;
   critical: boolean;
 }
-
 interface Projectile {
   mesh: THREE.Mesh;
   previous: THREE.Vector3;
@@ -51,6 +51,7 @@ export class ProjectileSystem {
     private readonly world: VoxelWorld,
     private readonly enemies: EnemySystem,
     private readonly onHit: ProjectileHitListener,
+    private readonly structures: StructureSystem,
   ) {
     this.random = new SeededRandom(seed ^ 0x2af1b7c3);
   }
@@ -89,13 +90,18 @@ export class ProjectileSystem {
         .clone()
         .addScaledVector(projectile.velocity, dt);
 
-      const hitEnemy = this.findSegmentHit(
-        projectile.previous,
-        next,
-        projectile.hitIds,
-      );
-
-      if (hitEnemy) {
+      const direction = projectile.velocity.clone().normalize();
+      const length = projectile.previous.distanceTo(next);
+      const cover = coverDistance(this.world, projectile.previous, direction,
+        length, this.structures.all);
+      const hits = this.enemies.aliveEnemies
+        .filter(enemy => !projectile.hitIds.has(enemy.id))
+        .map(enemy => ({ enemy, distance: enemyHitDistance(enemy, projectile.previous, direction, length) }))
+        .filter((hit): hit is { enemy: typeof hit.enemy; distance: number } =>
+          hit.distance !== null && hit.distance < cover)
+        .sort((a, b) => a.distance - b.distance);
+      let consumed = false;
+      for (const { enemy: hitEnemy } of hits) {
         projectile.hitIds.add(hitEnemy.id);
         const killed = this.enemies.damage(
           hitEnemy,
@@ -107,19 +113,16 @@ export class ProjectileSystem {
         this.onHit(projectile.damage, killed, projectile.critical);
 
         if (projectile.pierceLeft <= 0) {
-          this.removeAt(i);
-          continue;
+          consumed = true;
+          break;
         }
         projectile.pierceLeft--;
       }
 
       projectile.mesh.position.copy(next);
 
-      const vx = Math.floor(next.x);
-      const vy = Math.floor(next.y);
-      const vz = Math.floor(next.z);
       if (
-        isSolidBlock(this.world.getBlock(vx, vy, vz)) ||
+        consumed || cover <= length ||
         projectile.ttl <= 0
       ) {
         this.removeAt(i);
@@ -131,35 +134,9 @@ export class ProjectileSystem {
     return this.projectiles.length;
   }
 
-  private findSegmentHit(
-    a: THREE.Vector3,
-    b: THREE.Vector3,
-    excluded: Set<number>,
-  ) {
-    let best = Infinity;
-    let target = null;
-
-    for (const enemy of this.enemies.aliveEnemies) {
-      if (excluded.has(enemy.id)) continue;
-      const center = enemy.group.position.clone();
-      center.y += 0.9;
-
-      const distance = distancePointToSegment(center, a, b);
-      if (distance > 0.6) continue;
-
-      const along = center.distanceToSquared(a);
-      if (along < best) {
-        best = along;
-        target = enemy;
-      }
-    }
-
-    return target;
-  }
-
   private maybeApplyStatuses(
     projectile: Projectile,
-    enemy: NonNullable<ReturnType<ProjectileSystem["findSegmentHit"]>>,
+    enemy: import("../ai/EnemySystem").EnemyInstance,
   ): void {
     if (this.random.range(0, 1) < projectile.burnChance) {
       this.enemies.applyStatus(
@@ -195,22 +172,4 @@ export class ProjectileSystem {
     this.scene.remove(projectile.mesh);
     this.projectiles.splice(index, 1);
   }
-}
-
-function distancePointToSegment(
-  point: THREE.Vector3,
-  a: THREE.Vector3,
-  b: THREE.Vector3,
-): number {
-  const ab = b.clone().sub(a);
-  const lengthSquared = ab.lengthSq();
-  if (lengthSquared <= 0.000001) return point.distanceTo(a);
-
-  const t = THREE.MathUtils.clamp(
-    point.clone().sub(a).dot(ab) / lengthSquared,
-    0,
-    1,
-  );
-  const closest = a.clone().addScaledVector(ab, t);
-  return point.distanceTo(closest);
 }

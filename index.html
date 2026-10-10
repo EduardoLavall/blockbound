@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#10170f" />
-    <meta name="description" content="Blockfall — 3D voxel FPS tower defense roguelite." />
-    <title>Blockfall — Five Night Siege</title>
+    <meta name="theme-color" content="#101e29" />
+    <meta name="description" content="Blockbound — construa, lute e proteja o último cristal em cinco noites de um FPS voxel roguelite." />
+    <title>Blockbound — O Último Cristal</title>
   </head>
   <body>
     <div id="app">
-      <canvas id="game-canvas"></canvas>
+      <canvas id="game-canvas" tabindex="-1" aria-label="Mundo do Blockbound"></canvas>
+      <div id="world-vignette" aria-hidden="true"></div>
       <div id="damage-flash" aria-hidden="true"></div>
       <div id="crosshair" aria-hidden="true"></div>
       <div id="hit-marker" aria-hidden="true">
@@ -17,15 +18,19 @@
       </div>
 
       <div id="debug"></div>
-      <div id="status">FIVE NIGHT SIEGE · ISSUE #9</div>
+      <div id="status">BLOCKBOUND</div>
       <div id="game-version-hud" aria-label="Game version">v0.0.0</div>
 
       <div id="combat-hud"></div>
       <div id="player-status-panel" class="player-status-panel hidden"></div>
       <div id="item-inventory-panel" class="item-inventory-panel hidden"></div>
       <div id="core-hud"></div>
-      <div id="inventory-hud"></div>
+      <div id="inventory-hud" hidden aria-hidden="true"></div>
       <div id="horde-hud"></div>
+      <div id="objective-hud"></div>
+      <div id="map-panel"><canvas id="tactical-map" width="160" height="160" aria-label="Radar: branco é você, azul é o cristal, vermelho é a horda"></canvas><span>RADAR DO CERCO</span></div>
+      <div id="enemy-target" class="hidden"></div>
+      <div id="event-banner" role="status" aria-live="polite"></div>
 
       <div id="build-info">B · BUILD MODE</div>
       <div id="target-info">MATERIAL</div>
@@ -46,51 +51,69 @@
           <p id="defeat-text">A run terminou.</p>
           <div id="run-summary" class="run-summary"></div>
           <button id="restart-button">REINICIAR RUN</button>
+          <button id="replay-button" class="secondary-button">REPETIR ESTE MUNDO</button>
         </div>
       </div>
 
       <div id="start-overlay" class="overlay">
-        <div class="panel">
+        <div class="panel expedition-panel">
           <div class="start-heading-row">
-            <div class="eyebrow">BLOCKFALL · FIVE NIGHT SIEGE</div>
+            <div class="brand"><span class="brand-crystal" aria-hidden="true"></span> BLOCKBOUND</div>
             <div id="start-version" class="start-version">v0.0.0</div>
           </div>
-          <h1>DEFEND THE CORE</h1>
-          <p>Construa durante o dia, lute durante a noite e sobreviva a cinco cercos. A quinta noite termina apenas quando o Siege Warden e sua horda forem derrotados.</p>
+          <div class="menu-layout">
+          <div class="menu-main">
+          <div class="eyebrow">UM MUNDO. CINCO NOITES. SUA FORTALEZA.</div>
+          <h1>A ÚLTIMA<br /><em>LUZ.</em></h1>
+          <p class="menu-description">Quando o sol cair, eles virão.<br />Erga suas defesas, empunhe sua arma e mantenha o cristal vivo.</p>
+          <div class="menu-tags"><span>FPS VOXEL</span><span>DEFESA DE BASE</span><span>ROGUELITE</span></div>
+          <button id="play-button" disabled>PREPARANDO MUNDO…</button>
+          <button id="drag-play-button" class="secondary-button hidden">JOGAR COM MOUSE LIVRE</button>
+          <small id="loading-label" role="status">Preparando sua expedição...</small>
+          <div class="menu-note">Mouse e teclado · Esc pausa a partida</div>
+          </div>
+          <aside class="menu-guide">
+            <div class="crystal-emblem" aria-hidden="true"><div></div></div>
+            <div class="guide-step"><b>01</b><div><strong>CONSTRUA</strong><p>Comece com suprimentos. Torres nas laterais, espinhos na rota.</p></div></div>
+            <div class="guide-step"><b>02</b><div><strong>SOBREVIVA</strong><p>Troque de arma com Q. Elimine toda a onda para vencer a noite.</p></div></div>
+            <div class="guide-step"><b>03</b><div><strong>EVOLUA</strong><p>Escolha melhorias no amanhecer. Derrote o Guardião na quinta noite.</p></div></div>
+          </aside>
+          </div>
+          <details class="menu-details"><summary>CONTROLES E AJUSTES <span>+</span></summary>
           <div class="controls">
             <span><b>WASD</b> mover</span>
             <span><b>Mouse</b> olhar</span>
-            <span><b>Q</b> Tool / Blade / Repeater</span>
-            <span><b>Hold Tab</b> Player Status</span>
-            <span><b>I</b> Inventory 2.0</span>
+            <span><b>Q</b> picareta / lâmina / repeater</span>
+            <span><b>Tab</b> atributos (segurar)</span>
+            <span><b>I / Esc</b> inventário / fechar</span>
             <span><b>LMB</b> minerar / atacar</span>
             <span><b>RMB</b> colocar/construir</span>
-            <span><b>1–9 / wheel</b> hotbar</span>
-            <span><b>B</b> Build Mode</span>
-            <span><b>1–5</b> estruturas no Build</span>
-            <span><b>E</b> abrir/fechar Gate</span>
+            <span><b>1–9 / roda</b> selecionar recurso</span>
+            <span><b>B</b> modo construção</span>
+            <span><b>1–5</b> escolher defesa</span>
+            <span><b>E</b> abrir/fechar portão</span>
             <span><b>R</b> reparar estrutura</span>
             <span><b>Space</b> pular</span>
             <span><b>Shift</b> correr</span>
-            <span><b>Esc</b> soltar mouse</span>
+            <span><b>Esc</b> pausar</span>
+            <span><b>N</b> chamar próxima onda</span>
           </div>
           <div class="settings-panel">
-            <div class="settings-title">SETTINGS</div>
+            <div class="settings-title">AJUSTES</div>
             <label>
               <span>Volume</span>
               <input id="settings-volume" type="range" min="0" max="1" step="0.05" />
             </label>
             <label>
-              <span>Effects</span>
+              <span>Efeitos</span>
               <input id="settings-effects" type="checkbox" />
             </label>
             <label>
-              <span>Debug overlay</span>
+              <span>Diagnóstico</span>
               <input id="settings-debug" type="checkbox" />
             </label>
           </div>
-          <button id="play-button">ENTRAR / CONTINUAR</button>
-          <small id="loading-label">Preparando o cerco de cinco noites...</small>
+          </details>
         </div>
       </div>
     </div>

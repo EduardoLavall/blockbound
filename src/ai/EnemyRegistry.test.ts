@@ -16,7 +16,7 @@ describe("EnemyRegistry", () => {
 
   it("gives every archetype at least one behavior-defining stat", () => {
     expect(ENEMIES[EnemyType.Runner].runnerAvoidsBreach).toBe(true);
-    expect(ENEMIES[EnemyType.Brute].structureDamageMultiplier).toBeGreaterThan(2);
+    expect(ENEMIES[EnemyType.Brute].structureDamageMultiplier).toBeGreaterThan(ENEMIES[EnemyType.Grunt].structureDamageMultiplier);
     expect(ENEMIES[EnemyType.Archer].rangedRange).toBeGreaterThan(0);
     expect(ENEMIES[EnemyType.Support].supportRadius).toBeGreaterThan(0);
     expect(ENEMIES[EnemyType.Burrower].ignoresBlockers).toBe(true);

@@ -1,10 +1,29 @@
-# Blockfall
+# Blockbound
 
-Blockfall é um **FPS 3D voxel + Tower Defense + Roguelite** para navegador, usando **HTML, CSS, TypeScript, Vite, Three.js e Rapier**.
+Blockbound é um **FPS 3D voxel + Tower Defense + Roguelite** para navegador, usando **HTML, CSS, TypeScript, Vite, Three.js e Rapier**.
 
 O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`.
 
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
+
+
+## Overhaul 0.3.0 — O Último Cristal
+
+Revisão e implementação: [análise crítica](docs/CRITICAL_REVIEW.md) · [verificação](docs/VERIFICATION.md).
+
+- Pausa real no menu, Esc, inventário, escolha de upgrade e perda de foco.
+- Preparação de 75 segundos, kit de defesa inicial e **N** para chamar a onda.
+- Todas as noites só terminam quando a horda inteira é eliminada; amanhecer entrega recuperação e suprimentos.
+- Colisão de ataques respeita terreno/defesas; tiros rápidos não atravessam blocos, piercing respeita ordem, corpo do chefe acompanha sua escala, arqueiros podem ser desviados.
+- Movimento sobe degraus de um bloco e perdoa pequenas diferenças no timing do pulo.
+- HUD novo com radar, objetivos, vitalidade segmentada, rastro de dano e vida do alvo. Recursos ficam apenas na hotbar.
+- Céu, luzes, bloom leve, efeitos de impacto, recuo visual, rachaduras e áudio de mineração/tiro.
+- Faces e variação de textura por voxel; árvores não crescem em cima de copas e respeitam espaçamento/POIs.
+- Se o navegador bloquear Pointer Lock, aparece **Jogar com mouse livre**. Segure o botão do meio e arraste para olhar; Esc continua pausando.
+
+Para rodar localmente: Node 22.12+, **npm ci**, **npm run dev**. Validação: **npm run check**.
+O restante do README documenta os sistemas herdados do protótipo; esta seção e a análise crítica registram as mudanças da versão atual.
+
 
 ## Estado atual — Vertical Slice de 5 noites
 
@@ -144,7 +163,7 @@ A run termina em vitória somente quando:
 - Siege Warden foi eliminado;
 - nenhum inimigo permanece vivo.
 
-O timer da quinta noite é **segurado em zero** até a wave ser realmente limpa.
+Todas as noites são seguradas até a wave ser realmente limpa; limpar a wave antecipa o amanhecer.
 
 ## Combate FPS
 
