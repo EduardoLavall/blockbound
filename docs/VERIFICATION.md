@@ -14,6 +14,7 @@ O jogador carrega um mundo por seed, entra na expedição, prepara defesas, troc
 | Controle → inventário | I abre e pausa; botão de fechar retorna ao modo de mouse livre, com HUD restaurado. |
 | Ataque → inimigo → HUD | Disparos no navegador eliminaram inimigos, exibiram dano/eliminação e reduziram contador da onda de 11 para 9. |
 | Relógio → onda → amanhecer | Testes exercitam as cinco noites, N, retenção de fase, spawn completo, chefe e término após eliminar inimigos. |
+| Anoitecer → noite | Regressão percorre a transição a 60 Hz e garante que a iluminação nunca clareia entre as fases. Também cobre limite exato, sobra de frame, N no dia/durante o anoitecer e amanhecer após uma noite curta. |
 | Física → jogador | Teste com Rapier real atravessa um degrau de 1 bloco; testes de buffer cobrem salto cedo, salto na borda e rejeição de salto tardio. |
 | Inventário → recompensas | Testes verificam kit inicial utilizável e preservação de overflow com mochila cheia ou parcialmente cheia. |
 | Geração → floresta | Três seeds verificadas com raízes em terreno e separação mínima de 6 células entre canopias. |

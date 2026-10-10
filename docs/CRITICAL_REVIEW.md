@@ -13,6 +13,7 @@ O maior problema era a relação entre regras, percepção e controle. O jogador
 | Problema confirmado | Onde estava | Mudança em 0.3.0 |
 | --- | --- | --- |
 | Simulação rodava antes de entrar e com Esc/menu aberto | `app/GameApp.ts` | Uma condição central pausa física, combate, ondas e relógios; blur e aba escondida também pausam. |
+| Anoitecer completo voltava a clarear ao entrar na noite | `defense/DayNightSystem.ts` | A fase nova preserva o fator de iluminação da fase anterior. Transição automática, início com N e amanhecer ficam contínuos. |
 | Inimigos restantes eram apagados no amanhecer das noites 1–4 | `app/GameApp.ts` | Todas as noites exigem eliminar a onda inteira. Limpar cedo já abre o draft. |
 | Começo com zero recursos e 45 segundos | `defense/DayNightSystem.ts`, inicialização | Preparação de 75 segundos, kit inicial e N para chamar a onda. |
 | Disparo verificava o voxel só na posição final | `combat/ProjectileSystem.ts` | Colisão no segmento inteiro, cobertura antes do inimigo, perfuração em ordem de distância. |

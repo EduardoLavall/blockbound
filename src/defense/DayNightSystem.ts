@@ -14,6 +14,7 @@ export class DayNightSystem {
   private elapsed = 0;
   private nightValue = 0;
   private transitionHeld = false;
+  private entryNightFactor = 0;
 
   constructor(
     readonly dayDuration = 75,
@@ -37,14 +38,15 @@ export class DayNightSystem {
   }
 
   get nightFactor(): number {
-    const fade = 4;
+    const fade = Math.min(4, this.dayDuration / 2);
 
     if (this.phaseValue === DayPhase.Night) {
-      return Math.min(1, this.elapsed / fade);
+      return this.entryNightFactor +
+        (1 - this.entryNightFactor) * Math.min(1, this.elapsed / fade);
     }
 
     if (this.nightValue > 0 && this.elapsed < fade) {
-      return 1 - this.elapsed / fade;
+      return this.entryNightFactor * (1 - this.elapsed / fade);
     }
 
     if (this.timeRemaining < fade) {
@@ -70,6 +72,8 @@ export class DayNightSystem {
 
   private transition(): PhaseTransition {
     const from = this.phaseValue;
+    // Keep the lighting reached in the previous phase, including an early N.
+    this.entryNightFactor = this.nightFactor;
     this.elapsed = 0;
     this.transitionHeld = false;
     this.phaseValue = from === DayPhase.Day ? DayPhase.Night : DayPhase.Day;
@@ -85,21 +89,10 @@ export class DayNightSystem {
       return null;
     }
 
-    const from = this.phaseValue;
-    this.elapsed -= this.currentDuration;
-
-    if (this.phaseValue === DayPhase.Day) {
-      this.phaseValue = DayPhase.Night;
-      this.nightValue++;
-    } else {
-      this.phaseValue = DayPhase.Day;
-    }
-
-    return {
-      from,
-      to: this.phaseValue,
-      night: this.nightValue,
-    };
+    const overflow = this.elapsed - this.currentDuration;
+    const transition = this.transition();
+    this.elapsed = overflow;
+    return transition;
   }
 
   private get currentDuration(): number {
