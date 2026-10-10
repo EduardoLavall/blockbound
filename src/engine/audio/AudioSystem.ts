@@ -1,159 +1,137 @@
+import { BlockId } from "../../voxel/blocks";
+import { SOUND_ASSETS, SOUND_GROUPS, soundUrl, type SoundGroup } from "./SoundBank";
+
+interface Voice { source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode; priority: number }
+
+/** Cached recordings, material-aware foley and a bounded, compressed mix. */
 export class AudioSystem {
   private context: AudioContext | null = null;
   private master: GainNode | null = null;
+  private compressor: DynamicsCompressorNode | null = null;
+  private readonly raw = new Map<string, ArrayBuffer>();
+  private readonly buffers = new Map<string, AudioBuffer>();
+  private readonly voices = new Set<Voice>();
+  private readonly lastVariant = new Map<SoundGroup, number>();
+  private readonly lastPlayed = new Map<SoundGroup, number>();
   private volumeValue = 0.28;
   private enabled = true;
-  private noiseBuffer: AudioBuffer | null = null;
+  private preload: Promise<void> | null = null;
+  private decoding: Promise<void> | null = null;
+  private previousPosition: { x: number; y: number; z: number } | null = null;
+  private previousGrounded = false;
+  private distanceWalked = 0;
+  private fallDistance = 0;
+  get loadedCount(): number { return this.buffers.size; }
 
+  prepare(): Promise<void> {
+    this.preload ??= Promise.all(SOUND_ASSETS.map(async name => {
+      try {
+        const response = await fetch(soundUrl(name));
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        this.raw.set(name, await response.arrayBuffer());
+      } catch (error) { console.warn(`Sound unavailable: ${name}`, error); }
+    })).then(() => {});
+    return this.preload;
+  }
   setVolume(value: number): void {
-    this.volumeValue = Math.max(0, Math.min(1, value));
-    if (this.master) {
-      this.master.gain.value = this.volumeValue;
-    }
+    this.volumeValue = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0.28;
+    if (this.master && this.context) this.master.gain.setTargetAtTime(this.volumeValue, this.context.currentTime, 0.03);
   }
-
-  setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
-  }
-
+  setEnabled(enabled: boolean): void { this.enabled = enabled; if (!enabled) this.pause(); }
   async unlock(): Promise<void> {
-    if (!this.enabled) return;
-
     if (!this.context) {
       this.context = new AudioContext();
-      this.master = this.context.createGain();
-      this.master.gain.value = this.volumeValue;
-      this.master.connect(this.context.destination);
+      this.master = this.context.createGain(); this.master.gain.value = this.volumeValue;
+      this.compressor = this.context.createDynamicsCompressor();
+      this.compressor.threshold.value = -18; this.compressor.knee.value = 12;
+      this.compressor.ratio.value = 3; this.compressor.attack.value = 0.003; this.compressor.release.value = 0.18;
+      const lowpass = this.context.createBiquadFilter(); lowpass.type = "lowpass"; lowpass.frequency.value = 14000;
+      this.compressor.connect(lowpass); lowpass.connect(this.master); this.master.connect(this.context.destination);
     }
+    if (this.context.state === "suspended") await this.context.resume();
+    this.decoding ??= this.prepare().then(async () => {
+      await Promise.all([...this.raw].map(async ([name, data]) => {
+        try { this.buffers.set(name, await this.context!.decodeAudioData(data.slice(0))); }
+        catch (error) { console.warn(`Sound could not be decoded: ${name}`, error); }
+      }));
+      this.raw.clear();
+    });
+    await this.decoding;
+  }
+  pause(): void {
+    for (const voice of this.voices) { voice.source.stop(); this.disposeVoice(voice); }
+    this.voices.clear();
+    this.distanceWalked = 0;
+    this.previousPosition = null;
+    this.fallDistance = 0;
+  }
+  shoot(): void { this.play("shoot", 0.46, 1, 0, 0.06); }
+  swing(): void { this.play("swing", 0.5, 1, 0.1); }
+  equip(): void { this.play("equip", 0.26); }
+  hurt(): void { this.play("hurt", 0.52, 1, 0, 0.15); }
+  build(): void { this.play("build", 0.4); }
+  pickup(): void { this.play("pickup", 0.18, 1.15, 0, 0.12); }
+  hit(killed = false, pan = 0): void {
+    this.play(killed ? "kill" : "hit", killed ? 0.56 : 0.36, 1, pan, 0.055);
+  }
+  mine(block = BlockId.Stone, broken = true): void {
+    const group: SoundGroup = block === BlockId.Wood || block === BlockId.Leaves ? "mineWood"
+      : block === BlockId.Crystal ? "mineCrystal" : block === BlockId.MetalOre ? "mineMetal"
+      : block === BlockId.Dirt || block === BlockId.Grass ? "mineEarth" : "mineStone";
+    this.play(group, broken ? 0.5 : 0.32, broken ? 0.92 : 1, 0, 0.08);
+    if (broken && block === BlockId.Crystal) this.play("breakCrystal", 0.34);
+    if (broken && block === BlockId.Wood) this.play("breakWood", 0.28);
+  }
+  nightStart(finalNight = false): void { this.play(finalNight ? "boss" : "night", 0.46, finalNight ? 0.9 : 0.78, 0, 1, 2); }
+  upgrade(): void { this.play("draft", 0.22, 1, 0, 0.1, 2); this.play("dawn", 0.25, 1, 0, 1, 2); }
+  choose(): void { this.play("choose", 0.34, 1, 0, 0.1, 2); }
+  victory(): void { this.play("victory", 0.44, 1, 0, 1, 3); }
+  defeat(): void { this.play("defeat", 0.42, 1, 0, 1, 3); }
 
-    if (this.context.state === "suspended") {
-      await this.context.resume();
+  updateMovement(position: { x: number; y: number; z: number }, grounded: boolean, surface: BlockId): void {
+    if (this.previousPosition) {
+      const distance = Math.hypot(position.x - this.previousPosition.x, position.z - this.previousPosition.z);
+      if (!grounded) this.fallDistance += Math.max(0, this.previousPosition.y - position.y);
+      else {
+        if (!this.previousGrounded && this.fallDistance > 0.7) this.play("mineEarth", 0.28);
+        this.fallDistance = 0;
+        if (distance > 0.001 && distance < 1) this.distanceWalked += distance;
+        if (this.distanceWalked > 1.8) {
+          this.distanceWalked %= 1.8;
+          const group = surface === BlockId.Wood ? "stepWood"
+            : surface === BlockId.Stone || surface === BlockId.Bedrock || surface === BlockId.MetalOre ? "stepStone" : "stepGrass";
+          this.play(group, 0.28, 1, 0, 0.16);
+        }
+      }
     }
+    this.previousPosition = { ...position }; this.previousGrounded = grounded;
   }
 
-  nightStart(finalNight = false): void {
-    if (finalNight) {
-      this.sequence([
-        [82, 0.18],
-        [62, 0.22],
-        [48, 0.34],
-      ], "sawtooth", 0.32);
-      return;
+  private play(group: SoundGroup, volume: number, pitch = 1, pan = 0, interval = 0.05, priority = 1): void {
+    const context = this.context;
+    if (!this.enabled || !context || !this.compressor || this.volumeValue === 0 || context.state !== "running") return;
+    const now = context.currentTime;
+    if (now - (this.lastPlayed.get(group) ?? -Infinity) < interval) return;
+    const names = SOUND_GROUPS[group];
+    let index = Math.floor(Math.random() * names.length);
+    if (names.length > 1 && index === this.lastVariant.get(group)) index = (index + 1) % names.length;
+    const buffer = this.buffers.get(names[index]!); if (!buffer) return;
+    if (this.voices.size >= 24) {
+      const oldest = [...this.voices].find(voice => voice.priority <= priority);
+      if (!oldest) return;
+      oldest.source.stop(); this.disposeVoice(oldest); this.voices.delete(oldest);
     }
-
-    this.sequence([
-      [110, 0.12],
-      [82, 0.16],
-    ], "square", 0.16);
+    this.lastVariant.set(group, index); this.lastPlayed.set(group, now);
+    const source = context.createBufferSource(); source.buffer = buffer;
+    source.playbackRate.value = pitch * (priority > 1 ? 1 : 0.96 + Math.random() * 0.08);
+    const gain = context.createGain(); gain.gain.value = volume;
+    const stereo = context.createStereoPanner(); stereo.pan.value = Math.max(-0.75, Math.min(0.75, pan));
+    source.connect(gain); gain.connect(stereo); stereo.connect(this.compressor);
+    const voice: Voice = { source, gain, pan: stereo, priority }; this.voices.add(voice);
+    source.onended = () => { this.disposeVoice(voice); this.voices.delete(voice); };
+    source.start();
   }
-
-  hit(killed = false): void {
-    this.tone(
-      killed ? 175 : 260,
-      killed ? 0.1 : 0.045,
-      killed ? "sawtooth" : "square",
-      killed ? 0.16 : 0.07,
-    );
-  }
-
-  upgrade(): void {
-    this.sequence([
-      [392, 0.07],
-      [523, 0.08],
-      [659, 0.11],
-    ], "triangle", 0.12);
-  }
-
-  choose(): void {
-    this.sequence([
-      [523, 0.05],
-      [784, 0.09],
-    ], "triangle", 0.11);
-  }
-
-  shoot(): void {
-    this.impactNoise(0.065, 1500, 0.18);
-    this.tone(120, 0.055, "sawtooth", 0.085);
-    this.tone(720, 0.025, "triangle", 0.045);
-  }
-  swing(): void { this.tone(180, 0.09, "triangle", 0.055); }
-  mine(): void {
-    this.impactNoise(0.08, 700, 0.12);
-    this.tone(320, 0.055, "square", 0.07);
-    this.tone(190, 0.075, "triangle", 0.05, 0.025);
-  }
-
-  private impactNoise(duration: number, frequency: number, volume: number): void {
-    if (!this.enabled || !this.context || !this.master) return;
-    if (!this.noiseBuffer) {
-      this.noiseBuffer = this.context.createBuffer(1, this.context.sampleRate, this.context.sampleRate);
-      const samples = this.noiseBuffer.getChannelData(0);
-      for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
-    }
-    const source = this.context.createBufferSource(); source.buffer = this.noiseBuffer;
-    const filter = this.context.createBiquadFilter(); filter.type = "bandpass"; filter.frequency.value = frequency;
-    const envelope = this.context.createGain();
-    const now = this.context.currentTime;
-    envelope.gain.setValueAtTime(volume, now);
-    envelope.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    source.connect(filter); filter.connect(envelope); envelope.connect(this.master);
-    source.start(now); source.stop(now + duration);
-  }
-
-  victory(): void {
-    this.sequence([
-      [261, 0.12],
-      [329, 0.12],
-      [392, 0.14],
-      [523, 0.28],
-    ], "triangle", 0.2);
-  }
-
-  defeat(): void {
-    this.sequence([
-      [130, 0.16],
-      [98, 0.18],
-      [65, 0.34],
-    ], "sawtooth", 0.18);
-  }
-
-  private sequence(
-    notes: readonly [number, number][],
-    type: OscillatorType,
-    gain: number,
-  ): void {
-    let delay = 0;
-    for (const [frequency, duration] of notes) {
-      this.tone(frequency, duration, type, gain, delay);
-      delay += duration * 0.72;
-    }
-  }
-
-  private tone(
-    frequency: number,
-    duration: number,
-    type: OscillatorType,
-    gainValue: number,
-    delay = 0,
-  ): void {
-    if (!this.enabled || !this.context || !this.master) return;
-
-    const now = this.context.currentTime + delay;
-    const oscillator = this.context.createOscillator();
-    const gain = this.context.createGain();
-
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, now);
-    gain.gain.setValueAtTime(gainValue, now);
-    gain.gain.exponentialRampToValueAtTime(
-      0.001,
-      now + duration,
-    );
-
-    oscillator.connect(gain);
-    gain.connect(this.master);
-
-    oscillator.start(now);
-    oscillator.stop(now + duration);
+  private disposeVoice(voice: Voice): void {
+    voice.source.onended = null; voice.source.disconnect(); voice.gain.disconnect(); voice.pan.disconnect();
   }
 }

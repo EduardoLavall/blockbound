@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createDropSprite } from "../engine/render/DropSprite";
 import { EnemyType } from "../ai/EnemyRegistry";
 import type {
   EnemyDamageEvent,
@@ -33,6 +34,7 @@ export class ItemLootSystem {
     enemies: EnemySystem,
     private readonly player: PlayerController,
     private readonly inventory: ItemInventory,
+    private readonly onPickup: () => void = () => {},
   ) {
     this.random = new SeededRandom(seed ^ 0x4e17b13d);
     enemies.subscribeDamage((event) => this.onEnemyDamage(event));
@@ -69,6 +71,7 @@ export class ItemLootSystem {
           1,
         );
         if (inserted.length > 0) {
+          this.onPickup();
           this.removeAt(index);
         }
       }
@@ -125,6 +128,8 @@ export class ItemLootSystem {
     mesh.rotation.set(0.35, phase, 0.2);
     mesh.castShadow = true;
     mesh.userData.itemDrop = definition.id;
+    mesh.add(createDropSprite(definition.slot === "weapon"
+      ? definition.tags.includes("projectile") ? "repeater" : "blade" : definition.slot ?? "chest"));
 
     this.scene.add(mesh);
     this.drops.push({
@@ -139,6 +144,7 @@ export class ItemLootSystem {
   private removeAt(index: number): void {
     const drop = this.drops[index]!;
     this.scene.remove(drop.mesh);
+    drop.mesh.traverse(object => { if (object instanceof THREE.Sprite) (object.material as THREE.Material).dispose(); });
     const materials = Array.isArray(drop.mesh.material)
       ? drop.mesh.material
       : [drop.mesh.material];

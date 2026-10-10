@@ -8,6 +8,8 @@ O jogador carrega um mundo por seed, entra na expedição, prepara defesas, troc
 | --- | --- |
 | HTML → inicialização | Menu só libera entrada depois de física, texturas e 25 chunks; falha de inicialização oferece recarregar. |
 | Mundo → GPU | Menu e cenário inspecionados no navegador, incluindo faces diferentes da grama e render noturno. Erro encontrado no shader durante desenvolvimento foi corrigido e o cenário voltou a renderizar. |
+| Arte → mundo/UI | Atlas 64×64, mipmaps com bordas, sprites transparentes de inventário/hotbar e materiais de modelos integrados e inspecionados no navegador. Picareta, lâmina e arma têm poses distintas, renderização separada e profundidade correta entre peças. |
+| Eventos → áudio | 40 buffers decodificados no navegador (`SFX READY 40`), tiro/troca/passos acionados e pausa testada; nenhum aviso de sound no console. Os 40 Ogg também foram conferidos com decoder e testes de referência. Mix tem testes de cache, mute, limite de vozes e descarte de nós. |
 | Entrada → controle | Captura de mouse foi bloqueada pelo navegador integrado; opção de mouse livre foi usada e verificada. Captura normal continua implementada, mas não foi validada manualmente neste ambiente. |
 | Controle → inventário | I abre e pausa; botão de fechar retorna ao modo de mouse livre, com HUD restaurado. |
 | Ataque → inimigo → HUD | Disparos no navegador eliminaram inimigos, exibiram dano/eliminação e reduziram contador da onda de 11 para 9. |

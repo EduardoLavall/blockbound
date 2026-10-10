@@ -19,6 +19,9 @@ Revisão e implementação: [análise crítica](docs/CRITICAL_REVIEW.md) · [ver
 - HUD novo com radar, objetivos, vitalidade segmentada, rastro de dano e vida do alvo. Recursos ficam apenas na hotbar.
 - Céu, luzes, bloom leve, efeitos de impacto, recuo visual, rachaduras e áudio de mineração/tiro.
 - Faces e variação de textura por voxel; árvores não crescem em cima de copas e respeitam espaçamento/POIs.
+- Arte original nova: 8 texturas 64×64, 4 materiais de modelos e 16 sprites para recursos, armas, equipamento, defesas e loot. [Fontes e prompts](docs/ART_ASSETS.md).
+- Mão e equipamentos remodelados com ângulos próprios e uma passagem de render com luz independente.
+- 40 efeitos gravados: passos por superfície, tiros, lâmina, mineração por material, dano, coleta, construção e interface. Mix com variação, pan estéreo e controle de sobreposição. [Fontes e licenças dos sons](docs/AUDIO_ASSETS.md).
 - Se o navegador bloquear Pointer Lock, aparece **Jogar com mouse livre**. Segure o botão do meio e arraste para olhar; Esc continua pausando.
 
 Para rodar localmente: Node 22.12+, **npm ci**, **npm run dev**. Validação: **npm run check**.
@@ -621,7 +624,7 @@ O overlay de entrada/pausa possui:
 
 As configurações são persistidas em `localStorage`.
 
-## Áudio / FX
+## Áudio / FX (histórico 0.2.2)
 
 O vertical slice usa áudio procedural via Web Audio API:
 

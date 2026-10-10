@@ -1,0 +1,28 @@
+# Arte original — Blockbound 0.3.0
+
+Os três sheets foram criados com o ImageGen integrado, sem CLI ou chave de API. Os PNGs abaixo são os originais gerados, preservados no projeto. A preparação para o jogo recorta células, redimensiona com nearest-neighbour e empacota; não repinta os assets.
+
+- `src/assets/art/terrain-source.png`: atlas original de oito materiais.
+- `src/assets/voxels/*-v2.png`: oito tiles ativos de 64×64.
+- `src/assets/voxels/atlas-v2.png`: atlas 288×144, com quatro pixels de borda por tile para reduzir mistura entre materiais nos mipmaps.
+- `src/assets/art/icons-source.png`: folha original de 16 sprites com alpha.
+- `src/assets/icons/*.png`: sprites de 96×96 usados na hotbar, inventário, construção e drops no mundo.
+- `src/assets/art/model-materials-source.png`: sheet de aço, couro, tecido e osso.
+- `src/assets/art/{steel,leather,cloth,bone}.png`: materiais de 64×64 usados em armas, mão, defesas e inimigos.
+
+Os originais 16×16 do protótipo continuam no repositório; o manifest ativo aponta para v2. A geração por seed continua determinística, mas a nova regra das árvores muda a floresta em relação à versão anterior.
+
+## Prompts usados
+
+### Atlas do terreno
+
+Use case: stylized-concept. Asset type: production-ready voxel game texture atlas, a SINGLE rectangular atlas image. Create an original polished pixel-art material atlas for Blockbound, an atmospheric fantasy voxel defense game. EXACT layout: 4 columns x 2 rows of square tiles, edge-to-edge with absolutely NO gutters, borders, labels, text, padding, cube perspective, UI, or shadows. Canvas aspect ratio exactly 2:1, ideally 2048x1024. Each of the 8 square cells depicts a seamless repeatable FLAT material viewed straight-on, with handcrafted 32x32 pixel-art style, rich clustered pixels, readable midtones and varied detail, nearest-neighbour crisp edges. Ordered LEFT TO RIGHT top row: 1 grass top (sage/olive green moss and small tufts, not lime); 2 earthy brown dirt with layered small pebbles and roots; 3 slate gray stone with irregular fractured rock clusters and small quartz highlights; 4 honey-brown tree bark with strong VERTICAL grain and knots. Bottom row left to right: 5 turquoise crystal mineral with dark teal base and luminous cyan angular facets; 6 charcoal bedrock with dark layered slate plates and subtle bluish edges; 7 pine-green leaves with clustered foliage and speckled highlights, seamless with no sky gaps; 8 gray stone containing distinct warm copper metal-ore veins. One consistent restrained fantasy palette, neutral ambient texture lighting, useful as albedo on 3D cubes. Texture fills every cell completely. No checkerboard. The eight textures must be visually distinct, sophisticated and original. Return only the atlas.
+
+### Sprites de interface
+
+Use case: stylized-concept. Asset type: one production game UI sprite sheet for Blockbound, original atmospheric pixel-art fantasy voxel defense game. EXACTLY 4 columns and 4 rows of 16 separate inventory icon sprites. Square canvas 1024x1024. Each icon centered inside its equal 256x256 cell with 24px empty padding on every side. Transparent background throughout the sheet, real alpha, no background panels, no checkerboards, no labels, no text, no borders, no cast shadows beyond the icon. Original polished 32x32 pixel-art style enlarged with sharp clustered pixels, readable strong silhouettes, subtly shaded 3/4 objects, restrained slate blue / copper amber / cyan glow palette. Order row 1 left to right: bundle of two honey-brown wood logs with visible cut rings; gray stone chunk; gray metal ore chunk with copper veins; glowing cyan crystal shard. Row 2: compact dirt block with grassy top; sturdy steel pickaxe with wood handle; upright silver sword with thin turquoise energy edge; compact blue-gray energy repeater gun with cyan power cell. Row 3: reinforced wooden defensive wall; basic single-barrel defense turret on a squat base; rapid twin-barrel turret; wooden spike-trap platform with steel spikes. Row 4: wooden defensive gate; steel-blue armor chestplate; small glowing cyan charm amulet on a brown cord; compact wood-and-steel loot chest. Clear sophisticated individual icons for 28-48px display. Texture detail without noisy backgrounds. All 16 assets must be visually consistent and unmistakably different. Preserve empty transparent gutters. Return only the sprite sheet.
+
+### Materiais de modelos
+
+Use case: stylized-concept. Asset type: a SINGLE production-ready 2x2 square texture atlas of 4 seamless game materials, original pixel art for a polished fantasy voxel defense game. Edge-to-edge 2 columns, 2 rows, zero padding, zero labels, no borders. Each square tile fills its entire quarter. Flat orthographic material surfaces, useful as albedo on 3D meshes, NO objects or cubes or perspective. Handcrafted 64x64 pixel-art style enlarged, crisp clustered pixels, readable medium brightness and restrained detail, neutral ambient lighting, no directional shadows. Top left: slate BLUE GRAY forged steel surface, subtle hammered texture, fine scratches and small muted highlights, mostly smooth midtone surface, NO black areas, NO masonry stones. Top right: warm muted russet BROWN leather, finely creased and worn, organic grain, NOT tiles or boards. Bottom left: muted DEEP TEAL woven fabric, small visible woven stitches, even brightness. Bottom right: warm IVORY bone surface, subtle pores and fine age cracks, mostly pale cream, NO skull or skeleton shapes. Consistent original fantasy voxel art with materials remaining readable on a compact weapon or enemy outfit. No text, logos or watermarks. Render only the four flat material tiles in exactly this layout, square atlas 1024x1024.
+

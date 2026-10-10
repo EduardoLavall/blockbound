@@ -51,16 +51,18 @@ A lâmina passa a compensar o risco de curta distância. O Guardião mantém 145
 - Céu com gradiente, sol, lua e estrelas; neblina e luzes ajustadas por fase.
 - Sombras do terreno, luz do cristal, lanternas na rota e pequenos detalhes instanciados no chão.
 - Bloom leve nos emissivos, desativável nos ajustes, com resolução limitada.
-- Atlas PNG 16×16 preservado; shader adiciona variação por voxel, relevo em pixels, juntas na pedra, laterais de terra com borda de grama e anéis na madeira cortada. Não é um novo pacote de imagens em alta resolução.
+- Novo pacote original de oito texturas 64×64, quatro materiais de modelos e 16 sprites. Os PNGs antigos 16×16 foram preservados como histórico. O shader mantém variação por voxel, laterais de terra com borda de grama e anéis na madeira cortada. Atlas com bordas e mipmaps reduz cintilação distante. Fontes e prompts: [ART_ASSETS.md](ART_ASSETS.md).
+- Mão, picareta, lâmina e Repeater remodelados, com poses independentes, materiais texturizados e renderização separada com luz própria. Isso corrige o antebraço excessivo, o cabo deitado e a sobreposição incorreta das peças.
 - HUD reorganizado para deixar o mundo visível; minimapa ao alto, objetivo à esquerda, vida e arma em um módulo próprio, recursos apenas na hotbar.
 - Efeitos limitados a 180 partículas e 24 números simultâneos. Recuo é visual e restaura a câmera após renderizar, sem alterar as regras do tiro.
+- Áudio substituído por 40 gravações CC0 selecionadas da Kenney, com impactos por material, passos, ações e interface. Variação entre samples, pitch discreto, pan e compressor controlam o mix. [Fontes e implementação](AUDIO_ASSETS.md).
 
 ## O que ainda merece trabalho
 
 1. **Peso do download:** o pacote de física compatível embute WASM e o bundle ainda fica em cerca de 5 MB antes de gzip. Separar o WASM e avaliar cache/loading é a próxima melhoria de entrega.
 2. **Construção e terreno:** estruturas não são suportadas por física dinâmica; remover terreno debaixo delas ainda pode deixá-las suspensas. A próxima passagem deve definir uma regra consistente para suporte, desmontagem e recuperação de custo.
 3. **Mais identidade de inimigos:** silhuetas e animações foram melhoradas, mas continuam simples. Ataques com animações e telegraph próprio por arquétipo são um passo mais valioso que adicionar muitos tipos novos de torre agora.
-4. **Áudio:** continua sintetizado no navegador. Já tem impacto, mas trilha adaptativa e uma biblioteca original de sons dariam um salto maior de atmosfera.
+4. **Áudio ambiente e música:** os efeitos agora são gravações reais; a próxima camada é trilha adaptativa e paisagens sonoras próprias para dia, noite e chefe.
 5. **Balanceamento humano:** coletar mortes, tempo até primeira torre, dano ao cristal por noite e escolhas de upgrade. Ajustar kit, economia e pressão final com essas partidas.
 6. **Localização:** menu e HUD principal estão em português; nomes de equipamentos, inventário e parte das mensagens do protótipo continuam em inglês.
 

@@ -193,6 +193,7 @@ export class GameApp {
   }
 
   async init(): Promise<void> {
+    void this.audio.prepare();
     this.options.playButton.disabled = true;
     document.body.classList.add("game-paused");
     this.options.loadingLabel.textContent = "Inicializando Rapier...";
@@ -261,7 +262,7 @@ export class GameApp {
     );
 
     this.hand = new FirstPersonHand(
-      this.renderer.camera,
+      this.renderer.viewCamera,
       this.controls,
       this.input,
       this.player,
@@ -271,6 +272,7 @@ export class GameApp {
       this.renderer.scene,
       this.inventory,
       this.player,
+      () => this.audio.pickup(),
     );
 
     this.structures = new StructureSystem(
@@ -287,6 +289,7 @@ export class GameApp {
       this.metadata.bounds,
       this.options.buildBar,
       this.options.buildInfo,
+      () => this.audio.build(),
     );
 
     this.navigation = new NavigationGrid(
@@ -321,6 +324,7 @@ export class GameApp {
       this.enemies,
       this.player,
       this.itemInventory,
+      () => this.audio.pickup(),
     );
 
     this.combatHud = new CombatHUD(
@@ -359,6 +363,7 @@ export class GameApp {
         if (mode === PlayerActionMode.Repeater) this.audio.shoot();
         else this.audio.swing();
       },
+      () => this.audio.equip(),
     );
 
     this.interaction = new VoxelInteractionController(
@@ -379,7 +384,7 @@ export class GameApp {
       (position, block, broken) => {
         this.feel.burst(position, Number.parseInt(blockDefinition(block).swatch.slice(1), 16), broken ? 28 : 4);
         this.feel.kick(broken ? 0.25 : 0.08);
-        this.audio.mine();
+        this.audio.mine(block, broken);
       },
     );
 
@@ -454,7 +459,7 @@ export class GameApp {
     this.telemetry.checkpoint("run-start", 0);
     let lastHealth = this.playerVitals.health.current;
     this.playerVitals.subscribe(() => {
-      if (this.playerVitals.health.current < lastHealth) this.feel.hurt();
+      if (this.playerVitals.health.current < lastHealth) { this.feel.hurt(); this.audio.hurt(); }
       lastHealth = this.playerVitals.health.current;
     });
     this.fieldHud = new FieldHUD(this.metadata, this.player, this.renderer.camera,
@@ -470,7 +475,7 @@ export class GameApp {
         event.source === "player-melee" ||
         event.source === "player-projectile"
       ) {
-        this.audio.hit(event.killed);
+        this.audio.hit(event.killed, position.clone().project(this.renderer.camera).x);
       }
     });
 
@@ -480,6 +485,7 @@ export class GameApp {
       "DAY · " + size + "×" + size + " · SEED " + seed.text;
 
     this.bindPointerLock();
+    await this.audio.prepare();
     this.options.loadingLabel.textContent =
       "Tudo pronto. Seu kit inicial já está na mochila.";
     this.options.playButton.disabled = false;
@@ -494,6 +500,9 @@ export class GameApp {
         this.player.fixedUpdate(dt);
         this.physics.step(dt);
         this.player.syncCamera();
+        const playerPosition = this.player.getPosition();
+        this.audio.updateMovement(playerPosition, this.player.getDebugState().grounded,
+          this.world.getBlock(Math.floor(playerPosition.x), Math.floor(playerPosition.y - 0.96), Math.floor(playerPosition.z)));
 
         this.structures.fixedUpdate(dt);
         this.playerCombat.fixedUpdate(dt);
@@ -628,6 +637,7 @@ export class GameApp {
             "KILLS     " + this.run.playerKills,
             "UPGRADES  " + this.run.acquiredUpgrades.length,
             "PROJECTILES " + this.projectiles.count,
+            "SFX READY " + this.audio.loadedCount,
             "NAV DIRTY " + this.navigation.pendingCells,
             "NAV MS    " + this.navigation.lastRebuildMs.toFixed(2),
             "FLOW MS   " + this.flow.rebuildMs.toFixed(2),
@@ -736,6 +746,7 @@ export class GameApp {
       .querySelector<HTMLButtonElement>("#telemetry-export-button")
       ?.addEventListener("click", () => this.telemetry.download());
     this.options.defeatOverlay.classList.remove("hidden");
+    this.audio.pause();
     if (victory) this.audio.victory();
     else this.audio.defeat();
 
@@ -845,7 +856,7 @@ export class GameApp {
   private applySettings(): void {
     const state = this.settings.state;
     this.audio.setVolume(state.volume);
-    this.audio.setEnabled(state.effects);
+    this.audio.setEnabled(true);
     this.options.debug.classList.toggle("hidden", !state.debug);
     document.body.classList.toggle("reduced-fx", !state.effects);
   }
@@ -866,6 +877,7 @@ export class GameApp {
     );
 
     this.controls.addEventListener("lock", () => {
+      void this.audio.unlock();
       document.body.classList.remove("game-paused");
       if (!this.started) {
         this.started = true;
@@ -880,6 +892,7 @@ export class GameApp {
     });
 
     this.controls.addEventListener("unlock", () => {
+      if (!this.defeated) this.audio.pause();
       document.body.classList.add("game-paused");
       this.options.playButton.textContent = "CONTINUAR EXPEDIÇÃO";
       if (this.defeated || this.drafting || this.inventoryOpen) {

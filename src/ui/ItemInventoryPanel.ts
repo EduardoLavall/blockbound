@@ -1,3 +1,4 @@
+import { stackIcon, iconMarkup } from "./ArtIcons";
 import type { EquipmentSystem } from "../items/EquipmentSystem";
 import {
   BACKPACK_SIZE,
@@ -346,10 +347,7 @@ export class ItemInventoryPanel {
     if (stack.kind === "resource") {
       const definition = RESOURCES[stack.resource];
       return `
-        <i
-          class="inventory2-icon"
-          style="--item-swatch:${definition.swatch}"
-        ></i>
+        <img class="inventory2-icon art-icon" src="${stackIcon(stack)}" alt="" />
         <strong class="inventory2-stack-name">${definition.name}</strong>
         <b class="inventory2-stack-count">${stack.quantity}</b>
       `;
@@ -357,10 +355,7 @@ export class ItemInventoryPanel {
 
     const definition = itemDefinition(stack.definitionId);
     return `
-      <i
-        class="inventory2-icon rarity-${definition.rarity}"
-        style="--item-swatch:${definition.swatch}"
-      ></i>
+      <img class="inventory2-icon art-icon" src="${stackIcon(stack)}" alt="" />
       <strong class="inventory2-stack-name">${definition.name}</strong>
       ${stack.quantity > 1
         ? `<b class="inventory2-stack-count">${stack.quantity}</b>`
@@ -380,7 +375,7 @@ export class ItemInventoryPanel {
         ${definition
           ? `
             <div class="equipment-slot-item rarity-${definition.rarity}">
-              <i style="--item-swatch:${definition.swatch}"></i>
+              ${iconMarkup(definition.slot === "weapon" ? "blade" : definition.slot ?? "chest")}
               <div>
                 <strong>${definition.name}</strong>
                 <small>${definition.rarity}</small>
@@ -421,7 +416,7 @@ export class ItemInventoryPanel {
       return `
         <div class="item-detail-card">
           <div class="item-detail-heading">
-            <i style="--item-swatch:${definition.swatch}"></i>
+            <img class="art-icon" src="${stackIcon(stack)}" alt="" />
             <div>
               <small>RESOURCE · STACK 64</small>
               <h3>${definition.name}</h3>
@@ -459,7 +454,7 @@ export class ItemInventoryPanel {
     return `
       <div class="item-detail-card rarity-${definition.rarity}">
         <div class="item-detail-heading">
-          <i style="--item-swatch:${definition.swatch}"></i>
+          ${iconMarkup(definition.slot === "weapon" ? definition.tags.includes("projectile") ? "repeater" : "blade" : definition.slot ?? "chest")}
           <div>
             <small>${definition.rarity} · ${slot ?? definition.kind}</small>
             <h3>${definition.name}</h3>

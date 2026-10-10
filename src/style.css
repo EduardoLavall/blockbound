@@ -1765,3 +1765,14 @@ body.game-paused #damage-flash, body.game-paused #hit-marker { opacity:0; }
 body.reduced-fx #crosshair.recovering { transform:translate(-50%,-50%); }
 @media (max-width:1100px) { #combat-hud { width:200px; } .vitals-icon { width:28px; } }
 @media (max-width:760px) { #combat-hud { width:190px; padding:10px; bottom:90px; } .vitals-icon { width:24px; height:32px; font-size:18px; } .player-health-line strong { font-size:18px; } .health-caption { display:none; } }
+
+.art-icon { object-fit:contain; image-rendering:pixelated; background:transparent !important; border:0 !important; box-shadow:none !important; }
+.hotbar-swatch.art-icon { width:32px; height:32px; grid-column:1/-1; margin:auto; }
+.hotbar-key { position:absolute; top:3px; left:4px; z-index:1; }
+.hotbar-slot { grid-template-columns:1fr; }
+.hotbar-name { font-size:6px; text-align:center; }
+.build-swatch.art-icon { width:28px; height:28px; }
+.inventory2-icon.art-icon { width:44px; height:44px; border-radius:0; transform:none; }
+.equipment-slot-item .art-icon, .item-detail-heading .art-icon { width:44px; height:44px; }
+.item-detail-heading { grid-template-columns:44px 1fr; }
+@media(max-width:760px) { .hotbar-swatch.art-icon { width:24px; height:24px; } }

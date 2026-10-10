@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { materialTexture } from "../engine/render/MaterialTextures";
 import type { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Health } from "../survival/Health";
 
@@ -18,7 +19,8 @@ export class Core {
     this.group.position.set(x + 0.5, y, z + 0.5);
 
     const baseMaterial = new THREE.MeshStandardMaterial({
-      color: 0x3d4845,
+      color: 0x819d9e,
+      map: materialTexture("stone"),
       emissive: 0x152b33,
       emissiveIntensity: 0.7,
       roughness: 0.78,

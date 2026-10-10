@@ -35,6 +35,7 @@ export class PlayerCombatSystem {
     private readonly hud: CombatHUD,
     private readonly structures: StructureSystem,
     private readonly onAttack: (mode: PlayerActionMode) => void = () => {},
+    private readonly onEquip: () => void = () => {},
   ) {
     this.random = new SeededRandom(seed ^ 0x6d93ac41);
     this.hand.setActionMode(this.modeValue);
@@ -100,6 +101,7 @@ export class PlayerCombatSystem {
   }
 
   private cycleMode(): void {
+    this.onEquip();
     this.modeValue =
       this.modeValue === PlayerActionMode.Tool
         ? PlayerActionMode.Blade

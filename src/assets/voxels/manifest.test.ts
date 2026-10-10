@@ -5,14 +5,14 @@ import {
 } from "./manifest";
 
 describe("voxel texture manifest", () => {
-  it("contains eight real 16x16 source tiles in atlas order", () => {
+  it("contains eight real 64x64 source tiles in atlas order", () => {
     expect(VOXEL_TEXTURE_SOURCES).toHaveLength(8);
     expect(VOXEL_TEXTURE_SOURCES.map((source) => source.tile)).toEqual(
       [0, 1, 2, 3, 4, 5, 6, 7],
     );
     expect(
       VOXEL_TEXTURE_SOURCES.every(
-        (source) => source.width === 16 && source.height === 16,
+        (source) => source.width === 64 && source.height === 64,
       ),
     ).toBe(true);
   });

@@ -4,9 +4,10 @@ import {
   ATLAS_COLUMNS,
   ATLAS_ROWS,
   ATLAS_TILE_SIZE,
+  ATLAS_TILE_PADDING,
 } from "../constants";
 
-const TILE_INSET = 0.5 / ATLAS_TILE_SIZE;
+const TILE_INSET = (ATLAS_TILE_PADDING + 0.5) / (ATLAS_TILE_SIZE + ATLAS_TILE_PADDING * 2);
 
 export async function loadVoxelTextureAtlas(): Promise<THREE.Texture> {
   const texture = await new THREE.TextureLoader().loadAsync(
@@ -14,8 +15,8 @@ export async function loadVoxelTextureAtlas(): Promise<THREE.Texture> {
   );
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
-  texture.generateMipmaps = false;
+  texture.minFilter = THREE.NearestMipmapLinearFilter;
+  texture.generateMipmaps = true;
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.needsUpdate = true;
@@ -35,6 +36,8 @@ export function createVoxelMaterial(): THREE.MeshStandardMaterial {
     shader.uniforms.voxelTileInset = {
       value: TILE_INSET,
     };
+    const stride = ATLAS_TILE_SIZE + ATLAS_TILE_PADDING * 2;
+    shader.uniforms.voxelAtlasPixelSize = { value: new THREE.Vector2(ATLAS_COLUMNS * stride, ATLAS_ROWS * stride) };
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -63,6 +66,7 @@ varying vec2 vVoxelLocalUv;
 varying float vVoxelTile;
 uniform vec2 voxelAtlasGrid;
 uniform float voxelTileInset;
+uniform vec2 voxelAtlasPixelSize;
 varying vec3 vVoxelPosition;
 varying vec3 vVoxelNormal;
 float voxelHash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
@@ -93,13 +97,18 @@ vec2 tileUv(float tile, vec2 localUv) {
       voxelAtlasGrid.y
   );
 
-  vec4 sampledDiffuseColor = texture2D(map, voxelAtlasUv);
+  vec2 voxelGradX = dFdx(vVoxelLocalUv) * (1.0-2.0*voxelTileInset) / voxelAtlasGrid;
+  vec2 voxelGradY = dFdy(vVoxelLocalUv) * (1.0-2.0*voxelTileInset) / voxelAtlasGrid;
+  vec2 maxGradient = 4.0 / voxelAtlasPixelSize;
+  voxelGradX = clamp(voxelGradX, -maxGradient, maxGradient);
+  voxelGradY = clamp(voxelGradY, -maxGradient, maxGradient);
+  vec4 sampledDiffuseColor = textureGrad(map, voxelAtlasUv, voxelGradX, voxelGradY);
   vec3 cell = floor(vVoxelPosition - vVoxelNormal * 0.01);
   float variation = voxelHash(cell);
   float side = 1.0-step(0.5, abs(vVoxelNormal.y));
   // Grass has a soil face with an irregular grassy lip, rather than six green faces.
   if (voxelTileIndex < 0.5 && side > 0.5) {
-    vec4 dirt = texture2D(map, tileUv(1.0, voxelRepeatedUv));
+    vec4 dirt = textureGrad(map, tileUv(1.0, voxelRepeatedUv), voxelGradX, voxelGradY);
     float lip = 0.75 + floor(voxelRepeatedUv.x*8.0+variation*3.0)/40.0;
     sampledDiffuseColor = mix(dirt, sampledDiffuseColor, step(lip, fract(vVoxelPosition.y)));
   }
@@ -123,7 +132,7 @@ vec2 tileUv(float tile, vec2 localUv) {
   };
 
   material.customProgramCacheKey = () =>
-    "blockbound-voxel-faces-v2";
+    "blockbound-voxel-faces-v3";
 
   return material;
 }

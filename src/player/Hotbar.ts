@@ -1,3 +1,4 @@
+import { stackIcon } from "../ui/ArtIcons";
 import {
   HOTBAR_SIZE,
   type InventoryStack,
@@ -105,10 +106,7 @@ export class Hotbar {
       return `
         <div class="hotbar-slot ${selected ? "selected" : ""}">
           <span class="hotbar-key">${index + 1}</span>
-          <span
-            class="hotbar-swatch"
-            style="--swatch:${definition.swatch}"
-          ></span>
+          <img class="hotbar-swatch art-icon" src="${stackIcon(stack)}" alt="" />
           <span class="hotbar-name">${definition.name}</span>
           <strong class="hotbar-count">${stack.quantity}</strong>
         </div>
@@ -119,10 +117,7 @@ export class Hotbar {
     return `
       <div class="hotbar-slot rarity-${definition.rarity} ${selected ? "selected" : ""}">
         <span class="hotbar-key">${index + 1}</span>
-        <span
-          class="hotbar-swatch"
-          style="--swatch:${definition.swatch}"
-        ></span>
+        <img class="hotbar-swatch art-icon" src="${stackIcon(stack)}" alt="" />
         <span class="hotbar-name">${definition.name}</span>
         ${stack.quantity > 1
           ? `<strong class="hotbar-count">${stack.quantity}</strong>`

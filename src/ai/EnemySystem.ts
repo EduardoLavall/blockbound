@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { materialTexture } from "../engine/render/MaterialTextures";
 import { coverDistance } from "../combat/CombatTrace";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
 import type { Core } from "../building/Core";
@@ -72,6 +73,10 @@ export class EnemySystem {
   private readonly headGeometry = new THREE.BoxGeometry(0.52, 0.5, 0.5);
   private readonly legGeometry = new THREE.BoxGeometry(0.18, 0.55, 0.2);
   private readonly detailGeometry = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+  private readonly armorMaterial = new THREE.MeshStandardMaterial({ color: 0x668797,
+    metalness: 0.3, roughness: 0.72, map: materialTexture("steel") });
+  private readonly maskMaterial = new THREE.MeshStandardMaterial({ color: 0xc9c4b6,
+    roughness: 0.88, map: materialTexture("bone") });
   private readonly auraGeometry = new THREE.RingGeometry(0.75, 0.88, 20);
   private readonly boltGeometry = new THREE.BoxGeometry(0.06, 0.06, 0.34);
   private readonly boltMaterial = new THREE.MeshBasicMaterial({
@@ -850,14 +855,16 @@ export class EnemySystem {
   private createVisual(definition: EnemyDefinition): THREE.Group {
     const group = new THREE.Group();
     const material = this.materialFor(definition);
+    const bodyY = definition.type === EnemyType.Burrower ? 0.65 : 0.92;
+    const headY = definition.type === EnemyType.Burrower ? 1.08 : 1.57;
 
     const body = new THREE.Mesh(this.bodyGeometry, material);
-    body.position.y = 0.92;
+    body.position.y = bodyY;
     body.castShadow = true;
     group.add(body);
 
     const head = new THREE.Mesh(this.headGeometry, material);
-    head.position.y = 1.57;
+    head.position.y = headY;
     head.castShadow = true;
     group.add(head);
 
@@ -871,20 +878,33 @@ export class EnemySystem {
 
     for (const x of [-0.43, 0.43]) {
       const arm = new THREE.Mesh(this.legGeometry, material);
-      arm.position.set(x, 0.92, 0);
+      arm.position.set(x, bodyY, 0);
       arm.rotation.z = x < 0 ? 0.15 : -0.15;
       arm.castShadow = true;
       group.add(arm);
     }
     const chest = new THREE.Mesh(this.detailGeometry, this.eyeMaterial);
-    chest.position.set(0, 1.03, 0.26);
+    chest.position.set(0, bodyY + 0.11, 0.26);
     chest.scale.set(0.6, 0.85, 0.15);
     group.add(chest);
+    const belt = new THREE.Mesh(this.bodyGeometry, this.armorMaterial);
+    belt.scale.set(1.1, 0.1, 1.1); belt.position.y = bodyY - 0.3; group.add(belt);
+    const brow = new THREE.Mesh(this.headGeometry, this.armorMaterial);
+    brow.scale.set(1.1, 0.17, 1.08); brow.position.y = headY + 0.24; group.add(brow);
+    const mask = new THREE.Mesh(this.headGeometry, this.maskMaterial);
+    mask.scale.set(0.9, 0.5, 0.08); mask.position.set(0, headY + 0.01, 0.255); group.add(mask);
+    if (definition.type === EnemyType.Runner) { body.scale.set(0.82, 1.05, 0.85); head.scale.setScalar(0.9); }
+    if (definition.type === EnemyType.Archer || definition.type === EnemyType.Support) {
+      const staff = new THREE.Mesh(this.legGeometry, this.armorMaterial);
+      staff.scale.set(0.25, 2.2, 0.3); staff.position.set(-0.52, 0.85, 0.08); group.add(staff);
+      const beacon = new THREE.Mesh(this.detailGeometry, this.eyeMaterial);
+      beacon.position.set(-0.52, 1.6, 0.08); group.add(beacon);
+    }
 
     for (const x of [-0.13, 0.13]) {
       const eye = new THREE.Mesh(this.detailGeometry, this.eyeMaterial);
       eye.scale.set(0.38, 0.38, 0.2);
-      eye.position.set(x, 1.62, 0.27);
+      eye.position.set(x, headY + 0.05, 0.29);
       group.add(eye);
     }
 
@@ -952,7 +972,9 @@ export class EnemySystem {
     let material = this.materials.get(definition.type);
     if (!material) {
       material = new THREE.MeshStandardMaterial({
-        color: definition.color,
+        color: new THREE.Color(definition.color).lerp(new THREE.Color(0xffffff), 0.35),
+        map: materialTexture(definition.type === EnemyType.Brute || definition.type === EnemyType.Boss ? "stone" :
+          definition.type === EnemyType.Archer || definition.type === EnemyType.Support ? "cloth" : "leather"),
         emissive: definition.emissive,
         emissiveIntensity: 0.45,
         roughness: 0.82,

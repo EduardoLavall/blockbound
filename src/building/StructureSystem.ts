@@ -1,3 +1,4 @@
+import { iconMarkup } from "../ui/ArtIcons";
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { Input } from "../core/Input";
@@ -87,6 +88,7 @@ export class StructureSystem {
     private readonly bounds: WorldBounds,
     private readonly buildBar: HTMLDivElement,
     private readonly buildInfo: HTMLDivElement,
+    private readonly onBuild: () => void = () => {},
   ) {
     this.ghost = createStructureVisual(this.selectedType, true);
     this.ghost.visible = false;
@@ -248,7 +250,7 @@ export class StructureSystem {
       slot.classList.toggle("selected", index === this.selectedIndex);
       slot.innerHTML = `
         <span class="build-key">${index + 1}</span>
-        <span class="build-swatch" style="--swatch:${definition.swatch}"></span>
+        ${iconMarkup(type, "build-swatch art-icon")}
         <span class="build-name">${definition.name}</span>
         <span class="build-cost">${formatCost(definition.cost)}</span>
       `;
@@ -425,6 +427,7 @@ export class StructureSystem {
       z: placement.z,
     };
     this.instances.push(instance);
+    this.onBuild();
     this.emitNavigationChanged(instance);
 
     this.feedback = `${definition.name.toUpperCase()} BUILT`;

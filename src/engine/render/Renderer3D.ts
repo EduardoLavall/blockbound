@@ -9,6 +9,8 @@ export class Renderer3D {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
+  readonly viewCamera = new THREE.PerspectiveCamera(74, 1, 0.05, 8);
+  readonly viewScene = new THREE.Scene();
 
   private readonly hemi: THREE.HemisphereLight;
   private readonly sun: THREE.DirectionalLight;
@@ -32,6 +34,7 @@ export class Renderer3D {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.info.autoReset = false;
 
     this.scene.background = this.daySky.clone();
     this.scene.fog = new THREE.Fog(this.daySky, 32, 85);
@@ -39,6 +42,11 @@ export class Renderer3D {
     this.camera = new THREE.PerspectiveCamera(74, 1, 0.05, 140);
     this.camera.position.set(0, 2.2, 7);
     this.scene.add(this.camera);
+    this.viewScene.add(this.viewCamera);
+    this.viewScene.add(new THREE.HemisphereLight(0xe2f2ff, 0x516e7c, 2.0));
+    const viewLight = new THREE.DirectionalLight(0xfff2df, 2.0);
+    viewLight.position.set(-2, 3, 2);
+    this.viewScene.add(viewLight);
     this.atmosphere = new Atmosphere(this.scene);
 
     this.hemi = new THREE.HemisphereLight(
@@ -100,9 +108,14 @@ export class Renderer3D {
   }
 
   render(): void {
+    this.renderer.info.reset();
     this.atmosphere.update(this.factor, this.camera);
     if (this.effects) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
+    this.renderer.autoClear = false;
+    this.renderer.clearDepth();
+    this.renderer.render(this.viewScene, this.viewCamera);
+    this.renderer.autoClear = true;
   }
 
   private readonly resize = (): void => {
@@ -112,5 +125,7 @@ export class Renderer3D {
     this.composer.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.viewCamera.aspect = width / height;
+    this.viewCamera.updateProjectionMatrix();
   };
 }

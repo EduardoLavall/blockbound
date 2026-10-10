@@ -4,361 +4,157 @@ import { PlayerActionMode } from "../combat/CombatTypes";
 import type { Input } from "../core/Input";
 import { miningSwingCount } from "../survival/MiningTool";
 import type { PlayerController } from "./PlayerController";
+import { VIEWMODEL_POSES } from "./ViewmodelPose";
+import { materialTexture } from "../engine/render/MaterialTextures";
 
-const BASE_POSITION = new THREE.Vector3(0.52, -0.48, -0.82);
-const BASE_ROTATION = new THREE.Euler(-0.42, -0.18, -0.16, "XYZ");
-
+/** Hand-held silhouettes with independent poses and stable first-person shading. */
 export class FirstPersonHand {
   private readonly root = new THREE.Group();
-  private readonly arm = new THREE.Group();
   private readonly pickaxe = new THREE.Group();
   private readonly blade = new THREE.Group();
   private readonly repeater = new THREE.Group();
-
+  private readonly muzzle = new THREE.Mesh(new THREE.OctahedronGeometry(0.12), viewMaterial(0xffe3a0, 4));
   private actionMode = PlayerActionMode.Tool;
   private walkTime = 0;
   private attackTime = 1;
   private attackStrength = 1;
+  private equipTime = 1;
   private swayX = 0;
   private swayY = 0;
   private miningActive = false;
   private miningProgress = 0;
   private miningDuration = 0;
-  private readonly muzzle = new THREE.Mesh(new THREE.OctahedronGeometry(0.15),
-    new THREE.MeshBasicMaterial({ color: 0xffda86, depthTest: false, depthWrite: false }));
   effects = true;
 
-  constructor(
-    camera: THREE.PerspectiveCamera,
-    private readonly controls: PlayControls,
-    private readonly input: Input,
-    private readonly player: PlayerController,
-  ) {
+  constructor(camera: THREE.PerspectiveCamera, private readonly controls: PlayControls,
+    private readonly input: Input, private readonly player: PlayerController) {
     this.root.name = "first-person-hand";
-    this.root.position.copy(BASE_POSITION);
-    this.root.rotation.copy(BASE_ROTATION);
+    this.pickaxe.name = "view-pickaxe"; this.blade.name = "view-blade"; this.repeater.name = "view-repeater";
     this.root.visible = false;
-
-    const skin = viewMaterial(0xb9825d, 0.88, 0);
-    const glove = viewMaterial(0x2c342e, 0.82, 0.04);
-    const cuff = viewMaterial(0xc79e43, 0.7, 0.12);
-
-    const forearm = new THREE.Mesh(
-      new THREE.BoxGeometry(0.24, 0.24, 0.62),
-      glove,
-    );
-    forearm.position.set(0, 0, -0.2);
-    forearm.rotation.x = 0.08;
-
-    const wrist = new THREE.Mesh(
-      new THREE.BoxGeometry(0.27, 0.27, 0.14),
-      cuff,
-    );
-    wrist.position.set(0, 0, -0.52);
-
-    const hand = new THREE.Mesh(
-      new THREE.BoxGeometry(0.29, 0.25, 0.32),
-      skin,
-    );
-    hand.position.set(0, -0.01, -0.73);
-
-    const knuckle = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.12, 0.12),
-      skin,
-    );
-    knuckle.position.set(0, 0.07, -0.9);
-
-    for (const mesh of [forearm, wrist, hand, knuckle]) {
-      prepareViewMesh(mesh);
-      this.arm.add(mesh);
-    }
-
-    this.createPickaxe();
-    this.createBlade();
-    this.createRepeater();
-    this.muzzle.position.set(0, 0.03, -2.32);
-    this.muzzle.renderOrder = 1001;
-    this.muzzle.visible = false;
-    this.repeater.add(this.muzzle);
-
-    this.root.add(
-      this.arm,
-      this.pickaxe,
-      this.blade,
-      this.repeater,
-    );
+    this.createHand(); this.createPickaxe(); this.createBlade(); this.createRepeater();
+    this.root.add(this.pickaxe, this.blade, this.repeater);
     camera.add(this.root);
     this.setActionMode(PlayerActionMode.Tool);
-
-    this.controls.addEventListener("lock", () => {
-      this.root.visible = true;
-    });
-
-    this.controls.addEventListener("unlock", () => {
-      this.root.visible = false;
-    });
+    this.controls.addEventListener("lock", () => { this.root.visible = true; });
+    this.controls.addEventListener("unlock", () => { this.root.visible = false; });
   }
-
   setActionMode(mode: PlayerActionMode): void {
     this.actionMode = mode;
     this.pickaxe.visible = mode === PlayerActionMode.Tool;
     this.blade.visible = mode === PlayerActionMode.Blade;
     this.repeater.visible = mode === PlayerActionMode.Repeater;
-
-    if (mode !== PlayerActionMode.Tool) {
-      this.setMiningState(false, 0, 0);
-    }
+    this.equipTime = 0;
+    if (mode !== PlayerActionMode.Tool) this.setMiningState(false, 0, 0);
   }
-
-  setMiningState(
-    active: boolean,
-    progress: number,
-    duration: number,
-  ): void {
-    this.miningActive =
-      active && this.actionMode === PlayerActionMode.Tool;
+  setMiningState(active: boolean, progress: number, duration: number): void {
+    this.miningActive = active && this.actionMode === PlayerActionMode.Tool;
     this.miningProgress = THREE.MathUtils.clamp(progress, 0, 1);
     this.miningDuration = Math.max(0, duration);
   }
-
+  triggerAttack(strength = 1): void { this.attackTime = 0; this.attackStrength = strength; }
   update(frameMs: number): void {
     const dt = Math.min(frameMs / 1000, 0.05);
-
-    const moving =
-      this.controls.isLocked &&
-      (
-        this.input.isDown("KeyW") ||
-        this.input.isDown("KeyA") ||
-        this.input.isDown("KeyS") ||
-        this.input.isDown("KeyD")
-      );
-
+    const moving = this.controls.isLocked && ["KeyW", "KeyA", "KeyS", "KeyD"].some(key => this.input.isDown(key));
     const grounded = this.player.getDebugState().grounded;
-    const sprinting =
-      this.input.isDown("ShiftLeft") || this.input.isDown("ShiftRight");
-
-    if (moving && grounded) {
-      this.walkTime += dt * (sprinting ? 12 : 8);
-    }
-
-    const bobStrength =
-      moving && grounded ? (sprinting ? 0.038 : 0.026) : 0;
-    const bobX = Math.sin(this.walkTime) * bobStrength;
-    const bobY =
-      Math.abs(Math.cos(this.walkTime)) * bobStrength * 0.75;
-
+    const sprinting = this.input.isDown("ShiftLeft") || this.input.isDown("ShiftRight");
+    if (moving && grounded) this.walkTime += dt * (sprinting ? 12 : 8);
+    const bob = moving && grounded ? (sprinting ? 0.022 : 0.013) : 0;
     const pointer = this.input.consumePointerDelta();
-    this.swayX = THREE.MathUtils.lerp(
-      this.swayX,
-      THREE.MathUtils.clamp(pointer.x * -0.0018, -0.055, 0.055),
-      0.38,
-    );
-    this.swayY = THREE.MathUtils.lerp(
-      this.swayY,
-      THREE.MathUtils.clamp(pointer.y * -0.0015, -0.045, 0.045),
-      0.38,
-    );
-
-    if (Math.abs(pointer.x) < 0.01) {
-      this.swayX *= Math.pow(0.001, dt);
-    }
-    if (Math.abs(pointer.y) < 0.01) {
-      this.swayY *= Math.pow(0.001, dt);
-    }
-
-    this.attackTime = Math.min(1, this.attackTime + dt / 0.22);
-    this.muzzle.visible = this.effects && this.actionMode === PlayerActionMode.Repeater && this.attackTime < 0.22;
-    this.muzzle.rotation.z += dt * 18;
-    const attackWave =
-      Math.sin(this.attackTime * Math.PI) * this.attackStrength;
-
-    const miningCycles = miningSwingCount(this.miningDuration);
-    const miningPhase =
-      (this.miningProgress * miningCycles) % 1;
-    const miningWave =
-      this.miningActive
-        ? Math.sin(miningPhase * Math.PI)
-        : 0;
-
-    const toolWave =
-      this.actionMode === PlayerActionMode.Tool
-        ? Math.max(attackWave, miningWave)
-        : 0;
-    const bladeFactor =
-      this.actionMode === PlayerActionMode.Blade ? 1.25 : 1;
-
-    const forward = this.actionMode === PlayerActionMode.Repeater ? -attackWave * 0.12 :
-      attackWave * 0.32 * bladeFactor +
-      toolWave * 0.12;
-    const down =
-      attackWave * 0.075 +
-      toolWave * 0.1;
-    const pitch =
-      attackWave * -0.68 * bladeFactor +
-      toolWave * -0.92;
-    const toolRoll = toolWave * 0.28;
-
-    this.root.position.set(
-      BASE_POSITION.x + bobX + this.swayX,
-      BASE_POSITION.y - bobY + this.swayY - down,
-      BASE_POSITION.z - forward,
-    );
-
-    this.root.rotation.set(
-      BASE_ROTATION.x + pitch + this.swayY * 0.5,
-      BASE_ROTATION.y + this.swayX * 0.65,
-      BASE_ROTATION.z -
-        bobX * 1.8 +
-        (this.actionMode === PlayerActionMode.Blade
-          ? attackWave * 0.38
-          : toolRoll),
-    );
+    const smoothing = 1 - Math.exp(-dt * 18);
+    this.swayX = THREE.MathUtils.lerp(this.swayX, THREE.MathUtils.clamp(-pointer.x * 0.0008, -0.025, 0.025), smoothing);
+    this.swayY = THREE.MathUtils.lerp(this.swayY, THREE.MathUtils.clamp(-pointer.y * 0.0007, -0.02, 0.02), smoothing);
+    this.attackTime = Math.min(1, this.attackTime + dt / 0.24);
+    this.equipTime = Math.min(1, this.equipTime + dt / 0.2);
+    const attack = Math.sin(this.attackTime * Math.PI) * this.attackStrength;
+    const mining = this.miningActive ? Math.sin((this.miningProgress * miningSwingCount(this.miningDuration) % 1) * Math.PI) : 0;
+    const tool = Math.max(attack, mining);
+    const pose = VIEWMODEL_POSES[this.actionMode];
+    const [px, py, pz] = pose.position;
+    const [rx, ry, rz] = pose.rotation;
+    const gun = this.actionMode === PlayerActionMode.Repeater;
+    const sword = this.actionMode === PlayerActionMode.Blade;
+    this.root.position.set(px + Math.sin(this.walkTime) * bob + this.swayX - (sword ? attack * 0.12 : 0),
+      py - Math.abs(Math.cos(this.walkTime)) * bob + this.swayY - (1 - this.equipTime) * 0.18 - (gun ? 0 : tool * 0.045),
+      pz + (gun ? attack * 0.1 : -tool * 0.12));
+    this.root.rotation.set(rx + (gun ? attack * 0.07 : -tool * 0.75), ry + this.swayX,
+      rz + (sword ? attack * 1.05 : gun ? 0 : tool * 0.22));
+    this.muzzle.visible = this.effects && gun && this.attackTime < 0.18;
+    this.muzzle.rotation.z += dt * 30;
   }
-
-  triggerAttack(strength = 1): void {
-    this.attackTime = 0;
-    this.attackStrength = strength;
+  private createHand(): void {
+    const glove = viewMaterial(0xe0f3f5), inset = viewMaterial(0x253e4b);
+    glove.map = materialTexture("cloth");
+    const skin = viewMaterial(0xc3916c), cuff = viewMaterial(0xa99461);
+    const arm = box(this.root, [0.135, 0.18, 0.3], [0.035, -0.14, 0.1], glove);
+    arm.rotation.x = -0.25;
+    box(this.root, [0.15, 0.05, 0.12], [0.015, -0.075, 0.045], cuff);
+    box(this.root, [0.145, 0.15, 0.13], [0, 0.005, 0.015], glove);
+    box(this.root, [0.11, 0.085, 0.016], [0, 0.03, 0.088], inset);
+    for (let i = 0; i < 3; i++) box(this.root, [0.11, 0.027, 0.05], [0.006, 0.048 - i * 0.034, -0.067], skin);
+    const thumb = box(this.root, [0.055, 0.08, 0.065], [-0.065, 0.02, -0.04], skin);
+    thumb.rotation.z = -0.35;
   }
-
   private createPickaxe(): void {
-    const handle = viewMaterial(0x725038, 0.88, 0.02);
-    const grip = viewMaterial(0x2d342f, 0.85, 0.04);
-    const metal = viewMaterial(0x9ba7a5, 0.38, 0.62);
-    const edge = viewMaterial(0xc5d2cf, 0.26, 0.74);
-
-    const shaft = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 0.12, 0.95),
-      handle,
-    );
-    shaft.position.set(0, 0.02, -1.28);
-
-    const lowerGrip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.15, 0.15, 0.28),
-      grip,
-    );
-    lowerGrip.position.set(0, 0.02, -0.92);
-
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(0.78, 0.17, 0.2),
-      metal,
-    );
-    head.position.set(0, 0.02, -1.76);
-
-    const leftTip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.26, 0.1, 0.12),
-      edge,
-    );
-    leftTip.position.set(-0.48, 0.02, -1.76);
-    leftTip.rotation.z = -0.22;
-
-    const rightTip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.26, 0.1, 0.12),
-      edge,
-    );
-    rightTip.position.set(0.48, 0.02, -1.76);
-    rightTip.rotation.z = 0.22;
-
-    for (const mesh of [
-      shaft,
-      lowerGrip,
-      head,
-      leftTip,
-      rightTip,
-    ]) {
-      prepareViewMesh(mesh);
-      this.pickaxe.add(mesh);
+    const wood = viewMaterial(0xf1dcc3), wrap = viewMaterial(0x34515a);
+    wood.map = materialTexture("wood");
+    const steel = viewMaterial(0x718d97), edge = viewMaterial(0xbdcfd0);
+    steel.map = materialTexture("steel");
+    box(this.pickaxe, [0.055, 0.69, 0.055], [0, 0.23, -0.04], wood);
+    for (const y of [-0.035, 0.015, 0.065]) box(this.pickaxe, [0.069, 0.025, 0.069], [0, y, -0.04], wrap);
+    box(this.pickaxe, [0.095, 0.17, 0.115], [0, 0.54, -0.04], steel);
+    box(this.pickaxe, [0.39, 0.09, 0.1], [0, 0.57, -0.04], steel);
+    box(this.pickaxe, [0.31, 0.022, 0.105], [0, 0.62, -0.04], edge);
+    for (const side of [-1, 1]) {
+      const tip = box(this.pickaxe, [0.19, 0.055, 0.07], [side * 0.24, 0.53, -0.04], edge);
+      tip.rotation.z = side * -0.35;
     }
+    box(this.pickaxe, [0.026, 0.035, 0.12], [0, 0.54, -0.04], viewMaterial(0xd6b875));
   }
-
   private createBlade(): void {
-    const handle = viewMaterial(0x4b3429, 0.8, 0.05);
-    const metal = viewMaterial(0xbac1ba, 0.34, 0.58);
-    const energy = viewMaterial(0x76ddd5, 0.28, 0.1, 0x174b4a);
-
-    const grip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.16, 0.5),
-      handle,
-    );
-    grip.position.set(0, 0.02, -0.98);
-
-    const guard = new THREE.Mesh(
-      new THREE.BoxGeometry(0.46, 0.12, 0.12),
-      metal,
-    );
-    guard.position.set(0, 0.02, -1.22);
-
-    const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.13, 0.08, 0.92),
-      metal,
-    );
-    blade.position.set(0, 0.04, -1.72);
-
-    const edge = new THREE.Mesh(
-      new THREE.BoxGeometry(0.035, 0.055, 0.78),
-      energy,
-    );
-    edge.position.set(0.08, 0.04, -1.72);
-
-    for (const mesh of [grip, guard, blade, edge]) {
-      prepareViewMesh(mesh);
-      this.blade.add(mesh);
-    }
+    const handle = viewMaterial(0x38525b), steel = viewMaterial(0x7e9ba7);
+    const bright = viewMaterial(0xc5dadc), energy = viewMaterial(0x70ead5, 1.7);
+    box(this.blade, [0.06, 0.19, 0.06], [0, 0.015, -0.04], handle);
+    box(this.blade, [0.085, 0.065, 0.085], [0, -0.12, -0.04], steel);
+    box(this.blade, [0.28, 0.045, 0.1], [0, 0.13, -0.04], steel);
+    box(this.blade, [0.095, 0.5, 0.035], [0, 0.405, -0.04], steel);
+    box(this.blade, [0.021, 0.5, 0.039], [-0.056, 0.405, -0.04], bright);
+    box(this.blade, [0.012, 0.42, 0.039], [0.05, 0.395, -0.04], energy);
+    const tip = box(this.blade, [0.068, 0.095, 0.035], [-0.013, 0.699, -0.04], bright);
+    tip.rotation.z = -0.3;
+    box(this.blade, [0.07, 0.025, 0.073], [0, 0.025, -0.04], viewMaterial(0xccad70));
   }
-
   private createRepeater(): void {
-    const body = viewMaterial(0x485653, 0.62, 0.28);
-    const dark = viewMaterial(0x232b29, 0.8, 0.14);
-    const energy = viewMaterial(0xe0b95f, 0.35, 0.18, 0x4a3310);
-
-    const receiver = new THREE.Mesh(
-      new THREE.BoxGeometry(0.34, 0.3, 0.7),
-      body,
-    );
-    receiver.position.set(0, 0.01, -1.12);
-
-    const barrel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.11, 0.11, 0.86),
-      dark,
-    );
-    barrel.position.set(0, 0.03, -1.86);
-
-    const side = new THREE.Mesh(
-      new THREE.BoxGeometry(0.62, 0.11, 0.42),
-      body,
-    );
-    side.position.set(0, 0.1, -1.25);
-
-    const cell = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.16, 0.22),
-      energy,
-    );
-    cell.position.set(0, 0.24, -1.18);
-
-    for (const mesh of [receiver, barrel, side, cell]) {
-      prepareViewMesh(mesh);
-      this.repeater.add(mesh);
-    }
+    const shell = viewMaterial(0xc0d6df), panel = viewMaterial(0x638997);
+    shell.map = materialTexture("steel");
+    const dark = viewMaterial(0x253f4c), steel = viewMaterial(0x9aafb4);
+    const energy = viewMaterial(0x7df0d9, 1.8);
+    box(this.repeater, [0.09, 0.16, 0.12], [0, -0.015, -0.05], dark);
+    box(this.repeater, [0.21, 0.17, 0.48], [0, 0.12, -0.24], shell);
+    box(this.repeater, [0.15, 0.025, 0.45], [0, 0.215, -0.24], panel);
+    box(this.repeater, [0.018, 0.09, 0.26], [0.113, 0.13, -0.25], panel);
+    for (let i = 0; i < 3; i++) box(this.repeater, [0.024, 0.025, 0.04], [0.115, 0.14, -0.19 - i * 0.07], dark);
+    box(this.repeater, [0.11, 0.1, 0.55], [0, 0.135, -0.69], dark);
+    for (const z of [-0.55, -0.69, -0.83]) box(this.repeater, [0.125, 0.115, 0.025], [0, 0.135, z], steel);
+    box(this.repeater, [0.14, 0.13, 0.075], [0, 0.135, -1], shell);
+    box(this.repeater, [0.065, 0.067, 0.005], [0, 0.135, -1.04], dark);
+    box(this.repeater, [0.085, 0.06, 0.12], [0, 0.255, -0.3], energy);
+    box(this.repeater, [0.04, 0.075, 0.035], [0, 0.25, -0.085], dark);
+    box(this.repeater, [0.045, 0.035, 0.025], [0, 0.205, -0.94], energy);
+    box(this.repeater, [0.125, 0.15, 0.15], [0, -0.015, -0.37], dark);
+    box(this.repeater, [0.13, 0.032, 0.14], [0, -0.092, -0.37], panel);
+    this.muzzle.name = "repeater-muzzle-flash";
+    this.muzzle.position.set(0, 0.135, -1.07);
+    this.muzzle.renderOrder = 1001;
+    this.muzzle.visible = false;
+    this.repeater.add(this.muzzle);
   }
 }
-
-function viewMaterial(
-  color: number,
-  roughness: number,
-  metalness: number,
-  emissive = 0x000000,
-): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color,
-    emissive,
-    emissiveIntensity: emissive ? 1.5 : 0,
-    roughness,
-    metalness,
-    depthTest: false,
-    depthWrite: false,
-  });
+function viewMaterial(color: number, glow = 1): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.72, metalness: 0.12,
+    emissive: glow > 1 ? color : 0, emissiveIntensity: glow > 1 ? glow : 0 });
 }
-
-function prepareViewMesh(mesh: THREE.Mesh): void {
-  mesh.frustumCulled = false;
-  mesh.renderOrder = 1000;
+function box(group: THREE.Group, size: [number, number, number], position: [number, number, number], material: THREE.Material): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+  mesh.position.set(...position); mesh.frustumCulled = false; mesh.renderOrder = 1000;
+  group.add(mesh); return mesh;
 }

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createDropSprite } from "../engine/render/DropSprite";
 import type { PlayerController } from "../player/PlayerController";
 import { Inventory } from "./Inventory";
 import { RESOURCES, type BlockDrop, type ResourceId } from "./Resources";
@@ -19,6 +20,7 @@ export class ResourceDropSystem {
     private readonly scene: THREE.Scene,
     private readonly inventory: Inventory,
     private readonly player: PlayerController,
+    private readonly onPickup: () => void = () => {},
   ) {}
 
   spawn(drop: BlockDrop, x: number, y: number, z: number): void {
@@ -45,6 +47,7 @@ export class ResourceDropSystem {
     mesh.rotation.set(0.25, phase, 0.18);
     mesh.castShadow = true;
     mesh.userData.resourceDrop = drop.resource;
+    mesh.add(createDropSprite(drop.resource));
 
     this.scene.add(mesh);
     this.drops.push({
@@ -86,6 +89,7 @@ export class ResourceDropSystem {
           drop.resource,
           drop.amount,
         );
+        if (accepted > 0) this.onPickup();
         if (accepted >= drop.amount) {
           this.removeAt(i);
         } else if (accepted > 0) {
@@ -102,6 +106,7 @@ export class ResourceDropSystem {
   private removeAt(index: number): void {
     const drop = this.drops[index]!;
     this.scene.remove(drop.mesh);
+    drop.mesh.traverse(object => { if (object instanceof THREE.Sprite) (object.material as THREE.Material).dispose(); });
     drop.mesh.geometry.dispose();
     const materials = Array.isArray(drop.mesh.material)
       ? drop.mesh.material

@@ -5,4 +5,5 @@ export const PADDED_CHUNK_HEIGHT = CHUNK_HEIGHT + 2;
 export const VOXEL_INTERACTION_DISTANCE = 7;
 export const ATLAS_COLUMNS = 4;
 export const ATLAS_ROWS = 2;
-export const ATLAS_TILE_SIZE = 16;
+export const ATLAS_TILE_SIZE = 64;
+export const ATLAS_TILE_PADDING = 4;
