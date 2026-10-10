@@ -227,7 +227,7 @@ export class GameApp {
       this.metadata,
     );
     this.dressing = new WorldDressing(this.renderer.scene, this.world, this.metadata);
-    this.feel = new GameFeel(this.renderer.scene, this.renderer.camera);
+    this.feel = new GameFeel(this.renderer.scene, this.renderer.camera, this.world);
 
     const coreSurface = this.world.highestSolidY(
       this.metadata.core.x,
@@ -381,8 +381,9 @@ export class GameApp {
       () => this.playerCombat.canMine,
       this.options.targetInfo,
       this.options.miningProgress,
-      (position, block, broken) => {
-        this.feel.burst(position, Number.parseInt(blockDefinition(block).swatch.slice(1), 16), broken ? 28 : 4);
+      (position, block, broken, normal) => {
+        this.hand.triggerMiningImpact(broken);
+        this.feel.miningImpact(position, Number.parseInt(blockDefinition(block).swatch.slice(1), 16), normal, broken);
         this.feel.kick(broken ? 0.25 : 0.08);
         this.audio.mine(block, broken);
       },

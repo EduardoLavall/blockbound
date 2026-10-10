@@ -28,6 +28,7 @@ O maior problema era a relação entre regras, percepção e controle. O jogador
 | POIs eram criados depois das árvores e podiam usar copas como altura | `voxel/generation/WorldGenerator.ts` | POIs precedem árvores e suas áreas são reservadas. |
 | Lista de recursos duplicava hotbar abaixo do mapa | HUD | Painel lateral removido da apresentação, conforme feedback do usuário. |
 | Vida sem hierarquia e ações sem impacto | HUD, áudio, render, mineração | Vitalidade segmentada com rastro de dano, alerta de pouca vida, recoil, muzzle flash, partículas, números de dano, rachaduras e impactos sonoros por swing. |
+| Mineração oscilava e saltava para repouso na quebra; efeitos nasciam dentro do voxel | `player/FirstPersonHand.ts`, `player/VoxelInteractionController.ts` | Preparação/golpe/recuperação próprios, contato e som sincronizados, fraturas na face atingida e detritos com queda e pequeno rebote. A recuperação continua após o bloco desaparecer. |
 | Captura de mouse podia bloquear a entrada em navegador embutido | controle de entrada | Alternativa explícita de mouse livre: segure o botão do meio para olhar. Retorno do inventário mantém esse modo. |
 
 ## Direção de gameplay

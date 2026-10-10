@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { PlayControls } from "./PlayControls";
 import { PlayerActionMode } from "../combat/CombatTypes";
 import type { Input } from "../core/Input";
-import { miningSwingCount } from "../survival/MiningTool";
+import { miningStrokePhase, miningStrokePose, MINING_CONTACT_PHASE, MINING_RECOVERY_SECONDS } from "./MiningStroke";
 import type { PlayerController } from "./PlayerController";
 import { VIEWMODEL_POSES } from "./ViewmodelPose";
 import { materialTexture } from "../engine/render/MaterialTextures";
@@ -24,6 +24,9 @@ export class FirstPersonHand {
   private miningActive = false;
   private miningProgress = 0;
   private miningDuration = 0;
+  private miningRecovery = 0;
+  private readonly miningOffset = new THREE.Vector3();
+  private readonly miningRotation = new THREE.Vector3();
   effects = true;
 
   constructor(camera: THREE.PerspectiveCamera, private readonly controls: PlayControls,
@@ -39,6 +42,8 @@ export class FirstPersonHand {
     this.controls.addEventListener("unlock", () => { this.root.visible = false; });
   }
   setActionMode(mode: PlayerActionMode): void {
+    this.miningRecovery = 0;
+    this.miningOffset.setScalar(0); this.miningRotation.setScalar(0);
     this.actionMode = mode;
     this.pickaxe.visible = mode === PlayerActionMode.Tool;
     this.blade.visible = mode === PlayerActionMode.Blade;
@@ -51,7 +56,16 @@ export class FirstPersonHand {
     this.miningProgress = THREE.MathUtils.clamp(progress, 0, 1);
     this.miningDuration = Math.max(0, duration);
   }
-  triggerAttack(strength = 1): void { this.attackTime = 0; this.attackStrength = strength; }
+  triggerAttack(strength = 1): void {
+    this.miningRecovery = 0;
+    this.attackTime = 0; this.attackStrength = strength;
+  }
+  triggerMiningImpact(broken: boolean): void {
+    if (this.actionMode !== PlayerActionMode.Tool) return;
+    const pose = miningStrokePose(MINING_CONTACT_PHASE);
+    this.miningOffset.set(...pose.position); this.miningRotation.set(...pose.rotation);
+    if (broken) this.miningRecovery = MINING_RECOVERY_SECONDS;
+  }
   update(frameMs: number): void {
     const dt = Math.min(frameMs / 1000, 0.05);
     const moving = this.controls.isLocked && ["KeyW", "KeyA", "KeyS", "KeyD"].some(key => this.input.isDown(key));
@@ -66,18 +80,30 @@ export class FirstPersonHand {
     this.attackTime = Math.min(1, this.attackTime + dt / 0.24);
     this.equipTime = Math.min(1, this.equipTime + dt / 0.2);
     const attack = Math.sin(this.attackTime * Math.PI) * this.attackStrength;
-    const mining = this.miningActive ? Math.sin((this.miningProgress * miningSwingCount(this.miningDuration) % 1) * Math.PI) : 0;
-    const tool = Math.max(attack, mining);
+    let stroke = miningStrokePose(this.miningActive ? miningStrokePhase(this.miningProgress, this.miningDuration) : 0);
+    if (this.miningRecovery > 0) {
+      this.miningRecovery = Math.max(0, this.miningRecovery - dt);
+      stroke = miningStrokePose(MINING_CONTACT_PHASE + (1 - MINING_CONTACT_PHASE) *
+        (1 - this.miningRecovery / MINING_RECOVERY_SECONDS));
+    }
+    const relax = 1 - Math.exp(-dt * 30);
+    for (const [axis, index] of [["x", 0], ["y", 1], ["z", 2]] as const) {
+      this.miningOffset[axis] = THREE.MathUtils.lerp(this.miningOffset[axis], stroke.position[index], relax);
+      this.miningRotation[axis] = THREE.MathUtils.lerp(this.miningRotation[axis], stroke.rotation[index], relax);
+    }
+    const tool = attack;
+    const miningMode = this.actionMode === PlayerActionMode.Tool;
     const pose = VIEWMODEL_POSES[this.actionMode];
     const [px, py, pz] = pose.position;
     const [rx, ry, rz] = pose.rotation;
     const gun = this.actionMode === PlayerActionMode.Repeater;
     const sword = this.actionMode === PlayerActionMode.Blade;
-    this.root.position.set(px + Math.sin(this.walkTime) * bob + this.swayX - (sword ? attack * 0.12 : 0),
-      py - Math.abs(Math.cos(this.walkTime)) * bob + this.swayY - (1 - this.equipTime) * 0.18 - (gun ? 0 : tool * 0.045),
-      pz + (gun ? attack * 0.1 : -tool * 0.12));
-    this.root.rotation.set(rx + (gun ? attack * 0.07 : -tool * 0.75), ry + this.swayX,
-      rz + (sword ? attack * 1.05 : gun ? 0 : tool * 0.22));
+    this.root.position.set(px + Math.sin(this.walkTime) * bob + this.swayX - (sword ? attack * 0.12 : 0) + (miningMode ? this.miningOffset.x : 0),
+      py - Math.abs(Math.cos(this.walkTime)) * bob + this.swayY - (1 - this.equipTime) * 0.18 - (gun ? 0 : tool * 0.045) + (miningMode ? this.miningOffset.y : 0),
+      pz + (gun ? attack * 0.1 : -tool * 0.12) + (miningMode ? this.miningOffset.z : 0));
+    this.root.rotation.set(rx + (gun ? attack * 0.07 : -tool * 0.75) + (miningMode ? this.miningRotation.x : 0),
+      ry + this.swayX + (miningMode ? this.miningRotation.y : 0),
+      rz + (sword ? attack * 1.05 : gun ? 0 : tool * 0.22) + (miningMode ? this.miningRotation.z : 0));
     this.muzzle.visible = this.effects && gun && this.attackTime < 0.18;
     this.muzzle.rotation.z += dt * 30;
   }

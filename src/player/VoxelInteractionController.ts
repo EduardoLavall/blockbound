@@ -21,7 +21,7 @@ import type { VoxelWorld } from "../voxel/VoxelWorld";
 import type { PlayerController } from "./PlayerController";
 import type { Hotbar } from "./Hotbar";
 import { MiningCracks } from "./MiningCracks";
-import { miningSwingCount } from "../survival/MiningTool";
+import { miningContactsCrossed } from "./MiningStroke";
 
 export class VoxelInteractionController {
   private readonly direction = new THREE.Vector3();
@@ -30,6 +30,7 @@ export class VoxelInteractionController {
   private miningKey = "";
   private miningElapsed = 0;
   private miningRatio = 0;
+  private crackProgress = 0;
   private miningDurationValue = 0;
   private feedback = "";
   private feedbackTime = 0;
@@ -50,7 +51,7 @@ export class VoxelInteractionController {
     private readonly canMinePrimary: () => boolean,
     private readonly targetInfo: HTMLElement,
     private readonly miningProgress: HTMLElement,
-    private readonly onBreak: (position: THREE.Vector3, block: BlockId, broken: boolean) => void = () => {},
+    private readonly onBreak: (position: THREE.Vector3, block: BlockId, broken: boolean, normal: THREE.Vector3) => void = () => {},
   ) {
     this.cracks = new MiningCracks(scene);
     const outline = new THREE.EdgesGeometry(
@@ -99,7 +100,8 @@ export class VoxelInteractionController {
     this.refreshTarget();
     const target = this.target;
     const miningEnabled = this.canMinePrimary();
-    this.cracks.update(this.mode.buildMode ? null : target, this.miningRatio);
+    const sameMiningTarget = target && `${target.voxel.x},${target.voxel.y},${target.voxel.z}:${target.block}` === this.miningKey;
+    this.cracks.update(this.mode.buildMode ? null : target, sameMiningTarget ? this.crackProgress : 0);
 
     this.miningProgress.style.width =
       `${Math.round(this.miningRatio * 100)}%`;
@@ -223,15 +225,15 @@ export class VoxelInteractionController {
     if (key !== this.miningKey) {
       this.miningKey = key;
       this.miningElapsed = 0;
+      this.crackProgress = 0;
     }
 
-    const cycles = miningSwingCount(duration);
-    const previousSwing = Math.floor(this.miningElapsed / duration * cycles);
+    const before = this.miningElapsed / duration;
     this.miningElapsed += dt;
     this.miningRatio = Math.min(1, this.miningElapsed / duration);
-    if (Math.floor(this.miningElapsed / duration * cycles) > previousSwing && this.miningRatio < 1) {
-      this.onBreak(new THREE.Vector3(target.voxel.x + 0.5, target.voxel.y + 0.6,
-        target.voxel.z + 0.5), target.block, false);
+    if (miningContactsCrossed(before, this.miningRatio, duration) > 0 && this.miningRatio < 1) {
+      this.crackProgress = this.miningRatio;
+      this.emitMiningImpact(target, false);
     }
 
     if (this.miningElapsed < duration) return;
@@ -245,8 +247,7 @@ export class VoxelInteractionController {
     );
 
     if (edit.changed) {
-      this.onBreak(new THREE.Vector3(target.voxel.x + 0.5, target.voxel.y + 0.5,
-        target.voxel.z + 0.5), target.block, true);
+      this.emitMiningImpact(target, true);
       this.chunks.requestRebuild(edit.dirtyChunkKeys);
       if (drop) {
         this.drops.spawn(
@@ -313,10 +314,17 @@ export class VoxelInteractionController {
     this.chunks.requestRebuild(edit.dirtyChunkKeys);
   }
 
+  private emitMiningImpact(target: VoxelRaycastHit, broken: boolean): void {
+    const normal = new THREE.Vector3(target.faceNormal.x, target.faceNormal.y, target.faceNormal.z);
+    const position = this.camera.position.clone().addScaledVector(this.direction, target.distance).addScaledVector(normal, 0.035);
+    this.onBreak(position, target.block, broken, normal);
+  }
+
   private resetMining(): void {
     this.miningKey = "";
     this.miningElapsed = 0;
     this.miningRatio = 0;
+    this.crackProgress = 0;
     this.miningDurationValue = 0;
   }
 

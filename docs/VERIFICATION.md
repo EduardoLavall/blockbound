@@ -16,6 +16,7 @@ O jogador carrega um mundo por seed, entra na expedição, prepara defesas, troc
 | Relógio → onda → amanhecer | Testes exercitam as cinco noites, N, retenção de fase, spawn completo, chefe e término após eliminar inimigos. |
 | Anoitecer → noite | Regressão percorre a transição a 60 Hz e garante que a iluminação nunca clareia entre as fases. Também cobre limite exato, sobra de frame, N no dia/durante o anoitecer e amanhecer após uma noite curta. |
 | Física → jogador | Teste com Rapier real atravessa um degrau de 1 bloco; testes de buffer cobrem salto cedo, salto na borda e rejeição de salto tardio. |
+| Mineração → animação/impacto | Preparação, golpe acelerado, contato e recuperação usam a mesma linha de tempo. O contato final coincide com a quebra, preservando duração e upgrades. Regressões cobrem 30/60/144 atualizações por segundo e recuperação após remover o bloco. Lasca/áudio saem da face atingida; fraturas crescem por impacto. Cena controlada com os sistemas reais usada para inspeção visual e prévia. |
 | Inventário → recompensas | Testes verificam kit inicial utilizável e preservação de overflow com mochila cheia ou parcialmente cheia. |
 | Geração → floresta | Três seeds verificadas com raízes em terreno e separação mínima de 6 células entre canopias. |
 | Produção | Verificação dos PNGs, Vitest, TypeScript e build Vite. Há aviso de bundle grande por causa da física embutida. |

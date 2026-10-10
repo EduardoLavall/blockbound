@@ -1,12 +1,14 @@
 import * as THREE from "three";
+import type { VoxelWorld } from "../../voxel/VoxelWorld";
+import { isSolidBlock } from "../../voxel/blocks";
 
 const CAPACITY = 180;
-interface Particle { position: THREE.Vector3; velocity: THREE.Vector3; life: number; maxLife: number; size: number }
+interface Particle { position: THREE.Vector3; velocity: THREE.Vector3; life: number; maxLife: number; size: number; debris: boolean; bounces: number }
 
 /** Fixed pools keep mining and combat effects bounded across a long run. */
 export class GameFeel {
   private readonly particles: Particle[] = Array.from({ length: CAPACITY }, () => ({
-    position: new THREE.Vector3(), velocity: new THREE.Vector3(), life: 0, maxLife: 1, size: 0,
+    position: new THREE.Vector3(), velocity: new THREE.Vector3(), life: 0, maxLife: 1, size: 0, debris: false, bounces: 0,
   }));
   private readonly mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
     new THREE.MeshBasicMaterial(), CAPACITY);
@@ -22,7 +24,7 @@ export class GameFeel {
   private readonly kickRotation = new THREE.Quaternion();
   private time = 0;
 
-  constructor(scene: THREE.Scene, private readonly camera: THREE.Camera) {
+  constructor(scene: THREE.Scene, private readonly camera: THREE.Camera, private readonly world?: VoxelWorld) {
     this.mesh.name = "pooled-impact-particles";
     this.mesh.frustumCulled = false;
     this.numbers = Array.from({ length: 24 }, () => {
@@ -48,7 +50,32 @@ export class GameFeel {
       p.velocity.set((Math.random() - 0.5) * 4, 1 + Math.random() * 3, (Math.random() - 0.5) * 4);
       p.life = p.maxLife = 0.3 + Math.random() * 0.4;
       p.size = 0.045 + Math.random() * 0.09;
+      p.debris = false; p.bounces = 0;
       this.mesh.setColorAt(slot, new THREE.Color(color));
+    }
+    this.mesh.instanceColor!.needsUpdate = true;
+  }
+  miningImpact(position: THREE.Vector3, color: number, surfaceNormal: THREE.Vector3, broken: boolean): void {
+    if (!this.enabled) return;
+    const normal = surfaceNormal.lengthSq() > 0 ? surfaceNormal.clone().normalize() : new THREE.Vector3(0, 1, 0);
+    const right = Math.abs(normal.y) > 0.9 ? new THREE.Vector3(1, 0, 0)
+      : new THREE.Vector3().crossVectors(normal, new THREE.Vector3(0, 1, 0)).normalize();
+    const up = new THREE.Vector3().crossVectors(right, normal).normalize();
+    const count = broken ? 24 : 6;
+    for (let i = 0; i < count; i++) {
+      const slot = this.cursor++ % CAPACITY;
+      const p = this.particles[slot]!;
+      const spread = broken ? 0.4 : 0.1;
+      p.position.copy(position).addScaledVector(right, (Math.random() - 0.5) * spread)
+        .addScaledVector(up, (Math.random() - 0.5) * spread).addScaledVector(normal, 0.05);
+      p.velocity.copy(normal).multiplyScalar(broken ? 1.5 + Math.random() * 2 : 1 + Math.random())
+        .addScaledVector(right, (Math.random() - 0.5) * (broken ? 4 : 2))
+        .addScaledVector(up, (Math.random() - 0.5) * 2);
+      p.velocity.y += broken ? 1 + Math.random() * 2 : 0.6;
+      p.life = p.maxLife = broken ? 0.55 + Math.random() * 0.3 : 0.22 + Math.random() * 0.15;
+      p.size = broken ? 0.08 + Math.random() * 0.09 : 0.025 + Math.random() * 0.035;
+      p.debris = broken; p.bounces = 0;
+      this.mesh.setColorAt(slot, new THREE.Color(color).multiplyScalar(0.75 + Math.random() * 0.5));
     }
     this.mesh.instanceColor!.needsUpdate = true;
   }
@@ -92,10 +119,16 @@ export class GameFeel {
       if (p.life > 0) {
         p.velocity.y -= dt * 10;
         p.position.addScaledVector(p.velocity, dt);
+        if (p.debris && p.velocity.y < 0 && this.world &&
+          isSolidBlock(this.world.getBlock(Math.floor(p.position.x), Math.floor(p.position.y), Math.floor(p.position.z)))) {
+          p.position.y = Math.floor(p.position.y) + 1 + p.size / 2;
+          p.velocity.y = p.bounces++ < 1 ? -p.velocity.y * 0.25 : 0;
+          p.velocity.x *= 0.45; p.velocity.z *= 0.45;
+        }
         this.dummy.position.copy(p.position);
         this.dummy.rotation.set(p.life * 3, p.life * 5, 0);
       }
-      this.dummy.scale.setScalar(p.life > 0 ? p.size * p.life / p.maxLife : 0);
+      this.dummy.scale.setScalar(p.life > 0 ? p.size * (p.debris ? Math.min(1, p.life * 6) : p.life / p.maxLife) : 0);
       this.dummy.updateMatrix();
       this.mesh.setMatrixAt(i, this.dummy.matrix);
     }
