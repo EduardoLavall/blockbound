@@ -7,6 +7,10 @@ O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
 
+## Áudio 0.4.1
+
+Cada tipo de bloco destrutível agora tem um som final exclusivo: grama, terra, pedra, madeira, folhas, minério e cristal. Golpes de mineração e ruptura final são distintos; folhas têm farfalhar próprio. O banco tem 49 gravações CC0, mantendo os sons de queda e impacto das árvores. [Fontes e detalhes](docs/AUDIO_ASSETS.md).
+
 ## Árvores 0.4.0
 
 - Troncos naturais têm resistência 3× maior: 2,16 s com a picareta inicial.
