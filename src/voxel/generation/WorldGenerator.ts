@@ -1,6 +1,7 @@
 import { BlockId } from "../blocks";
 import { CHUNK_HEIGHT, CHUNK_SIZE } from "../constants";
 import { VoxelWorld } from "../VoxelWorld";
+import type { TreeBlock } from "../Trees";
 import { buildPrimaryLane } from "../../world/LaneSystem";
 import { BiomeId, biomeAt } from "./Biomes";
 import { coordinateRandom, coordinateRandom3, fbm2D } from "./Noise";
@@ -186,9 +187,11 @@ function generateTrees(
 
       const trunkHeight =
         3 + Math.floor(coordinateRandom(seed, x, z, 104) * 3);
+      const treeBlocks: TreeBlock[] = [];
 
       for (let y = 1; y <= trunkHeight; y++) {
         world.setGeneratedBlock(x, groundY + y, z, BlockId.Wood);
+        treeBlocks.push({ x, y: groundY + y, z, block: BlockId.Wood });
       }
 
       const canopyY = groundY + trunkHeight;
@@ -211,10 +214,12 @@ function generateTrees(
                 leafZ,
                 BlockId.Leaves,
               );
+              treeBlocks.push({ x: leafX, y: leafY, z: leafZ, block: BlockId.Leaves });
             }
           }
         }
       }
+      world.trees.register({ x, y: groundY + 1, z }, treeBlocks);
     }
   }
 }

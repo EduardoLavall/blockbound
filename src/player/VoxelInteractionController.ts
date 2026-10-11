@@ -146,8 +146,9 @@ export class VoxelInteractionController {
         selectedBlock === null
           ? null
           : placementCost(selectedBlock);
-      this.targetInfo.textContent =
-        `${definition.name.toUpperCase()} · ${target.distance.toFixed(1)}m · PLACE ${cost ? formatCost(cost) : "N/A"}`;
+      this.targetInfo.textContent = this.world.trees.atTrunk(target.voxel.x, target.voxel.y, target.voxel.z)
+        ? `TRONCO RESISTENTE · ${target.distance.toFixed(1)}m · DERRUBA A ÁRVORE`
+        : `${definition.name.toUpperCase()} · ${target.distance.toFixed(1)}m · PLACE ${cost ? formatCost(cost) : "N/A"}`;
     }
   }
 
@@ -206,7 +207,8 @@ export class VoxelInteractionController {
       return;
     }
 
-    const baseDuration = miningDuration(target.block);
+    const tree = this.world.trees.atTrunk(target.voxel.x, target.voxel.y, target.voxel.z);
+    const baseDuration = miningDuration(target.block, undefined, Boolean(tree));
     const duration = this.status.modifyMiningDuration(baseDuration);
     this.miningDurationValue = duration;
     if (!Number.isFinite(duration)) {
@@ -243,7 +245,7 @@ export class VoxelInteractionController {
     if (edit.changed) {
       this.emitMiningImpact(target, true);
       this.chunks.requestRebuild(edit.dirtyChunkKeys);
-      if (drop) {
+      if (drop && !tree) {
         this.drops.spawn(
           {
             ...drop,

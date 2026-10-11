@@ -7,6 +7,15 @@ O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
 
+## Árvores 0.4.0
+
+- Troncos naturais têm resistência 3× maior: 2,16 s com a picareta inicial.
+- Quebrar qualquer bloco do tronco derruba a árvore inteira, com copa e madeira tombando juntas.
+- Rangido de queda, impacto no solo, folhas texturizadas e pequeno efeito de câmera acompanham a animação.
+- A madeira de todo o tronco aparece como sprites para coleta no impacto, com bônus de rendimento e sem duplicação.
+- Madeira colocada pelo jogador continua sendo construção; árvores vizinhas permanecem em pé.
+- [Comportamento e verificação](docs/TREE_FELLING.md).
+
 ## Overhaul 0.3.0 — O Último Cristal
 
 Revisão e implementação: [análise crítica](docs/CRITICAL_REVIEW.md) · [verificação](docs/VERIFICATION.md).

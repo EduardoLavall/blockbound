@@ -1,5 +1,6 @@
 import { BlockId } from "./blocks";
 import { Chunk } from "./Chunk";
+import { TreeRegistry } from "./Trees";
 import { CHUNK_HEIGHT, CHUNK_SIZE } from "./constants";
 
 export interface VoxelEditResult {
@@ -18,6 +19,7 @@ export interface VoxelEditEvent {
 export type ProtectedColumnTag = "lane";
 
 export class VoxelWorld {
+  readonly trees = new TreeRegistry();
   private readonly chunks = new Map<string, Chunk>();
   private readonly protectedColumns = new Map<string, ProtectedColumnTag>();
   private readonly editListeners = new Set<(event: VoxelEditEvent) => void>();

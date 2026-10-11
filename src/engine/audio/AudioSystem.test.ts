@@ -33,9 +33,18 @@ async function ready(): Promise<AudioSystem> {
 }
 afterEach(() => vi.unstubAllGlobals());
 describe("audio lifecycle and mix", () => {
+  it("plays separate fall and impact recordings, honoring volume and mute", async () => {
+    const audio = await ready(); const context = Context.latest;
+    audio.treeFall(0.5, -0.3); audio.treeImpact(0.5, 0.3);
+    expect(context.sources).toHaveLength(2);
+    expect(context.sources[0]!.playbackRate.value).toBe(1);
+    expect(context.sources[1]!.playbackRate.value).toBe(1);
+    audio.setVolume(0); context.currentTime += 1; audio.treeFall(); audio.treeImpact();
+    expect(context.sources).toHaveLength(2);
+  });
   it("decodes the bank once and reuses it across inventory/menu resume", async () => {
     const audio = await ready(); const requests = vi.mocked(fetch).mock.calls.length;
-    expect(audio.loadedCount).toBe(40); await audio.unlock(); expect(vi.mocked(fetch).mock.calls.length).toBe(requests);
+    expect(audio.loadedCount).toBe(42); await audio.unlock(); expect(vi.mocked(fetch).mock.calls.length).toBe(requests);
     audio.shoot(); expect(Context.latest.sources.length).toBe(1);
     audio.pause(); expect(Context.latest.sources[0]!.stopped).toBe(true);
     Context.latest.currentTime += 0.3; audio.shoot(); expect(Context.latest.sources.length).toBe(2);
