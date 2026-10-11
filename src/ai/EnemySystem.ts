@@ -52,6 +52,12 @@ export interface EnemyDamageEvent {
   amount: number;
   source: DamageSource;
   killed: boolean;
+  impact?: EnemyDamageImpact;
+}
+
+export interface EnemyDamageImpact {
+  point: THREE.Vector3;
+  direction: THREE.Vector3;
 }
 
 interface EnemyBolt {
@@ -411,8 +417,9 @@ export class EnemySystem {
     enemy: EnemyInstance,
     amount: number,
     source: DamageSource = "player-melee",
+    impact?: EnemyDamageImpact,
   ): boolean {
-    if (!enemy.alive || amount <= 0) return false;
+    if (!enemy.alive || !Number.isFinite(amount) || amount <= 0) return false;
 
     const dealt = enemy.health.damage(amount);
     const killed = enemy.health.destroyed;
@@ -434,6 +441,7 @@ export class EnemySystem {
       amount: dealt,
       source,
       killed,
+      impact: impact && { point: impact.point.clone(), direction: impact.direction.clone().normalize() },
     };
     for (const listener of this.damageListeners) listener(event);
     return killed;

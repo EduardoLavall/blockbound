@@ -102,12 +102,13 @@ export class ProjectileSystem {
           hit.distance !== null && hit.distance < cover)
         .sort((a, b) => a.distance - b.distance);
       let consumed = false;
-      for (const { enemy: hitEnemy } of hits) {
+      for (const { enemy: hitEnemy, distance } of hits) {
         projectile.hitIds.add(hitEnemy.id);
         const killed = this.enemies.damage(
           hitEnemy,
           projectile.damage,
           "player-projectile",
+          { point: projectile.previous.clone().addScaledVector(direction, distance), direction },
         );
         this.enemies.knockback(hitEnemy, direction, WEAPON_KNOCKBACK.repeater);
 

@@ -77,7 +77,12 @@ export class DefenseCombatSystem {
         target,
       );
 
-      this.enemies.damage(target, damage, "turret");
+      const impactPoint = target.group.position.clone().add(new THREE.Vector3(0, 0.95 * target.definition.scale, 0));
+      const muzzle = new THREE.Vector3(structure.x, structure.y + (structure.type === StructureType.RapidTurret ? 1.12 : 1.55), structure.z);
+      const incoming = impactPoint.clone().sub(muzzle).normalize();
+      this.enemies.damage(target, damage, "turret", {
+        point: impactPoint.addScaledVector(incoming, -0.35 * target.definition.scale), direction: incoming,
+      });
       this.applyTurretStatuses(target);
       this.spawnBolt(
         structure,
@@ -108,7 +113,10 @@ export class DefenseCombatSystem {
         if ((this.spikeCooldowns.get(key) ?? 0) > 0) continue;
 
         const damage = this.rules.modifySpikeDamage(24, enemy);
-        this.enemies.damage(enemy, damage, "spike");
+        this.enemies.damage(enemy, damage, "spike", {
+          point: enemy.group.position.clone().add(new THREE.Vector3(0, 0.15 * enemy.definition.scale, 0)),
+          direction: new THREE.Vector3(0, 1, 0),
+        });
         this.spikeCooldowns.set(
           key,
           0.62 * this.rules.spikeCooldownMultiplier,
