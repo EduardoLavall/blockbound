@@ -80,7 +80,6 @@ export class GameFeel {
     this.mesh.instanceColor!.needsUpdate = true;
   }
   damage(position: THREE.Vector3, amount: number, killed: boolean, player: boolean): void {
-    this.burst(position, killed ? 0xffbc6b : 0x8be3de, killed ? 18 : 5);
     if (!this.enabled || !player) return;
     const n = this.numbers[this.numberCursor++ % this.numbers.length]!;
     n.point.copy(position);

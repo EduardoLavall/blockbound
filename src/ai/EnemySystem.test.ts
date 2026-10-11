@@ -40,6 +40,20 @@ function fixture(seed = "blockbound-review") {
 }
 
 describe("enemy combat and complete siege", () => {
+  it("emits copied hit coordinates once for a kill, ignoring dead enemies and invalid damage", () => {
+    const f = fixture(); const target = f.enemies.spawn(EnemyType.Grunt, f.grid.getCell(12, 12)!, 1);
+    const listener = vi.fn(); f.enemies.subscribeDamage(listener);
+    const point = target.group.position.clone(), direction = new THREE.Vector3(3, 0, 0);
+    f.enemies.damage(target, Infinity, "player-projectile");
+    expect(listener).not.toHaveBeenCalled();
+    f.enemies.damage(target, 999, "player-projectile", { point, direction });
+    point.set(0, 0, 0); direction.set(0, 0, 0);
+    f.enemies.damage(target, 999, "player-projectile");
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener.mock.calls[0]![0].impact.point).toEqual(target.group.position);
+    expect(listener.mock.calls[0]![0].impact.direction).toEqual(new THREE.Vector3(1, 0, 0));
+    expect(listener.mock.calls[0]![0].killed).toBe(true);
+  });
   it("makes melee knockback stronger than ranged and resists it on heavy enemies", () => {
     const f = fixture();
     const melee = f.enemies.spawn(EnemyType.Grunt, f.grid.getCell(12,12)!, 1);

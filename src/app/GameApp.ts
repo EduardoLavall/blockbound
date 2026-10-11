@@ -15,6 +15,7 @@ import { Input } from "../core/Input";
 import { simulationActive } from "../core/SimulationState";
 import { initializeRunInventory, DAWN_SUPPLIES, grantSupplies } from "../defense/RunEconomy";
 import { GameFeel } from "../engine/render/GameFeel";
+import { BloodGoreSystem } from "../engine/render/BloodGoreSystem";
 import { WorldDressing } from "../world/WorldDressing";
 import { FieldHUD } from "../ui/FieldHUD";
 import { hudScale } from "../ui/HudScale";
@@ -163,6 +164,7 @@ export class GameApp {
   private runRuleEffects!: RunRuleEffects;
   private telemetry!: RunTelemetry;
   private feel!: GameFeel;
+  private blood!: BloodGoreSystem;
   private dressing!: WorldDressing;
   private fieldHud!: FieldHUD;
   private started = false;
@@ -230,6 +232,7 @@ export class GameApp {
     );
     this.dressing = new WorldDressing(this.renderer.scene, this.world, this.metadata);
     this.feel = new GameFeel(this.renderer.scene, this.renderer.camera, this.world);
+    this.blood = new BloodGoreSystem(this.renderer.scene, this.world);
 
     const coreSurface = this.world.highestSolidY(
       this.metadata.core.x,
@@ -495,6 +498,7 @@ export class GameApp {
       const playerDamage = event.source.startsWith("player-");
       const position = event.enemy.group.position.clone();
       position.y += 1.2 * event.enemy.definition.scale;
+      this.blood.hit(event);
       this.feel.damage(position, event.amount, event.killed, playerDamage);
       if (
         event.source === "player-tool" ||
@@ -520,6 +524,8 @@ export class GameApp {
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
         if (!this.simulating) return;
+
+        this.blood.enabled = this.settings.state.effects;
 
         this.telemetry.update(dt);
         this.playerVitals.update(dt);
@@ -564,6 +570,7 @@ export class GameApp {
         );
         this.enemies.fixedUpdate(dt);
         this.defenseCombat.fixedUpdate(dt);
+        this.blood.fixedUpdate(dt);
 
         if (this.core.health.destroyed || this.playerVitals.dead) {
           this.endRun(this.core.health.destroyed ? "CRISTAL DESTRUÍDO" : "VOCÊ CAIU",
@@ -601,6 +608,7 @@ export class GameApp {
       render: (frameMs) => {
         const visualMs = this.simulating ? frameMs : 0;
         this.feel.enabled = this.settings.state.effects;
+        this.blood.enabled = this.settings.state.effects;
         this.renderer.effects = this.settings.state.effects;
         this.hand.effects = this.settings.state.effects;
         this.feel.update(Math.min(visualMs / 1000, 0.05));

@@ -149,6 +149,7 @@ export class PlayerCombatSystem {
       target,
       damage,
       "player-tool",
+      this.meleeImpact(target),
     );
     this.enemies.knockback(target, this.direction, WEAPON_KNOCKBACK.pickaxe);
     this.hud.showHit(killed, false);
@@ -176,10 +177,17 @@ export class PlayerCombatSystem {
       target,
       damage,
       "player-melee",
+      this.meleeImpact(target),
     );
     this.enemies.knockback(target, this.direction, WEAPON_KNOCKBACK.blade);
     this.applyPlayerStatuses(target, false);
     this.hud.showHit(killed, critical);
+  }
+
+  private meleeImpact(target: EnemyInstance): { point: THREE.Vector3; direction: THREE.Vector3 } {
+    const center = target.group.position.clone().add(new THREE.Vector3(0, target.definition.scale, 0));
+    const direction = center.clone().sub(this.camera.position).normalize();
+    return { point: center.addScaledVector(direction, -0.35 * target.definition.scale), direction };
   }
 
   private fireRepeater(): void {

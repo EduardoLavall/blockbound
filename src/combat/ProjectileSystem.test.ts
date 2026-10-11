@@ -41,6 +41,8 @@ describe("swept combat collisions", () => {
     f.projectiles.fixedUpdate(1 / 60);
     expect(f.damage).toHaveBeenCalledTimes(1);
     expect(f.damage.mock.calls[0]![0]).toBe(front);
+    expect(f.damage.mock.calls[0]![3].point).toEqual(new THREE.Vector3(1.1, 1.8, 0.5));
+    expect(f.damage.mock.calls[0]![3].direction).toEqual(new THREE.Vector3(1, 0, 0));
   });
   it("applies piercing in distance order within the same frame", () => {
     const front = enemy(1.5, 1), back = enemy(3.5, 2);
