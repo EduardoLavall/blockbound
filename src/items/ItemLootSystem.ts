@@ -16,7 +16,7 @@ import {
 
 interface ItemDrop {
   definition: ItemDefinition;
-  mesh: THREE.Mesh;
+  mesh: THREE.Sprite;
   age: number;
   baseY: number;
   phase: number;
@@ -46,8 +46,8 @@ export class ItemLootSystem {
     for (let index = this.drops.length - 1; index >= 0; index--) {
       const drop = this.drops[index]!;
       drop.age += dt;
-      drop.mesh.rotation.y += dt * 1.6;
-      drop.mesh.rotation.x = Math.sin(drop.age * 1.8 + drop.phase) * 0.12;
+      drop.mesh.material.rotation = Math.sin(drop.age * 2) * 0.06;
+
 
       const dx = player.x - drop.mesh.position.x;
       const dy = player.y - drop.mesh.position.y;
@@ -109,14 +109,8 @@ export class ItemLootSystem {
     y: number,
     z: number,
   ): void {
-    const material = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(definition.swatch),
-      emissive: rarityColor(definition.rarity),
-      emissiveIntensity: definition.rarity === "epic" ? 0.7 : 0.32,
-      roughness: 0.5,
-      metalness: definition.slot === "weapon" ? 0.38 : 0.12,
-    });
-    const mesh = new THREE.Mesh(this.geometry, material);
+    const mesh = createDropSprite(definition.slot === "weapon"
+      ? definition.tags.includes("projectile") ? "repeater" : "blade" : definition.slot ?? "chest");
     const phase = this.random.range(0, Math.PI * 2);
     const baseY = y;
 
@@ -126,10 +120,7 @@ export class ItemLootSystem {
       z + Math.cos(phase) * 0.24,
     );
     mesh.rotation.set(0.35, phase, 0.2);
-    mesh.castShadow = true;
     mesh.userData.itemDrop = definition.id;
-    mesh.add(createDropSprite(definition.slot === "weapon"
-      ? definition.tags.includes("projectile") ? "repeater" : "blade" : definition.slot ?? "chest"));
 
     this.scene.add(mesh);
     this.drops.push({
@@ -144,11 +135,7 @@ export class ItemLootSystem {
   private removeAt(index: number): void {
     const drop = this.drops[index]!;
     this.scene.remove(drop.mesh);
-    drop.mesh.traverse(object => { if (object instanceof THREE.Sprite) (object.material as THREE.Material).dispose(); });
-    const materials = Array.isArray(drop.mesh.material)
-      ? drop.mesh.material
-      : [drop.mesh.material];
-    for (const material of materials) material.dispose();
+    drop.mesh.material.dispose();
     this.drops.splice(index, 1);
   }
 }

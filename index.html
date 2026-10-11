@@ -12,6 +12,7 @@
       <canvas id="game-canvas" tabindex="-1" aria-label="Mundo do Blockbound"></canvas>
       <div id="world-vignette" aria-hidden="true"></div>
       <div id="damage-flash" aria-hidden="true"></div>
+      <div id="game-hud">
       <div id="crosshair" aria-hidden="true"></div>
       <div id="hit-marker" aria-hidden="true">
         <span></span><span></span><span></span><span></span>
@@ -55,6 +56,7 @@
         </div>
       </div>
 
+      </div>
       <div id="start-overlay" class="overlay">
         <div class="panel expedition-panel">
           <div class="start-heading-row">
@@ -111,6 +113,10 @@
             <label>
               <span>Diagnóstico</span>
               <input id="settings-debug" type="checkbox" />
+            </label>
+            <label>
+              <span>Tamanho da HUD</span>
+              <input id="settings-hud-scale" type="range" min="0.75" max="1.5" step="0.05" value="1" />
             </label>
           </div>
           </details>

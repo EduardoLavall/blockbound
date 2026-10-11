@@ -1776,3 +1776,11 @@ body.reduced-fx #crosshair.recovering { transform:translate(-50%,-50%); }
 .equipment-slot-item .art-icon, .item-detail-heading .art-icon { width:44px; height:44px; }
 .item-detail-heading { grid-template-columns:44px 1fr; }
 @media(max-width:760px) { .hotbar-swatch.art-icon { width:24px; height:24px; } }
+
+#game-hud { position:fixed; top:0; left:0; width:calc(100vw / var(--hud-scale,1)); height:calc(100vh / var(--hud-scale,1)); transform:scale(var(--hud-scale,1)); transform-origin:0 0; z-index:4; pointer-events:none; }
+#game-hud .overlay, #game-hud .item-inventory-panel, #game-hud .player-status-panel { pointer-events:auto; }
+.inventory2-shell { width:min(1440px,96%); max-height:94%; }
+.upgrade-panel { width:min(1050px,96%); }
+#game-hud #target-info, #game-hud #build-info { max-width:90%; }
+#game-hud #event-banner { width:min(660px,90%); }
+#game-hud .player-status-panel { inset:8% 6%; }

@@ -31,7 +31,7 @@ export class GameFeel {
       const element = document.createElement("div");
       element.className = "damage-number";
       element.hidden = true;
-      document.getElementById("app")!.append(element);
+      (document.getElementById("game-hud") ?? document.getElementById("app"))!.append(element);
       return { element, point: new THREE.Vector3(), life: 0, maxLife: 0.7 };
     });
     for (let i = 0; i < CAPACITY; i++) {

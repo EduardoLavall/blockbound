@@ -7,7 +7,7 @@ import { RESOURCES, type BlockDrop, type ResourceId } from "./Resources";
 interface ResourceDropInstance {
   resource: ResourceId;
   amount: number;
-  mesh: THREE.Mesh;
+  mesh: THREE.Sprite;
   age: number;
   phase: number;
   baseY: number;
@@ -24,19 +24,7 @@ export class ResourceDropSystem {
   ) {}
 
   spawn(drop: BlockDrop, x: number, y: number, z: number): void {
-    const definition = RESOURCES[drop.resource];
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.24, 0.24, 0.24),
-      new THREE.MeshStandardMaterial({
-        color: new THREE.Color(definition.swatch),
-        roughness: 0.68,
-        metalness: drop.resource === "metal" ? 0.35 : 0.02,
-        emissive: drop.resource === "crystal"
-          ? new THREE.Color(definition.swatch).multiplyScalar(0.18)
-          : new THREE.Color(0x000000),
-      }),
-    );
-
+    const mesh = createDropSprite(drop.resource);
     const phase = (this.drops.length * 1.913) % (Math.PI * 2);
     const baseY = y + 0.48;
     mesh.position.set(
@@ -45,9 +33,8 @@ export class ResourceDropSystem {
       z + 0.5 + Math.cos(phase) * 0.12,
     );
     mesh.rotation.set(0.25, phase, 0.18);
-    mesh.castShadow = true;
     mesh.userData.resourceDrop = drop.resource;
-    mesh.add(createDropSprite(drop.resource));
+
 
     this.scene.add(mesh);
     this.drops.push({
@@ -66,7 +53,7 @@ export class ResourceDropSystem {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const drop = this.drops[i]!;
       drop.age += dt;
-      drop.mesh.rotation.y += dt * 1.8;
+      drop.mesh.material.rotation = Math.sin(drop.age * 2) * 0.06;
 
       const dx = player.x - drop.mesh.position.x;
       const dy = player.y - drop.mesh.position.y;
@@ -106,12 +93,7 @@ export class ResourceDropSystem {
   private removeAt(index: number): void {
     const drop = this.drops[index]!;
     this.scene.remove(drop.mesh);
-    drop.mesh.traverse(object => { if (object instanceof THREE.Sprite) (object.material as THREE.Material).dispose(); });
-    drop.mesh.geometry.dispose();
-    const materials = Array.isArray(drop.mesh.material)
-      ? drop.mesh.material
-      : [drop.mesh.material];
-    for (const material of materials) material.dispose();
+    drop.mesh.material.dispose();
     this.drops.splice(index, 1);
   }
 }

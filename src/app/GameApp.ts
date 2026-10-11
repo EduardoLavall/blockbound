@@ -17,6 +17,7 @@ import { STARTER_KIT, DAWN_SUPPLIES, grantSupplies } from "../defense/RunEconomy
 import { GameFeel } from "../engine/render/GameFeel";
 import { WorldDressing } from "../world/WorldDressing";
 import { FieldHUD } from "../ui/FieldHUD";
+import { hudScale } from "../ui/HudScale";
 import { PlayerActionMode } from "../combat/CombatTypes";
 import { blockDefinition } from "../voxel/blocks";
 import {
@@ -831,6 +832,13 @@ export class GameApp {
     this.options.settingsEffects.checked = state.effects;
     this.options.settingsDebug.checked = state.debug;
     this.applySettings();
+    const hudSize = document.getElementById("settings-hud-scale") as HTMLInputElement;
+    hudSize.value = String(state.hudScale);
+    hudSize.addEventListener("input", () => {
+      this.settings.update({ hudScale: Number(hudSize.value) });
+      this.applySettings();
+    });
+    window.addEventListener("resize", () => this.applySettings());
 
     this.options.settingsVolume.addEventListener("input", () => {
       this.settings.update({
@@ -856,6 +864,7 @@ export class GameApp {
 
   private applySettings(): void {
     const state = this.settings.state;
+    document.documentElement.style.setProperty("--hud-scale", String(hudScale(window.innerWidth, window.innerHeight, state.hudScale)));
     this.audio.setVolume(state.volume);
     this.audio.setEnabled(true);
     this.options.debug.classList.toggle("hidden", !state.debug);
