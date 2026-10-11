@@ -13,12 +13,13 @@ import { coverDistance, enemyHitDistance } from "./CombatTrace";
 function enemy(x: number, id = 1, type = EnemyType.Grunt): EnemyInstance {
   const group = new THREE.Group(); group.position.set(x, 1, 0.5);
   return { id, type, definition: ENEMIES[type], group, health: new Health(100), alive: true,
-    statuses: new Map(), speed: 0, attackDamage: 0, attackInterval: 1, attackCooldown: 0, abilityCooldown: 1 };
+    statuses: new Map(), speed: 0, attackDamage: 0, attackInterval: 1, attackCooldown: 0, abilityCooldown: 1,
+    knockbackVelocity: new THREE.Vector3(), stagger: 0 };
 }
 function fixture(targets: EnemyInstance[], pierce = 0, speed = 240) {
   const world = new VoxelWorld(); world.ensureChunk(0, 0);
   const damage = vi.fn();
-  const enemies = { aliveEnemies: targets, damage, applyStatus: vi.fn() } as unknown as EnemySystem;
+  const enemies = { aliveEnemies: targets, damage, applyStatus: vi.fn(), knockback: vi.fn() } as unknown as EnemySystem;
   const structures = { all: [] } as unknown as StructureSystem;
   const projectiles = new ProjectileSystem(1, new THREE.Scene(), world, enemies, vi.fn(), structures);
   projectiles.spawn({ origin: new THREE.Vector3(0.5, 1.8, 0.5), direction: new THREE.Vector3(1, 0, 0),

@@ -1779,8 +1779,34 @@ body.reduced-fx #crosshair.recovering { transform:translate(-50%,-50%); }
 
 #game-hud { position:fixed; top:0; left:0; width:calc(100vw / var(--hud-scale,1)); height:calc(100vh / var(--hud-scale,1)); transform:scale(var(--hud-scale,1)); transform-origin:0 0; z-index:4; pointer-events:none; }
 #game-hud .overlay, #game-hud .item-inventory-panel, #game-hud .player-status-panel { pointer-events:auto; }
-.inventory2-shell { width:min(1440px,96%); max-height:94%; }
+.inventory2-shell { width:min(1440px,96%); height:min(820px,94%); max-height:94%; display:flex; flex-direction:column; }
+.inventory2-header { flex-shrink:0; }
+.inventory2-body { flex:1; max-height:none; overflow:hidden; }
+.inventory2-storage, .inventory2-details { min-height:0; }
+.inventory2-slot { aspect-ratio:auto; height:80px; }
+@media(max-width:900px) { .inventory2-body { overflow-y:auto; } .inventory2-storage,.inventory2-details { overflow-y:visible; } }
 .upgrade-panel { width:min(1050px,96%); }
 #game-hud #target-info, #game-hud #build-info { max-width:90%; }
 #game-hud #event-banner { width:min(660px,90%); }
 #game-hud .player-status-panel { inset:8% 6%; }
+
+.inventory2-details { overflow-y:auto; }
+.crafting-panel { border-bottom:1px solid #83ecdc33; padding-bottom:16px; margin-bottom:16px; }
+.crafting-panel h3 { color:#8ae3d4; margin:0 0 8px; font-size:14px; letter-spacing:.1em; }
+.craft-message { font-size:11px; line-height:1.5; color:#9eb9c4; margin:0 0 12px; }
+.crafting-recipes { display:grid; gap:9px; max-height:355px; overflow-y:auto; padding-right:4px; }
+.craft-recipe { padding:9px; border:1px solid #739b9e33; border-radius:5px; background:#102731; }
+.craft-recipe.ready { border-color:#78d7bc66; }
+.craft-title { display:flex; align-items:center; gap:9px; }
+.craft-title .art-icon { width:32px; height:32px; }
+.craft-title strong { font-size:12px; color:#d7e6e8; }
+.craft-cost { display:flex; gap:8px; flex-wrap:wrap; margin:5px 0 8px; }
+.craft-cost>span { display:inline-flex; align-items:center; gap:3px; font:800 10px ui-monospace,monospace; }
+.craft-cost .art-icon { width:19px; height:19px; }
+.craft-cost .missing { color:#db8c7e; }.craft-cost .enough { color:#83d9c4; }
+.craft-action { padding:7px 9px; width:100%; font-size:9px; box-shadow:none; }
+.craft-action:disabled { cursor:not-allowed; opacity:.45; }
+.inventory2-shell { background:#10232d; border-color:#83ecdc44; box-shadow:0 24px 80px #0006; }
+.inventory2-slot { background:#112d38; border-color:#72999d44; }
+.equipment-slot { background:#112d38; border-color:#72999d33; }
+@media(max-width:760px){ .crafting-recipes{ max-height:260px; } }

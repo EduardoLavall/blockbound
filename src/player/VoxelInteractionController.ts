@@ -77,12 +77,6 @@ export class VoxelInteractionController {
       return;
     }
 
-    for (let i = 0; i < 9; i++) {
-      if (this.input.consumePressed(`Digit${i + 1}`)) {
-        this.hotbar.select(i);
-      }
-    }
-
     this.refreshTarget();
 
     if (this.canMinePrimary() && this.input.isDown("Mouse0")) {

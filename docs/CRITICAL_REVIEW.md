@@ -15,7 +15,7 @@ O maior problema era a relação entre regras, percepção e controle. O jogador
 | Simulação rodava antes de entrar e com Esc/menu aberto | `app/GameApp.ts` | Uma condição central pausa física, combate, ondas e relógios; blur e aba escondida também pausam. |
 | Anoitecer completo voltava a clarear ao entrar na noite | `defense/DayNightSystem.ts` | A fase nova preserva o fator de iluminação da fase anterior. Transição automática, início com N e amanhecer ficam contínuos. |
 | Inimigos restantes eram apagados no amanhecer das noites 1–4 | `app/GameApp.ts` | Todas as noites exigem eliminar a onda inteira. Limpar cedo já abre o draft. |
-| Começo com zero recursos e 45 segundos | `defense/DayNightSystem.ts`, inicialização | Preparação de 75 segundos, kit inicial e N para chamar a onda. |
+| Preparação curta e atalhos separados sem orientar a coleta | `defense/DayNightSystem.ts`, inicialização | Preparação de 75 segundos, instrução para minerar/fabricar e N para chamar a onda. Começa só com picareta. |
 | Disparo verificava o voxel só na posição final | `combat/ProjectileSystem.ts` | Colisão no segmento inteiro, cobertura antes do inimigo, perfuração em ordem de distância. |
 | Volume de acerto ignorava escala do chefe | `combat/ProjectileSystem.ts` | Caixa de corpo acompanha a escala de cada inimigo. |
 | Espada acertava através de terreno | `combat/PlayerCombatSystem.ts` | Visibilidade até o alvo e cobertura por defesas também entram no cálculo. |
@@ -27,6 +27,10 @@ O maior problema era a relação entre regras, percepção e controle. O jogador
 | Árvores podiam nascer sobre copas anteriores | `voxel/generation/WorldGenerator.ts` | Raízes só em terreno, copas separadas, corredores livres e distância dos POIs. |
 | POIs eram criados depois das árvores e podiam usar copas como altura | `voxel/generation/WorldGenerator.ts` | POIs precedem árvores e suas áreas são reservadas. |
 | Lista de recursos duplicava hotbar abaixo do mapa | HUD | Painel lateral removido da apresentação, conforme feedback do usuário. |
+| HUD minúscula em alta resolução | `ui/HudScale.ts`, CSS | Escala automática por largura/altura (2,4× em 4K), com ajuste persistido no menu. Inventário limitado à área disponível, com rolagem interna. |
+| Cube 3D antigo aparecia junto do sprite no drop | `survival/ResourceDropSystem.ts`, `items/ItemLootSystem.ts` | Apenas um Sprite por pickup, sem Mesh pai/filho. |
+| Armas gratuitas e menu de construção paralelo ao inventário | `inventory`, `crafting`, `building`, `combat` | Partida começa só com picareta; sete receitas produzem armas/defesas físicas no inventário. Colocar consome uma defesa fabricada; falhar preserva o item. Q só acessa armas possuídas. |
+| Acertos sem deslocamento físico | `ai/EnemySystem.ts`, `combat` | Impulso fraco de projétil e médio de melee, limitado, amortecido e bloqueado por terreno/estruturas. Inimigos grandes resistem mais. |
 | Vida sem hierarquia e ações sem impacto | HUD, áudio, render, mineração | Vitalidade segmentada com rastro de dano, alerta de pouca vida, recoil, muzzle flash, partículas, números de dano, rachaduras e impactos sonoros por swing. |
 | Mineração oscilava e saltava para repouso na quebra; efeitos nasciam dentro do voxel | `player/FirstPersonHand.ts`, `player/VoxelInteractionController.ts` | Preparação/golpe/recuperação próprios, contato e som sincronizados, fraturas na face atingida e detritos com queda e pequeno rebote. A recuperação continua após o bloco desaparecer. |
 | Captura de mouse podia bloquear a entrada em navegador embutido | controle de entrada | Alternativa explícita de mouse livre: segure o botão do meio para olhar. Retorno do inventário mantém esse modo. |
@@ -35,7 +39,7 @@ O maior problema era a relação entre regras, percepção e controle. O jogador
 
 O loop agora é **preparar → eliminar a onda → receber suprimentos e escolher uma melhoria → reforçar a defesa**. Há um objetivo legível em cada fase e o minimapa mostra a rota, o cristal, as defesas, o jogador, os inimigos e os pontos de interesse.
 
-O kit tem 12 madeira, 8 pedra, 8 metal e 3 cristal: permite duas torres e duas armadilhas imediatamente. Cada amanhecer entrega 4 madeira, 3 metal, 1 cristal, até 35 HP e até 40 HP do cristal. Suprimentos que não cabem no inventário ficam no mundo, evitando perda silenciosa. Esses valores são uma nova baseline e precisam de partidas humanas para ajuste fino.
+O jogador inicia apenas com uma picareta e precisa minerar. A lâmina custa 2 madeira, 3 pedra e 1 metal; o Repeater custa 3 madeira, 4 metal e 1 cristal. As cinco defesas mantêm seus custos, pagos na fabricação, e podem ser empilhadas no inventário. A colocação não cobra materiais novamente. Cada amanhecer entrega 4 madeira, 3 metal, 1 cristal, até 35 HP e até 40 HP do cristal. Suprimentos que não cabem no inventário ficam no mundo, evitando perda silenciosa. A pressão da primeira noite e os custos precisam de partidas humanas para ajuste fino.
 
 | Atributo | Antes | Depois |
 | --- | --- | --- |
@@ -65,7 +69,7 @@ A lâmina passa a compensar o risco de curta distância. O Guardião mantém 145
 2. **Construção e terreno:** estruturas não são suportadas por física dinâmica; remover terreno debaixo delas ainda pode deixá-las suspensas. A próxima passagem deve definir uma regra consistente para suporte, desmontagem e recuperação de custo.
 3. **Mais identidade de inimigos:** silhuetas e animações foram melhoradas, mas continuam simples. Ataques com animações e telegraph próprio por arquétipo são um passo mais valioso que adicionar muitos tipos novos de torre agora.
 4. **Áudio ambiente e música:** os efeitos agora são gravações reais; a próxima camada é trilha adaptativa e paisagens sonoras próprias para dia, noite e chefe.
-5. **Balanceamento humano:** coletar mortes, tempo até primeira torre, dano ao cristal por noite e escolhas de upgrade. Ajustar kit, economia e pressão final com essas partidas.
+5. **Balanceamento humano:** coletar mortes, tempo até primeira arma/torre, dano ao cristal por noite e escolhas de upgrade. Ajustar receitas, tempo de mineração, economia e pressão final com essas partidas. A simulação com defesas previamente montadas não prova o equilíbrio do início vazio.
 6. **Localização:** menu e HUD principal estão em português; nomes de equipamentos, inventário e parte das mensagens do protótipo continuam em inglês.
 
 Não foram feitos merge na main nem publicação de produção nesta revisão. A proposta fica em uma branch própria para revisão e playtest.

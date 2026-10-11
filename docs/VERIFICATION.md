@@ -17,7 +17,12 @@ O jogador carrega um mundo por seed, entra na expedição, prepara defesas, troc
 | Anoitecer → noite | Regressão percorre a transição a 60 Hz e garante que a iluminação nunca clareia entre as fases. Também cobre limite exato, sobra de frame, N no dia/durante o anoitecer e amanhecer após uma noite curta. |
 | Física → jogador | Teste com Rapier real atravessa um degrau de 1 bloco; testes de buffer cobrem salto cedo, salto na borda e rejeição de salto tardio. |
 | Mineração → animação/impacto | Preparação, golpe acelerado, contato e recuperação usam a mesma linha de tempo. O contato final coincide com a quebra, preservando duração e upgrades. Regressões cobrem 30/60/144 atualizações por segundo e recuperação após remover o bloco. Lasca/áudio saem da face atingida; fraturas crescem por impacto. Cena controlada com os sistemas reais usada para inspeção visual e prévia. |
-| Inventário → recompensas | Testes verificam kit inicial utilizável e preservação de overflow com mochila cheia ou parcialmente cheia. |
+| Inventário → início/recompensas | Testes garantem apenas uma picareta e zero materiais no início; overflow de recompensa preservado com mochila cheia ou parcialmente cheia. |
+| Receita → inventário → colocação | Sete receitas testadas com custo exato, falta de ingredientes/espaço, consumo que libera slot e empilhamento. Clique de fabricação da lâmina e do muro verificado no navegador em cena controlada usando o painel real. Integração com Rapier verifica colocar uma defesa sem matéria-prima, consumir só uma unidade, bloquear repetição gratuita e preservar item em colocação inválida. |
+| Inventário → arma | Testes de Q/tiro garantem posse da arma, seleção da hotbar, retirada da arma e troca a partir da mochila sem duplicação. No navegador, Q inicial conserva picareta e B não abre menu. |
+| Acerto → deslocamento | Knockback com testes de intensidade, resistência por escala, limite de velocidade, ausência de impulso vertical e bloqueio contra parede mesmo com passo longo. |
+| Pickup → apresentação | Regressão verifica um Sprite sem Mesh pai/filho e coleta que transfere recurso e remove o sprite. |
+| Resolução → HUD | Layout inspecionado na viewport habitual e em 3840×2160; escala 2,4× em 4K e ajuste persistido no menu. |
 | Geração → floresta | Três seeds verificadas com raízes em terreno e separação mínima de 6 células entre canopias. |
 | Produção | Verificação dos PNGs, Vitest, TypeScript e build Vite. Há aviso de bundle grande por causa da física embutida. |
 

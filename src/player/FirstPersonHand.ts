@@ -60,6 +60,7 @@ export class FirstPersonHand {
     this.miningRecovery = 0;
     this.attackTime = 0; this.attackStrength = strength;
   }
+  setHeldVisible(visible: boolean): void { this.root.visible = this.controls.isLocked && visible; }
   triggerMiningImpact(broken: boolean): void {
     if (this.actionMode !== PlayerActionMode.Tool) return;
     const pose = miningStrokePose(MINING_CONTACT_PHASE);

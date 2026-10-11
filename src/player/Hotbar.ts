@@ -1,4 +1,5 @@
 import { stackIcon } from "../ui/ArtIcons";
+import type { Input } from "../core/Input";
 import {
   HOTBAR_SIZE,
   type InventoryStack,
@@ -31,6 +32,9 @@ export class Hotbar {
     if (index < 0 || index >= HOTBAR_SIZE) return;
     this.selectedIndex = index;
     this.refresh();
+  }
+  handleInput(input: Input): void {
+    for (let i = 0; i < HOTBAR_SIZE; i++) if (input.consumePressed(`Digit${i + 1}`)) this.select(i);
   }
 
   cycle(direction: number): void {

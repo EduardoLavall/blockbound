@@ -5,6 +5,7 @@ import type { VoxelWorld } from "../voxel/VoxelWorld";
 import { coverDistance, enemyHitDistance } from "./CombatTrace";
 import type { StructureSystem } from "../building/StructureSystem";
 import { SeededRandom } from "../voxel/generation/SeededRandom";
+import { WEAPON_KNOCKBACK } from "./Knockback";
 
 export interface PlayerProjectileSpec {
   origin: THREE.Vector3;
@@ -108,6 +109,7 @@ export class ProjectileSystem {
           projectile.damage,
           "player-projectile",
         );
+        this.enemies.knockback(hitEnemy, direction, WEAPON_KNOCKBACK.repeater);
 
         this.maybeApplyStatuses(projectile, hitEnemy);
         this.onHit(projectile.damage, killed, projectile.critical);

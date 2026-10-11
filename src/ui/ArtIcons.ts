@@ -8,6 +8,7 @@ export function iconUrl(name: string): string {
 export function stackIcon(stack: InventoryStack): string {
   if (stack.kind === "resource") return iconUrl(stack.resource);
   const definition = itemDefinition(stack.definitionId);
+  if (definition.icon) return iconUrl(definition.icon);
   return iconUrl(definition.slot === "weapon"
     ? definition.tags.includes("projectile") ? "repeater" : "blade"
     : definition.slot ?? "chest");

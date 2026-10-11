@@ -40,6 +40,33 @@ function fixture(seed = "blockbound-review") {
 }
 
 describe("enemy combat and complete siege", () => {
+  it("makes melee knockback stronger than ranged and resists it on heavy enemies", () => {
+    const f = fixture();
+    const melee = f.enemies.spawn(EnemyType.Grunt, f.grid.getCell(12,12)!, 1);
+    const ranged = f.enemies.spawn(EnemyType.Grunt, f.grid.getCell(12,14)!, 1);
+    const boss = f.enemies.spawn(EnemyType.Boss, f.grid.getCell(14,12)!, 5);
+    melee.speed = ranged.speed = boss.speed = 0;
+    f.enemies.knockback(melee, new THREE.Vector3(1,0,0),5);
+    f.enemies.knockback(ranged, new THREE.Vector3(1,0,0),1.3);
+    f.enemies.knockback(boss, new THREE.Vector3(1,0,0),5);
+    expect(melee.knockbackVelocity.x).toBeGreaterThan(ranged.knockbackVelocity.x*3);
+    expect(boss.knockbackVelocity.x).toBeLessThan(melee.knockbackVelocity.x);
+    const x=melee.group.position.x; f.enemies.fixedUpdate(1/60);
+    expect(melee.group.position.x).toBeGreaterThan(x);
+  });
+  it("does not shove enemies through an impassable voxel wall even in a long update", () => {
+    const f=fixture(); const enemy=f.enemies.spawn(EnemyType.Grunt,f.grid.getCell(8,16)!,1); enemy.speed=0;
+    for(let y=7;y<=10;y++) f.world.setBlock(8,y,17,BlockId.Stone);
+    f.grid.updateDirty(); f.flow.updateIfNeeded();
+    f.enemies.knockback(enemy,new THREE.Vector3(0,0,1),5); f.enemies.fixedUpdate(0.5);
+    expect(enemy.group.position.z).toBeLessThan(17);
+  });
+  it("caps repeated impulses and never launches an enemy vertically", () => {
+    const f=fixture(); const enemy=f.enemies.spawn(EnemyType.Grunt,f.grid.getCell(12,12)!,1);
+    for(let i=0;i<20;i++) f.enemies.knockback(enemy,new THREE.Vector3(1,3,0),5);
+    expect(enemy.knockbackVelocity.length()).toBeLessThanOrEqual(7.5);
+    expect(enemy.knockbackVelocity.y).toBe(0);
+  });
   it("delays archer damage until the bolt arrives and lets the player dodge", () => {
     const f = fixture();
     f.playerPoint.x = 8.5; f.playerPoint.z = 12.5;

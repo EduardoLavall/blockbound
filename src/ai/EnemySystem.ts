@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { materialTexture } from "../engine/render/MaterialTextures";
 import { coverDistance } from "../combat/CombatTrace";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
+import { KNOCKBACK_DECAY, MAX_KNOCKBACK_SPEED } from "../combat/Knockback";
 import type { Core } from "../building/Core";
 import type {
   StructureInstance,
@@ -42,6 +43,8 @@ export interface EnemyInstance {
   attackCooldown: number;
   abilityCooldown: number;
   alive: boolean;
+  knockbackVelocity: THREE.Vector3;
+  stagger: number;
 }
 
 export interface EnemyDamageEvent {
@@ -147,6 +150,8 @@ export class EnemySystem {
       abilityCooldown:
         definition.bossPulseInterval ?? 0,
       alive: true,
+      knockbackVelocity: new THREE.Vector3(),
+      stagger: 0,
     };
 
     group.userData.enemyId = enemy.id;
@@ -171,6 +176,9 @@ export class EnemySystem {
       enemy.abilityCooldown = Math.max(0, enemy.abilityCooldown - dt);
       this.updateStatuses(enemy, dt);
       if (!enemy.alive) continue;
+      this.updateKnockback(enemy, dt);
+      enemy.stagger = Math.max(0, enemy.stagger - dt);
+      if (enemy.stagger > 0) continue;
 
       if (enemy.type === EnemyType.Boss && enemy.abilityCooldown <= 0) {
         this.bossPulse(enemy);
@@ -447,6 +455,35 @@ export class EnemySystem {
       tick: current?.tick ?? 0.5,
       source,
     });
+  }
+
+  knockback(enemy: EnemyInstance, direction: THREE.Vector3, strength: number): void {
+    if (!enemy.alive || strength <= 0) return;
+    const length = Math.hypot(direction.x, direction.z);
+    if (length < 1e-6) return;
+    const resistance = Math.max(0.35, 1 / (enemy.definition.scale * enemy.definition.scale));
+    enemy.knockbackVelocity.x += direction.x / length * strength * resistance;
+    enemy.knockbackVelocity.z += direction.z / length * strength * resistance;
+    enemy.knockbackVelocity.clampLength(0, MAX_KNOCKBACK_SPEED);
+    enemy.stagger = Math.max(enemy.stagger, strength >= 3 ? 0.12 : 0.035);
+  }
+  private updateKnockback(enemy: EnemyInstance, dt: number): void {
+    const velocity = enemy.knockbackVelocity;
+    if (velocity.lengthSq() < 0.001) { velocity.setScalar(0); return; }
+    const position = enemy.group.position;
+    const dx = velocity.x * dt, dz = velocity.z * dt;
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / 0.2));
+    for (let i = 0; i < steps; i++) {
+      const current = this.grid.getCell(Math.floor(position.x), Math.floor(position.z));
+      const next = this.grid.getCell(Math.floor(position.x + dx / steps), Math.floor(position.z + dz / steps));
+      if (!current || !next?.walkable || !this.grid.canTraverse(current, next) ||
+        (next.blockerId !== null && !enemy.definition.ignoresBlockers)) {
+        velocity.setScalar(0); break;
+      }
+      position.x += dx / steps; position.z += dz / steps;
+      position.y = THREE.MathUtils.lerp(position.y, next.groundY + 1, Math.min(1, dt * 8));
+    }
+    velocity.multiplyScalar(Math.exp(-dt * KNOCKBACK_DECAY));
   }
 
   private updateStatuses(enemy: EnemyInstance, dt: number): void {

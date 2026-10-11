@@ -42,7 +42,7 @@ export class FieldHUD {
     const day = this.cycle.phase === DayPhase.Day;
     const objective = day
       ? this.structures.all.length < 2
-        ? "PREPARE A DEFESA|B → 2: torre · 3: espinhos na rota · botão direito: construir"
+        ? "MINERE E FABRIQUE|I: fabricar armas e defesas · selecione na hotbar · botão direito: colocar"
         : "EXPLORE E FORTALEÇA|Minere madeira, metal e cristal. N chama a próxima onda."
       : "DEFENDA O CRISTAL|Q: trocar arma · segure o botão esquerdo para atacar · R: reparar";
     if (objective !== this.previousObjective) {

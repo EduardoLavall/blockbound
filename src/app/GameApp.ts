@@ -13,7 +13,7 @@ import { ProjectileSystem } from "../combat/ProjectileSystem";
 import { GameLoop } from "../core/GameLoop";
 import { Input } from "../core/Input";
 import { simulationActive } from "../core/SimulationState";
-import { STARTER_KIT, DAWN_SUPPLIES, grantSupplies } from "../defense/RunEconomy";
+import { initializeRunInventory, DAWN_SUPPLIES, grantSupplies } from "../defense/RunEconomy";
 import { GameFeel } from "../engine/render/GameFeel";
 import { WorldDressing } from "../world/WorldDressing";
 import { FieldHUD } from "../ui/FieldHUD";
@@ -78,7 +78,6 @@ interface GameAppOptions {
   loadingLabel: HTMLElement;
   debug: HTMLDivElement;
   hotbar: HTMLDivElement;
-  buildBar: HTMLDivElement;
   targetInfo: HTMLDivElement;
   buildInfo: HTMLDivElement;
   miningProgress: HTMLDivElement;
@@ -181,7 +180,7 @@ export class GameApp {
     this.hotbar = new Hotbar(
       options.hotbar,
       this.runInventory,
-      () => this.simulating && !this.mode.buildMode,
+      () => this.simulating,
     );
     this.bindSettings();
 
@@ -206,7 +205,7 @@ export class GameApp {
 
     const generation = generateWorld(seed);
     this.applyGeneration(generation);
-    grantSupplies(this.inventory, STARTER_KIT);
+    initializeRunInventory(this.runInventory);
 
     this.options.loadingLabel.textContent =
       "Construindo " + this.world.getChunks().length + " chunks...";
@@ -288,7 +287,7 @@ export class GameApp {
       this.mode,
       this.core,
       this.metadata.bounds,
-      this.options.buildBar,
+      this.hotbar,
       this.options.buildInfo,
       () => this.audio.build(),
     );
@@ -365,6 +364,8 @@ export class GameApp {
         else this.audio.swing();
       },
       () => this.audio.equip(),
+      this.runInventory,
+      this.hotbar,
     );
 
     this.interaction = new VoxelInteractionController(
@@ -426,6 +427,11 @@ export class GameApp {
       this.itemInventory,
       this.equipment,
       () => this.closeItemInventory(),
+      (id) => {
+        this.audio.choose();
+        const index = this.runInventory.slots.findIndex(stack => stack?.kind === "item" && stack.definitionId === id);
+        if (index >= 0 && index < 9) this.hotbar.select(index);
+      },
     );
     this.bindItemInventoryControls();
 
@@ -489,7 +495,7 @@ export class GameApp {
     this.bindPointerLock();
     await this.audio.prepare();
     this.options.loadingLabel.textContent =
-      "Tudo pronto. Seu kit inicial já está na mochila.";
+      "Tudo pronto. Minere com a picareta e fabrique seus primeiros itens com I.";
     this.options.playButton.disabled = false;
     this.options.playButton.textContent = "INICIAR EXPEDIÇÃO";
 
@@ -506,6 +512,7 @@ export class GameApp {
         this.audio.updateMovement(playerPosition, this.player.getDebugState().grounded,
           this.world.getBlock(Math.floor(playerPosition.x), Math.floor(playerPosition.y - 0.96), Math.floor(playerPosition.z)));
 
+        this.hotbar.handleInput(this.input);
         this.structures.fixedUpdate(dt);
         this.playerCombat.fixedUpdate(dt);
         this.interaction.fixedUpdate(dt);
@@ -579,10 +586,6 @@ export class GameApp {
         this.feel.update(Math.min(visualMs / 1000, 0.05));
         this.dressing.update(Math.min(visualMs / 1000, 0.05), this.dayNight.nightFactor, this.settings.state.effects);
         this.fieldHud.update(Math.min(visualMs / 1000, 0.05));
-        this.options.hotbar.classList.toggle(
-          "hidden",
-          this.mode.buildMode,
-        );
         this.options.targetInfo.classList.toggle(
           "hidden",
           this.mode.buildMode,
@@ -818,9 +821,8 @@ export class GameApp {
 
   private closeItemInventory(): void {
     if (!this.inventoryOpen) return;
-
+    if (!this.itemInventoryPanel.hide()) return;
     this.inventoryOpen = false;
-    this.itemInventoryPanel.hide();
     this.options.overlay.classList.add("hidden");
     this.input.setEnabled(false);
     this.controls.lock();
@@ -891,7 +893,7 @@ export class GameApp {
       document.body.classList.remove("game-paused");
       if (!this.started) {
         this.started = true;
-        this.fieldHud.announce("PROTEJA O CRISTAL", "Monte torres ao lado da rota e espinhos sobre ela. Seu kit já está pronto.");
+        this.fieldHud.announce("MINERE E FABRIQUE", "Comece com sua picareta. I abre a fabricação; selecione armas e defesas na hotbar.");
       }
       this.options.overlay.classList.add("hidden");
       this.input.setEnabled(

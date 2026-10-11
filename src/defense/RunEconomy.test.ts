@@ -2,16 +2,15 @@ import { describe, expect, it } from "vitest";
 import { Inventory } from "../survival/Inventory";
 import { ResourceId } from "../survival/Resources";
 import { STRUCTURES, StructureType } from "../building/StructureRegistry";
-import { STARTER_KIT, DAWN_SUPPLIES, grantSupplies } from "./RunEconomy";
+import { initializeRunInventory, DAWN_SUPPLIES, grantSupplies } from "./RunEconomy";
 
 describe("preparation economy", () => {
-  it("lets a new player build two turrets and two traps immediately", () => {
+  it("starts with only a pickaxe and no materials or weapons", () => {
     const inventory = new Inventory();
-    expect(grantSupplies(inventory, STARTER_KIT)).toEqual([]);
-    expect(inventory.spend(STRUCTURES[StructureType.Turret].cost)).toBe(true);
-    expect(inventory.spend(STRUCTURES[StructureType.RapidTurret].cost)).toBe(true);
-    expect(inventory.spend(STRUCTURES[StructureType.Spike].cost)).toBe(true);
-    expect(inventory.spend(STRUCTURES[StructureType.Spike].cost)).toBe(true);
+    initializeRunInventory(inventory.storage);
+    expect(inventory.storage.itemStacks().map(stack => stack.definitionId)).toEqual(["pickaxe"]);
+    expect(Object.values(inventory.snapshot())).toEqual([0,0,0,0,0]);
+    expect(inventory.canAfford(STRUCTURES[StructureType.Turret].cost)).toBe(false);
   });
   it("preserves every reward when the backpack is full", () => {
     const inventory = new Inventory();

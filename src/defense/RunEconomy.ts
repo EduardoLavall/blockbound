@@ -1,12 +1,10 @@
 import type { Inventory } from "../survival/Inventory";
 import { ResourceId } from "../survival/Resources";
+import type { RunInventory } from "../inventory/RunInventory";
 
-export const STARTER_KIT = {
-  [ResourceId.Wood]: 12,
-  [ResourceId.Stone]: 8,
-  [ResourceId.Metal]: 8,
-  [ResourceId.Crystal]: 3,
-};
+export function initializeRunInventory(storage: RunInventory): void {
+  storage.addItem("pickaxe", 1, "hotbar");
+}
 export const DAWN_SUPPLIES = {
   [ResourceId.Wood]: 4,
   [ResourceId.Metal]: 3,
