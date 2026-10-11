@@ -1,5 +1,5 @@
 import { BlockId } from "../../voxel/blocks";
-import { SOUND_ASSETS, SOUND_GROUPS, soundUrl, type SoundGroup } from "./SoundBank";
+import { BLOCK_SOUNDS, SOUND_ASSETS, SOUND_GROUPS, soundUrl, type SoundGroup } from "./SoundBank";
 
 interface Voice { source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode; priority: number }
 
@@ -77,12 +77,11 @@ export class AudioSystem {
     this.play(killed ? "kill" : "hit", killed ? 0.56 : 0.36, 1, pan, 0.055);
   }
   mine(block = BlockId.Stone, broken = true): void {
-    const group: SoundGroup = block === BlockId.Wood || block === BlockId.Leaves ? "mineWood"
-      : block === BlockId.Crystal ? "mineCrystal" : block === BlockId.MetalOre ? "mineMetal"
-      : block === BlockId.Dirt || block === BlockId.Grass ? "mineEarth" : "mineStone";
-    this.play(group, broken ? 0.5 : 0.32, broken ? 0.92 : 1, 0, 0.08);
-    if (broken && block === BlockId.Crystal) this.play("breakCrystal", 0.34);
-    if (broken && block === BlockId.Wood) this.play("breakWood", 0.28);
+    const sounds = BLOCK_SOUNDS[block];
+    const group = broken ? sounds?.broken : sounds?.strike;
+    if (!group) return;
+    // A dedicated rupture replaces the strike on completion, so no generic hit masks it.
+    this.play(group, broken ? 0.52 : 0.32, broken ? 0.97 : 1, 0, broken ? 0.035 : 0.08);
   }
   nightStart(finalNight = false): void { this.play(finalNight ? "boss" : "night", 0.46, finalNight ? 0.9 : 0.78, 0, 1, 2); }
   upgrade(): void { this.play("draft", 0.22, 1, 0, 0.1, 2); this.play("dawn", 0.25, 1, 0, 1, 2); }
