@@ -1,5 +1,5 @@
 import { itemDefinition } from "../items/ItemRegistry";
-import { ResourceId } from "../survival/Resources";
+import { ResourceId, type ResourceCost } from "../survival/Resources";
 
 export const HOTBAR_SIZE = 9;
 export const BACKPACK_SIZE = 27;
@@ -60,6 +60,7 @@ export class RunInventory {
   addItem(
     definitionId: string,
     quantity = 1,
+    prefer: InventorySection = "backpack",
   ): readonly ItemStack[] {
     if (quantity <= 0) return [];
 
@@ -79,10 +80,8 @@ export class RunInventory {
       const accepted = this.addStack(
         stack,
         definition.stackLimit,
-        [
-          ...range(HOTBAR_SIZE, RUN_INVENTORY_SIZE),
-          ...range(0, HOTBAR_SIZE),
-        ],
+        prefer === "hotbar" ? [...range(0, HOTBAR_SIZE), ...range(HOTBAR_SIZE, RUN_INVENTORY_SIZE)]
+          : [...range(HOTBAR_SIZE, RUN_INVENTORY_SIZE), ...range(0, HOTBAR_SIZE)],
       );
 
       if (accepted <= 0) break;
@@ -106,6 +105,51 @@ export class RunInventory {
       }
     }
     return total;
+  }
+
+  canCraftItem(definitionId: string, cost: ResourceCost): boolean {
+    return this.craftPreview(definitionId, cost) !== null;
+  }
+  craftItem(definitionId: string, cost: ResourceCost): boolean {
+    const preview = this.craftPreview(definitionId, cost);
+    if (!preview) return false;
+    for (let i = 0; i < RUN_INVENTORY_SIZE; i++) {
+      const stack = preview[i] ?? null;
+      if (stack?.kind === "item" && stack.uid === "$crafted") stack.uid = this.createUid();
+      this.slotValues[i] = stack;
+    }
+    this.emit();
+    return true;
+  }
+  consumeItemAt(index: number, quantity = 1): boolean {
+    const stack = this.slot(index);
+    if (stack?.kind !== "item" || quantity <= 0 || stack.quantity < quantity) return false;
+    stack.quantity -= quantity;
+    if (stack.quantity === 0) this.slotValues[index] = null;
+    this.emit();
+    return true;
+  }
+  private craftPreview(definitionId: string, cost: ResourceCost): Array<InventoryStack | null> | null {
+    const definition = itemDefinition(definitionId);
+    const preview = this.slotValues.map(stack => stack ? { ...stack } : null);
+    for (const [resource, amount] of Object.entries(cost)) {
+      if (!Number.isInteger(amount) || amount < 0 || this.resourceCount(resource as ResourceId) < amount) return null;
+      let remaining = amount;
+      for (let i = RUN_INVENTORY_SIZE - 1; i >= 0 && remaining > 0; i--) {
+        const stack = preview[i];
+        if (stack?.kind !== "resource" || stack.resource !== resource) continue;
+        const take = Math.min(stack.quantity, remaining);
+        stack.quantity -= take; remaining -= take;
+        if (stack.quantity === 0) preview[i] = null;
+      }
+    }
+    const incoming: ItemStack = { kind: "item", uid: "$crafted", definitionId, quantity: 1 };
+    const existing = preview.find(stack => stack && sameStackType(stack, incoming) && stack.quantity < definition.stackLimit);
+    if (existing) { existing.quantity++; return preview; }
+    const empty = preview.findIndex(stack => stack === null);
+    if (empty < 0) return null;
+    preview[empty] = incoming;
+    return preview;
   }
 
   consumeResource(resource: ResourceId, quantity: number): boolean {
@@ -176,6 +220,8 @@ export class RunInventory {
 
     const limit = stackLimit(stack);
     const quantity = stack.quantity;
+    const capacity = this.slotValues.reduce((free, target) => free + (!target ? limit : sameStackType(target, stack) ? limit - target.quantity : 0), 0);
+    if (capacity < quantity) return false;
     const accepted = this.addStack(stack, limit, emptyOrder);
     if (accepted > 0) this.emit();
     return accepted === quantity;

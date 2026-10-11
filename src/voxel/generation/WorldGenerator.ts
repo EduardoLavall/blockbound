@@ -83,8 +83,8 @@ export function generateWorld(
     }
   }
 
-  generateTrees(world, seed.value, bounds, core);
   const pois = generatePois(world, seed.value, bounds, core);
+  generateTrees(world, seed.value, bounds, core, pois);
   buildCoreClearing(world, core);
   const lane = buildPrimaryLane(world, bounds, core);
   const spawnZones = [lane.entry];
@@ -139,8 +139,10 @@ function generateTrees(
   seed: number,
   bounds: WorldBounds,
   core: WorldPoint,
+  pois: readonly PoiMarker[],
 ): void {
   const cellSize = 3;
+  const roots: WorldPoint[] = [];
 
   for (
     let cellZ = bounds.minZ + 3;
@@ -160,6 +162,11 @@ function generateTrees(
         Math.floor(coordinateRandom(seed, cellX, cellZ, 102) * cellSize);
 
       if (Math.hypot(x - core.x, z - core.z) < CORE_BLEND_RADIUS) continue;
+      if (pois.some(poi => Math.max(Math.abs(x - poi.x), Math.abs(z - poi.z)) < 7)) continue;
+      // Separate full canopies, not just trunks, before querying surface height.
+      if (roots.some(root => Math.max(Math.abs(x - root.x), Math.abs(z - root.z)) < 6)) continue;
+      // The north approach stays clear on both sides of the lane.
+      if (Math.abs(x - core.x) < 5 && z < core.z) continue;
 
       const biome = biomeAt(seed, x, z);
       const chance =
@@ -173,6 +180,9 @@ function generateTrees(
 
       const groundY = world.highestSolidY(x, z);
       if (groundY < 1 || groundY + 7 >= CHUNK_HEIGHT) continue;
+      const ground = world.getBlock(x, groundY, z);
+      if (ground !== BlockId.Grass && ground !== BlockId.Dirt && ground !== BlockId.Stone) continue;
+      roots.push({ x, z });
 
       const trunkHeight =
         3 + Math.floor(coordinateRandom(seed, x, z, 104) * 3);

@@ -1,3 +1,4 @@
+import { stackIcon, iconMarkup } from "./ArtIcons";
 import type { EquipmentSystem } from "../items/EquipmentSystem";
 import {
   BACKPACK_SIZE,
@@ -17,12 +18,16 @@ import {
   resourcePlacementBlock,
 } from "../survival/Resources";
 import { blockDefinition } from "../voxel/blocks";
+import { CraftingSystem, RECIPES } from "../crafting/CraftingSystem";
+import { ResourceId } from "../survival/Resources";
 
 export class ItemInventoryPanel {
   private selectedIndex: number | null = null;
   private held: InventoryStack | null = null;
   private openValue = false;
   private signature = "";
+  private readonly crafting: CraftingSystem;
+  private craftMessage = "Minere os materiais e fabrique seus itens aqui.";
 
   constructor(
     private readonly element: HTMLDivElement,
@@ -30,7 +35,9 @@ export class ItemInventoryPanel {
     private readonly itemInventory: ItemInventory,
     private readonly equipment: EquipmentSystem,
     private readonly onClose: () => void,
+    private readonly onCrafted: (definitionId: string) => void = () => {},
   ) {
+    this.crafting = new CraftingSystem(storage);
     this.bindPointerInteractions();
     this.bindHotbarKeys();
     this.storage.subscribe(() => this.render());
@@ -47,13 +54,18 @@ export class ItemInventoryPanel {
     this.render(true);
   }
 
-  hide(): void {
+  hide(): boolean {
     if (this.held) {
-      this.storage.insertDetachedStack(this.held, "backpack");
+      if (!this.storage.insertDetachedStack(this.held, "backpack")) {
+        this.craftMessage = "Libere espaço para guardar o item do cursor.";
+        this.render(true);
+        return false;
+      }
       this.held = null;
     }
     this.openValue = false;
     this.element.classList.add("hidden");
+    return true;
   }
 
   private bindPointerInteractions(): void {
@@ -62,6 +74,16 @@ export class ItemInventoryPanel {
 
       if (target.closest("[data-inventory-close]")) {
         this.onClose();
+        return;
+      }
+      const recipe = target.closest<HTMLElement>("[data-craft]")?.dataset.craft;
+      if (recipe) {
+        if (this.held) this.craftMessage = "Guarde o item do cursor antes de fabricar.";
+        else if (this.crafting.craft(recipe)) {
+          this.craftMessage = `Fabricado: ${itemDefinition(recipe).name}. Selecione na hotbar para usar.`;
+          this.onCrafted(recipe);
+        } else this.craftMessage = this.crafting.status(recipe) === "space" ? "Mochila cheia." : "Faltam materiais.";
+        this.render(true);
         return;
       }
 
@@ -234,6 +256,7 @@ export class ItemInventoryPanel {
       held: this.held,
       slots: this.storage.slots,
       equipped: this.equipment.slots,
+      crafting: this.craftMessage,
     });
     if (!force && signature === this.signature) return;
     this.signature = signature;
@@ -249,13 +272,13 @@ export class ItemInventoryPanel {
       <div class="inventory2-shell">
         <header class="inventory2-header">
           <div>
-            <span class="eyebrow">I · RUN LOADOUT</span>
-            <h2>FIELD INVENTORY</h2>
+            <span class="eyebrow">I · EQUIPAMENTO E FABRICAÇÃO</span>
+            <h2>INVENTÁRIO</h2>
             <small>${occupied}/${RUN_INVENTORY_SIZE} slots occupied</small>
           </div>
           <div class="inventory2-header-actions">
             ${this.renderHeld()}
-            <button class="inventory-close" data-inventory-close>CLOSE · I</button>
+            <button class="inventory-close" data-inventory-close>FECHAR · I</button>
           </div>
         </header>
 
@@ -311,6 +334,7 @@ export class ItemInventoryPanel {
           </main>
 
           <aside class="item-details inventory2-details">
+            ${this.renderCrafting()}
             ${this.renderDetails(selected)}
           </aside>
         </div>
@@ -342,14 +366,28 @@ export class ItemInventoryPanel {
     `;
   }
 
+  private renderCrafting(): string {
+    return `<section class="crafting-panel"><h3>FABRICAÇÃO</h3>
+      <p class="craft-message" role="status">${this.craftMessage}</p><div class="crafting-recipes">
+      ${RECIPES.map(recipe => {
+        const definition = itemDefinition(recipe.output);
+        const state = this.crafting.status(recipe.id);
+        return `<div class="craft-recipe ${state}">
+          <div class="craft-title">${iconMarkup(definition.icon ?? "chest")}<strong>${definition.name}</strong></div>
+          <div class="craft-cost">${Object.entries(recipe.cost).map(([resource, amount]) => {
+            const owned = this.storage.resourceCount(resource as ResourceId);
+            return `<span class="${owned >= (amount ?? 0) ? "enough" : "missing"}" title="${RESOURCES[resource as ResourceId].name}">${iconMarkup(resource)} ${owned}/${amount}</span>`;
+          }).join("")}</div>
+          <button class="craft-action" data-craft="${recipe.id}" aria-label="Fabricar ${definition.name}" ${state !== "ready" || this.held ? "disabled" : ""}>${this.held ? "Guarde o item do cursor" : state === "space" ? "Mochila cheia" : "FABRICAR"}</button>
+        </div>`;
+      }).join("")}</div></section>`;
+  }
+
   private renderStack(stack: InventoryStack): string {
     if (stack.kind === "resource") {
       const definition = RESOURCES[stack.resource];
       return `
-        <i
-          class="inventory2-icon"
-          style="--item-swatch:${definition.swatch}"
-        ></i>
+        <img class="inventory2-icon art-icon" src="${stackIcon(stack)}" alt="" />
         <strong class="inventory2-stack-name">${definition.name}</strong>
         <b class="inventory2-stack-count">${stack.quantity}</b>
       `;
@@ -357,10 +395,7 @@ export class ItemInventoryPanel {
 
     const definition = itemDefinition(stack.definitionId);
     return `
-      <i
-        class="inventory2-icon rarity-${definition.rarity}"
-        style="--item-swatch:${definition.swatch}"
-      ></i>
+      <img class="inventory2-icon art-icon" src="${stackIcon(stack)}" alt="" />
       <strong class="inventory2-stack-name">${definition.name}</strong>
       ${stack.quantity > 1
         ? `<b class="inventory2-stack-count">${stack.quantity}</b>`
@@ -380,7 +415,7 @@ export class ItemInventoryPanel {
         ${definition
           ? `
             <div class="equipment-slot-item rarity-${definition.rarity}">
-              <i style="--item-swatch:${definition.swatch}"></i>
+              ${iconMarkup(definition.slot === "weapon" ? "blade" : definition.slot ?? "chest")}
               <div>
                 <strong>${definition.name}</strong>
                 <small>${definition.rarity}</small>
@@ -421,7 +456,7 @@ export class ItemInventoryPanel {
       return `
         <div class="item-detail-card">
           <div class="item-detail-heading">
-            <i style="--item-swatch:${definition.swatch}"></i>
+            <img class="art-icon" src="${stackIcon(stack)}" alt="" />
             <div>
               <small>RESOURCE · STACK 64</small>
               <h3>${definition.name}</h3>
@@ -459,7 +494,7 @@ export class ItemInventoryPanel {
     return `
       <div class="item-detail-card rarity-${definition.rarity}">
         <div class="item-detail-heading">
-          <i style="--item-swatch:${definition.swatch}"></i>
+          ${iconMarkup(definition.icon ?? (definition.slot === "weapon" ? definition.tags.includes("projectile") ? "repeater" : "blade" : definition.slot ?? "chest"))}
           <div>
             <small>${definition.rarity} · ${slot ?? definition.kind}</small>
             <h3>${definition.name}</h3>
@@ -467,10 +502,10 @@ export class ItemInventoryPanel {
         </div>
         <p>${definition.description}</p>
 
-        <div class="item-modifiers">
+        ${definition.kind === "equipment" ? `<div class="item-modifiers">
           <h4>MODIFIERS</h4>
           ${modifierRows(definition)}
-        </div>
+        </div>` : ""}
 
         ${slot
           ? `

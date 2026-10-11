@@ -2,6 +2,7 @@ export interface GameSettingsState {
   volume: number;
   debug: boolean;
   effects: boolean;
+  hudScale: number;
 }
 
 const STORAGE_KEY = "blockfall.settings.v1";
@@ -26,6 +27,7 @@ export class GameSettings {
         0,
         1,
       ),
+      hudScale: clamp(patch.hudScale ?? this.stateValue.hudScale, 0.75, 1.5),
     };
     this.save();
   }
@@ -35,6 +37,7 @@ export class GameSettings {
       volume: 0.28,
       debug: false,
       effects: true,
+      hudScale: 1,
     };
 
     try {
@@ -45,6 +48,7 @@ export class GameSettings {
         volume: clamp(parsed.volume ?? fallback.volume, 0, 1),
         debug: parsed.debug ?? fallback.debug,
         effects: parsed.effects ?? fallback.effects,
+        hudScale: clamp(parsed.hudScale ?? fallback.hudScale, 0.75, 1.5),
       };
     } catch {
       return fallback;

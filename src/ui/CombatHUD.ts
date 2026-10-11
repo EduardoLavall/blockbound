@@ -5,6 +5,8 @@ export class CombatHUD {
   private hitTimer = 0;
   private damageTimer = 0;
   private previousHealth: number;
+  private previousMarkup = "";
+  private damageTrail = 1;
 
   constructor(
     private readonly element: HTMLDivElement,
@@ -40,26 +42,43 @@ export class CombatHUD {
     this.damageFlash.classList.toggle("active", this.damageTimer > 0);
 
     const health = this.vitals.health;
+    this.damageTrail = Math.max(health.ratio,
+      this.damageTrail - dt * (this.damageTimer > 0 ? 0 : 0.45));
+    this.element.classList.toggle("low-health", health.ratio < 0.3);
+    this.element.classList.toggle("taking-damage", this.damageTimer > 0);
     const modeLabel =
       mode === PlayerActionMode.Tool
-        ? "PICKAXE"
+        ? "PICARETA"
         : mode === PlayerActionMode.Blade
-          ? "BLADE"
+          ? "LÂMINA"
           : "REPEATER";
 
-    this.element.innerHTML = `
-      <div class="player-health-line">
-        <strong>HP</strong>
-        <span>${Math.ceil(health.current)} / ${health.max}</span>
-      </div>
-      <div class="player-health-track">
-        <div class="player-health-fill" style="width:${Math.round(health.ratio * 100)}%"></div>
+    const markup = `
+      <div class="vitals-body">
+        <div class="vitals-icon" aria-hidden="true">✚</div>
+        <div class="vitals-content">
+          <div class="player-health-line">
+            <span class="health-label">VITALIDADE</span>
+            <span><strong>${Math.ceil(health.current)}</strong><small> / ${health.max}</small></span>
+          </div>
+          <div class="player-health-track">
+            <div class="player-health-trail" style="width:${Math.round(this.damageTrail * 100)}%"></div>
+            <div class="player-health-fill" style="width:${Math.round(health.ratio * 100)}%"></div>
+            <div class="health-segments"></div>
+          </div>
+          <div class="health-caption">${health.ratio < 0.3 ? "PERIGO · RECUAR" : "GUARDIÃO DO CRISTAL"}</div>
+        </div>
       </div>
       <div class="weapon-line">
         <b>${modeLabel}</b>
-        <span>Q · SWITCH</span>
-        <span>${cooldown > 0 ? cooldown.toFixed(2) + "s" : "READY"}</span>
+        <span>Q · TROCAR</span>
+        <span>${cooldown > 0 ? "RECUPERANDO" : "PRONTA"}</span>
       </div>
     `;
+    if (markup !== this.previousMarkup) {
+      this.element.innerHTML = markup;
+      this.previousMarkup = markup;
+    }
+    document.getElementById("crosshair")?.classList.toggle("recovering", cooldown > 0);
   }
 }

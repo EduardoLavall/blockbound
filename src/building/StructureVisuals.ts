@@ -1,10 +1,13 @@
 import * as THREE from "three";
+import { materialTexture } from "../engine/render/MaterialTextures";
 import { STRUCTURES, StructureType } from "./StructureRegistry";
 
 function materialFor(type: StructureType, ghost: boolean): THREE.MeshStandardMaterial {
   const color = new THREE.Color(STRUCTURES[type].swatch);
+  if (!ghost && (type === StructureType.Wall || type === StructureType.Gate || type === StructureType.Spike)) color.set(0xffffff);
   return new THREE.MeshStandardMaterial({
     color,
+    map: ghost ? null : materialTexture(type === StructureType.Wall || type === StructureType.Gate || type === StructureType.Spike ? "wood" : "steel"),
     roughness: 0.82,
     metalness:
       type === StructureType.Turret ||

@@ -14,7 +14,6 @@ export async function bootstrap(): Promise<void> {
   const loadingLabel = required<HTMLElement>("loading-label");
   const debug = required<HTMLDivElement>("debug");
   const hotbar = required<HTMLDivElement>("hotbar");
-  const buildBar = required<HTMLDivElement>("buildbar");
   const targetInfo = required<HTMLDivElement>("target-info");
   const buildInfo = required<HTMLDivElement>("build-info");
   const miningProgress = required<HTMLDivElement>("mining-progress-fill");
@@ -42,7 +41,7 @@ export async function bootstrap(): Promise<void> {
 
   startVersion.textContent = GAME_VERSION_LABEL;
   gameVersionHud.textContent = GAME_VERSION_LABEL;
-  document.title = `Blockfall ${GAME_VERSION_LABEL} — Five Night Siege`;
+  document.title = `Blockbound ${GAME_VERSION_LABEL} — O Último Cristal`;
 
   const app = new GameApp({
     canvas,
@@ -51,7 +50,6 @@ export async function bootstrap(): Promise<void> {
     loadingLabel,
     debug,
     hotbar,
-    buildBar,
     targetInfo,
     buildInfo,
     miningProgress,

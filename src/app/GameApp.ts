@@ -1,4 +1,4 @@
-import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { PlayControls } from "../player/PlayControls";
 import { RunTelemetry } from "../balance/RunTelemetry";
 import { GameSettings } from "./GameSettings";
 import { EnemySystem } from "../ai/EnemySystem";
@@ -12,6 +12,14 @@ import { PlayerVitals } from "../combat/PlayerVitals";
 import { ProjectileSystem } from "../combat/ProjectileSystem";
 import { GameLoop } from "../core/GameLoop";
 import { Input } from "../core/Input";
+import { simulationActive } from "../core/SimulationState";
+import { initializeRunInventory, DAWN_SUPPLIES, grantSupplies } from "../defense/RunEconomy";
+import { GameFeel } from "../engine/render/GameFeel";
+import { WorldDressing } from "../world/WorldDressing";
+import { FieldHUD } from "../ui/FieldHUD";
+import { hudScale } from "../ui/HudScale";
+import { PlayerActionMode } from "../combat/CombatTypes";
+import { blockDefinition } from "../voxel/blocks";
 import {
   DayNightSystem,
   DayPhase,
@@ -70,7 +78,6 @@ interface GameAppOptions {
   loadingLabel: HTMLElement;
   debug: HTMLDivElement;
   hotbar: HTMLDivElement;
-  buildBar: HTMLDivElement;
   targetInfo: HTMLDivElement;
   buildInfo: HTMLDivElement;
   miningProgress: HTMLDivElement;
@@ -98,7 +105,7 @@ interface GameAppOptions {
 export class GameApp {
   private readonly renderer: Renderer3D;
   private readonly input = new Input();
-  private readonly controls: PointerLockControls;
+  private readonly controls: PlayControls;
   private readonly debugOverlay: DebugOverlay;
   private readonly hotbar: Hotbar;
   private readonly runInventory = new RunInventory();
@@ -153,6 +160,10 @@ export class GameApp {
   private upgradeUi!: UpgradeDraftUI;
   private runRuleEffects!: RunRuleEffects;
   private telemetry!: RunTelemetry;
+  private feel!: GameFeel;
+  private dressing!: WorldDressing;
+  private fieldHud!: FieldHUD;
+  private started = false;
 
   private loop!: GameLoop;
   private defeated = false;
@@ -161,7 +172,7 @@ export class GameApp {
 
   constructor(private readonly options: GameAppOptions) {
     this.renderer = new Renderer3D(options.canvas);
-    this.controls = new PointerLockControls(
+    this.controls = new PlayControls(
       this.renderer.camera,
       options.canvas,
     );
@@ -169,15 +180,22 @@ export class GameApp {
     this.hotbar = new Hotbar(
       options.hotbar,
       this.runInventory,
+      () => this.simulating,
     );
     this.bindSettings();
 
     this.options.restartButton.addEventListener("click", () => {
-      window.location.reload();
+      const url = new URL(window.location.href);
+      url.searchParams.delete("seed");
+      window.location.assign(url.href);
     });
+    document.getElementById("replay-button")?.addEventListener("click", () => window.location.reload());
   }
 
   async init(): Promise<void> {
+    void this.audio.prepare();
+    this.options.playButton.disabled = true;
+    document.body.classList.add("game-paused");
     this.options.loadingLabel.textContent = "Inicializando Rapier...";
     this.physics = await PhysicsWorld.create();
 
@@ -187,6 +205,7 @@ export class GameApp {
 
     const generation = generateWorld(seed);
     this.applyGeneration(generation);
+    initializeRunInventory(this.runInventory);
 
     this.options.loadingLabel.textContent =
       "Construindo " + this.world.getChunks().length + " chunks...";
@@ -207,6 +226,8 @@ export class GameApp {
       this.world,
       this.metadata,
     );
+    this.dressing = new WorldDressing(this.renderer.scene, this.world, this.metadata);
+    this.feel = new GameFeel(this.renderer.scene, this.renderer.camera, this.world);
 
     const coreSurface = this.world.highestSolidY(
       this.metadata.core.x,
@@ -241,7 +262,7 @@ export class GameApp {
     );
 
     this.hand = new FirstPersonHand(
-      this.renderer.camera,
+      this.renderer.viewCamera,
       this.controls,
       this.input,
       this.player,
@@ -251,6 +272,7 @@ export class GameApp {
       this.renderer.scene,
       this.inventory,
       this.player,
+      () => this.audio.pickup(),
     );
 
     this.structures = new StructureSystem(
@@ -265,8 +287,9 @@ export class GameApp {
       this.mode,
       this.core,
       this.metadata.bounds,
-      this.options.buildBar,
+      this.hotbar,
       this.options.buildInfo,
+      () => this.audio.build(),
     );
 
     this.navigation = new NavigationGrid(
@@ -292,6 +315,7 @@ export class GameApp {
       this.playerVitals,
       this.playerStatus,
       this.rules,
+      this.world,
     );
 
     this.itemLoot = new ItemLootSystem(
@@ -300,6 +324,7 @@ export class GameApp {
       this.enemies,
       this.player,
       this.itemInventory,
+      () => this.audio.pickup(),
     );
 
     this.combatHud = new CombatHUD(
@@ -317,6 +342,7 @@ export class GameApp {
       (_damage, killed, critical) => {
         this.combatHud.showHit(killed, critical);
       },
+      this.structures,
     );
 
     this.playerCombat = new PlayerCombatSystem(
@@ -331,6 +357,15 @@ export class GameApp {
       this.playerVitals,
       this.hand,
       this.combatHud,
+      this.structures,
+      (mode) => {
+        this.feel.kick(mode === PlayerActionMode.Repeater ? 0.6 : 0.22);
+        if (mode === PlayerActionMode.Repeater) this.audio.shoot();
+        else this.audio.swing();
+      },
+      () => this.audio.equip(),
+      this.runInventory,
+      this.hotbar,
     );
 
     this.interaction = new VoxelInteractionController(
@@ -348,6 +383,12 @@ export class GameApp {
       () => this.playerCombat.canMine,
       this.options.targetInfo,
       this.options.miningProgress,
+      (position, block, broken, normal) => {
+        this.hand.triggerMiningImpact(broken);
+        this.feel.miningImpact(position, Number.parseInt(blockDefinition(block).swatch.slice(1), 16), normal, broken);
+        this.feel.kick(broken ? 0.25 : 0.08);
+        this.audio.mine(block, broken);
+      },
     );
 
     this.spawns = new SpawnDirector(
@@ -363,6 +404,7 @@ export class GameApp {
       this.structures,
       this.enemies,
       this.rules,
+      this.world,
     );
 
     this.survivalHud = new SurvivalHUD(
@@ -385,6 +427,11 @@ export class GameApp {
       this.itemInventory,
       this.equipment,
       () => this.closeItemInventory(),
+      (id) => {
+        this.audio.choose();
+        const index = this.runInventory.slots.findIndex(stack => stack?.kind === "item" && stack.definitionId === id);
+        if (index >= 0 && index < 9) this.hotbar.select(index);
+      },
     );
     this.bindItemInventoryControls();
 
@@ -418,14 +465,25 @@ export class GameApp {
       this.run,
     );
     this.telemetry.checkpoint("run-start", 0);
+    let lastHealth = this.playerVitals.health.current;
+    this.playerVitals.subscribe(() => {
+      if (this.playerVitals.health.current < lastHealth) { this.feel.hurt(); this.audio.hurt(); }
+      lastHealth = this.playerVitals.health.current;
+    });
+    this.fieldHud = new FieldHUD(this.metadata, this.player, this.renderer.camera,
+      this.enemies, this.structures, this.dayNight, this.world);
 
     this.enemies.subscribeDamage((event) => {
+      const playerDamage = event.source.startsWith("player-");
+      const position = event.enemy.group.position.clone();
+      position.y += 1.2 * event.enemy.definition.scale;
+      this.feel.damage(position, event.amount, event.killed, playerDamage);
       if (
         event.source === "player-tool" ||
         event.source === "player-melee" ||
         event.source === "player-projectile"
       ) {
-        this.audio.hit(event.killed);
+        this.audio.hit(event.killed, position.clone().project(this.renderer.camera).x);
       }
     });
 
@@ -435,19 +493,26 @@ export class GameApp {
       "DAY · " + size + "×" + size + " · SEED " + seed.text;
 
     this.bindPointerLock();
+    await this.audio.prepare();
     this.options.loadingLabel.textContent =
-      "Prepare a defesa. Q alterna Pickaxe, Blade e Repeater.";
+      "Tudo pronto. Minere com a picareta e fabrique seus primeiros itens com I.";
+    this.options.playButton.disabled = false;
+    this.options.playButton.textContent = "INICIAR EXPEDIÇÃO";
 
     this.loop = new GameLoop({
       fixedUpdate: (dt) => {
-        if (this.defeated || this.drafting || this.inventoryOpen) return;
+        if (!this.simulating) return;
 
         this.telemetry.update(dt);
         this.playerVitals.update(dt);
         this.player.fixedUpdate(dt);
         this.physics.step(dt);
         this.player.syncCamera();
+        const playerPosition = this.player.getPosition();
+        this.audio.updateMovement(playerPosition, this.player.getDebugState().grounded,
+          this.world.getBlock(Math.floor(playerPosition.x), Math.floor(playerPosition.y - 0.96), Math.floor(playerPosition.z)));
 
+        this.hotbar.handleInput(this.input);
         this.structures.fixedUpdate(dt);
         this.playerCombat.fixedUpdate(dt);
         this.interaction.fixedUpdate(dt);
@@ -456,25 +521,17 @@ export class GameApp {
         this.itemLoot.update(dt);
         this.core.update(dt);
 
-        const transition = this.dayNight.update(dt);
+        const transition = this.input.consumePressed("KeyN") && this.dayNight.phase === DayPhase.Day
+          ? this.dayNight.startNightEarly() : this.dayNight.update(dt);
         if (transition?.to === DayPhase.Night) {
           this.waves.startNight(transition.night);
-          this.dayNight.holdTransition(
-            transition.night >= FINAL_NIGHT,
-          );
+          this.dayNight.holdTransition(true);
+          this.fieldHud.announce(`NOITE ${transition.night} / ${FINAL_NIGHT}`,
+            transition.night >= FINAL_NIGHT ? "O Guardião chegou. Prepare-se para o último cerco." : "A horda se aproxima pelo norte. Defenda o cristal.");
           this.audio.nightStart(
             transition.night >= FINAL_NIGHT,
           );
           this.telemetry.checkpoint("night-start", transition.night);
-        } else if (transition?.to === DayPhase.Day) {
-          this.dayNight.holdTransition(false);
-          this.waves.endNight();
-          this.enemies.retreatAll();
-          this.enemies.cleanupInactive();
-          this.run.completeNight(transition.night);
-          this.telemetry.checkpoint("night-complete", transition.night);
-          this.openUpgradeDraft(transition.night);
-          return;
         }
 
         this.navigation.updateDirty();
@@ -488,38 +545,47 @@ export class GameApp {
         this.enemies.fixedUpdate(dt);
         this.defenseCombat.fixedUpdate(dt);
 
-        if (
-          this.dayNight.phase === DayPhase.Night &&
-          this.dayNight.night >= FINAL_NIGHT &&
-          this.waves.complete &&
-          this.enemies.aliveCount === 0
-        ) {
-          this.run.completeNight(FINAL_NIGHT);
-          this.endRun(
-            "SIEGE WARDEN FALLEN",
-            "O Core sobreviveu às cinco noites. Vertical slice concluído.",
-            true,
-          );
+        if (this.core.health.destroyed || this.playerVitals.dead) {
+          this.endRun(this.core.health.destroyed ? "CRISTAL DESTRUÍDO" : "VOCÊ CAIU",
+            this.core.health.destroyed ? "A horda atravessou suas defesas." : "Sua expedição terminou. Tente outra estratégia.");
           return;
         }
 
-        if (this.core.health.destroyed) {
-          this.endRun(
-            "CORE DESTROYED",
-            "A horda atravessou suas defesas.",
-          );
-        } else if (this.playerVitals.dead) {
-          this.endRun(
-            "PLAYER DOWN",
-            "Você caiu antes de conseguir defender o Core.",
-          );
+        if (
+          this.dayNight.phase === DayPhase.Night &&
+          this.waves.complete &&
+          this.enemies.aliveCount === 0
+        ) {
+          const night = this.dayNight.night;
+          this.run.completeNight(night);
+          this.telemetry.checkpoint("night-complete", night);
+          if (night >= FINAL_NIGHT) {
+            this.endRun("CERCO VENCIDO", "O Guardião caiu. Você protegeu o cristal por cinco noites.", true);
+          } else {
+            this.dayNight.completeNight();
+            this.waves.endNight();
+            this.enemies.cleanupInactive();
+            this.playerVitals.heal(35);
+            this.core.repair(40);
+            for (const overflow of grantSupplies(this.inventory, DAWN_SUPPLIES)) {
+              const p = this.core.group.position;
+              this.drops.spawn(overflow, p.x + 2, p.y, p.z + 2);
+            }
+            this.fieldHud.announce("AMANHECER", "+35 vida · +40 cristal · suprimentos de defesa recebidos");
+            this.openUpgradeDraft(night);
+          }
+          return;
         }
+
       },
       render: (frameMs) => {
-        this.options.hotbar.classList.toggle(
-          "hidden",
-          this.mode.buildMode,
-        );
+        const visualMs = this.simulating ? frameMs : 0;
+        this.feel.enabled = this.settings.state.effects;
+        this.renderer.effects = this.settings.state.effects;
+        this.hand.effects = this.settings.state.effects;
+        this.feel.update(Math.min(visualMs / 1000, 0.05));
+        this.dressing.update(Math.min(visualMs / 1000, 0.05), this.dayNight.nightFactor, this.settings.state.effects);
+        this.fieldHud.update(Math.min(visualMs / 1000, 0.05));
         this.options.targetInfo.classList.toggle(
           "hidden",
           this.mode.buildMode,
@@ -530,7 +596,7 @@ export class GameApp {
         this.interaction.renderUpdate();
         this.survivalHud.update();
         this.hordeHud.update();
-        this.playerCombat.renderUpdate(frameMs);
+        this.playerCombat.renderUpdate(visualMs);
         this.playerStatusPanel.update();
         const mining = this.interaction.miningState;
         this.hand.setMiningState(
@@ -538,7 +604,7 @@ export class GameApp {
           mining.progress,
           mining.duration,
         );
-        this.hand.update(frameMs);
+        this.hand.update(visualMs);
 
         const phaseLabel =
           this.dayNight.phase === DayPhase.Day
@@ -555,7 +621,9 @@ export class GameApp {
           " UPGRADES · SEED " +
           seed.text;
 
+        if (this.simulating) this.feel.applyCamera();
         this.renderer.render();
+        if (this.simulating) this.feel.restoreCamera();
 
         const chunkStats = this.chunks.getStats();
         const wave = this.waves.stats;
@@ -574,6 +642,7 @@ export class GameApp {
             "KILLS     " + this.run.playerKills,
             "UPGRADES  " + this.run.acquiredUpgrades.length,
             "PROJECTILES " + this.projectiles.count,
+            "SFX READY " + this.audio.loadedCount,
             "NAV DIRTY " + this.navigation.pendingCells,
             "NAV MS    " + this.navigation.lastRebuildMs.toFixed(2),
             "FLOW MS   " + this.flow.rebuildMs.toFixed(2),
@@ -625,6 +694,11 @@ export class GameApp {
     );
   }
 
+  private get simulating(): boolean {
+    return simulationActive({ locked: this.controls.isLocked, hidden: document.hidden,
+      ended: this.defeated, drafting: this.drafting, inventoryOpen: this.inventoryOpen });
+  }
+
   private chooseUpgrade(upgrade: UpgradeDefinition): void {
     upgrade.apply(this.rules);
     this.run.acquireUpgrade(upgrade.id);
@@ -658,25 +732,26 @@ export class GameApp {
     const summary = this.run.summary();
     this.options.defeatOverlay.classList.toggle("victory", victory);
     this.options.defeatEyebrow.textContent =
-      victory ? "RUN COMPLETE" : "RUN FAILED";
+      victory ? "EXPEDIÇÃO CONCLUÍDA" : "FIM DA EXPEDIÇÃO";
     this.options.defeatTitle.textContent = title;
     this.options.defeatText.textContent = text;
     this.options.restartButton.textContent =
-      victory ? "NOVA RUN" : "REINICIAR RUN";
+      "NOVA EXPEDIÇÃO";
     this.telemetry.finish(
       victory ? "victory" : "defeat",
       this.dayNight.night,
     );
     this.options.runSummary.innerHTML = `
-      <div><span>Nights</span><strong>${summary.nightsSurvived}</strong></div>
-      <div><span>Player kills</span><strong>${summary.playerKills}</strong></div>
-      <div><span>Upgrades</span><strong>${summary.upgrades.length}</strong></div>
-      <button id="telemetry-export-button">EXPORT TELEMETRY</button>
+      <div><span>Noites vencidas</span><strong>${summary.nightsSurvived} / 5</strong></div>
+      <div><span>Eliminações</span><strong>${summary.playerKills}</strong></div>
+      <div><span>Melhorias</span><strong>${summary.upgrades.length}</strong></div>
+      <button id="telemetry-export-button">EXPORTAR RELATÓRIO DA PARTIDA</button>
     `;
     this.options.runSummary
       .querySelector<HTMLButtonElement>("#telemetry-export-button")
       ?.addEventListener("click", () => this.telemetry.download());
     this.options.defeatOverlay.classList.remove("hidden");
+    this.audio.pause();
     if (victory) this.audio.victory();
     else this.audio.defeat();
 
@@ -709,7 +784,7 @@ export class GameApp {
   private bindItemInventoryControls(): void {
     window.addEventListener("keydown", (event) => {
       if (
-        event.code !== "KeyI" ||
+        (event.code !== "KeyI" && !(event.code === "Escape" && this.inventoryOpen)) ||
         event.repeat ||
         this.defeated ||
         this.drafting
@@ -746,9 +821,8 @@ export class GameApp {
 
   private closeItemInventory(): void {
     if (!this.inventoryOpen) return;
-
+    if (!this.itemInventoryPanel.hide()) return;
     this.inventoryOpen = false;
-    this.itemInventoryPanel.hide();
     this.options.overlay.classList.add("hidden");
     this.input.setEnabled(false);
     this.controls.lock();
@@ -760,6 +834,13 @@ export class GameApp {
     this.options.settingsEffects.checked = state.effects;
     this.options.settingsDebug.checked = state.debug;
     this.applySettings();
+    const hudSize = document.getElementById("settings-hud-scale") as HTMLInputElement;
+    hudSize.value = String(state.hudScale);
+    hudSize.addEventListener("input", () => {
+      this.settings.update({ hudScale: Number(hudSize.value) });
+      this.applySettings();
+    });
+    window.addEventListener("resize", () => this.applySettings());
 
     this.options.settingsVolume.addEventListener("input", () => {
       this.settings.update({
@@ -785,13 +866,20 @@ export class GameApp {
 
   private applySettings(): void {
     const state = this.settings.state;
+    document.documentElement.style.setProperty("--hud-scale", String(hudScale(window.innerWidth, window.innerHeight, state.hudScale)));
     this.audio.setVolume(state.volume);
-    this.audio.setEnabled(state.effects);
+    this.audio.setEnabled(true);
     this.options.debug.classList.toggle("hidden", !state.debug);
     document.body.classList.toggle("reduced-fx", !state.effects);
   }
 
   private bindPointerLock(): void {
+    const fallback = document.getElementById("drag-play-button")!;
+    fallback.addEventListener("click", () => {
+      void this.audio.unlock();
+      this.controls.useDragLook();
+      this.fieldHud.announce("MOUSE LIVRE", "Segure o botão do meio e arraste para olhar. Esc pausa.");
+    });
     this.options.playButton.addEventListener(
       "click",
       () => {
@@ -801,6 +889,12 @@ export class GameApp {
     );
 
     this.controls.addEventListener("lock", () => {
+      void this.audio.unlock();
+      document.body.classList.remove("game-paused");
+      if (!this.started) {
+        this.started = true;
+        this.fieldHud.announce("MINERE E FABRIQUE", "Comece com sua picareta. I abre a fabricação; selecione armas e defesas na hotbar.");
+      }
       this.options.overlay.classList.add("hidden");
       this.input.setEnabled(
         !this.defeated &&
@@ -810,6 +904,9 @@ export class GameApp {
     });
 
     this.controls.addEventListener("unlock", () => {
+      if (!this.defeated) this.audio.pause();
+      document.body.classList.add("game-paused");
+      this.options.playButton.textContent = "CONTINUAR EXPEDIÇÃO";
       if (this.defeated || this.drafting || this.inventoryOpen) {
         this.options.overlay.classList.add("hidden");
         return;
@@ -818,5 +915,13 @@ export class GameApp {
       this.options.overlay.classList.remove("hidden");
       this.input.setEnabled(false);
     });
+    document.addEventListener("pointerlockerror", () => {
+      this.options.loadingLabel.textContent = "Este navegador bloqueou a captura do mouse. Abra em uma aba normal ou use o modo de mouse livre abaixo.";
+      fallback.classList.remove("hidden");
+      if (!this.defeated && !this.drafting && !this.inventoryOpen) this.options.overlay.classList.remove("hidden");
+    });
+    const pause = () => { if (this.controls.isLocked) this.controls.unlock(); };
+    window.addEventListener("blur", pause);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
   }
 }

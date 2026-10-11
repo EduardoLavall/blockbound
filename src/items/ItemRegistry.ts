@@ -1,7 +1,9 @@
 import type { EquipmentStatModifiers } from "../player/PlayerStats";
+import { PlayerActionMode } from "../combat/CombatTypes";
+import { StructureType } from "../building/StructureRegistry";
 
 export type ItemRarity = "common" | "rare" | "epic";
-export type ItemKind = "equipment" | "consumable";
+export type ItemKind = "equipment" | "consumable" | "tool" | "weapon" | "structure";
 export type EquipmentSlot = "weapon" | "armor" | "charm";
 
 export interface ItemDefinition {
@@ -15,6 +17,9 @@ export interface ItemDefinition {
   swatch: string;
   tags: readonly string[];
   modifiers: Partial<EquipmentStatModifiers>;
+  action?: PlayerActionMode;
+  structure?: StructureType;
+  icon?: string;
 }
 
 export const ITEMS: readonly ItemDefinition[] = [
@@ -175,8 +180,23 @@ export const ITEMS: readonly ItemDefinition[] = [
   ),
 ];
 
+export const CRAFTED_ITEMS: readonly ItemDefinition[] = [
+  { id: "pickaxe", name: "Picareta", description: "Sua ferramenta de mineração. Também serve para se defender.", kind: "tool", rarity: "common", stackLimit: 1, swatch: "#a7b9be", tags: ["mining"], modifiers: {}, action: PlayerActionMode.Tool, icon: "pickaxe" },
+  { id: "blade", name: "Lâmina", description: "Arma corpo a corpo com empurrão médio. Selecione na hotbar para atacar.", kind: "weapon", rarity: "common", stackLimit: 1, swatch: "#83dccc", tags: ["melee"], modifiers: {}, action: PlayerActionMode.Blade, icon: "blade" },
+  { id: "repeater", name: "Repeater", description: "Arma de energia de longo alcance com empurrão leve. Selecione na hotbar para disparar.", kind: "weapon", rarity: "common", stackLimit: 1, swatch: "#7aadc7", tags: ["projectile"], modifiers: {}, action: PlayerActionMode.Repeater, icon: "repeater" },
+  ...([
+    [StructureType.Wall, "Muro", "Bloqueia e desvia a horda."],
+    [StructureType.Turret, "Torre", "Defesa de alcance. Coloque ao lado da rota."],
+    [StructureType.RapidTurret, "Torre rápida", "Cadência alta contra inimigos leves."],
+    [StructureType.Spike, "Espinhos", "Armadilha que pode ocupar a rota."],
+    [StructureType.Gate, "Portão", "Passagem que pode ser aberta com E."],
+  ] as const).map(([structure, name, description]): ItemDefinition => ({
+    id: `defense-${structure}`, name, description: `${description} Selecione na hotbar e coloque com o botão direito.`,
+    kind: "structure", rarity: "common", stackLimit: 16, swatch: "#b5976c", tags: ["defense"], modifiers: {}, structure, icon: structure,
+  })),
+];
 export const ITEM_BY_ID: ReadonlyMap<string, ItemDefinition> =
-  new Map(ITEMS.map((definition) => [definition.id, definition]));
+  new Map([...ITEMS, ...CRAFTED_ITEMS].map((definition) => [definition.id, definition]));
 
 export function itemDefinition(id: string): ItemDefinition {
   const definition = ITEM_BY_ID.get(id);

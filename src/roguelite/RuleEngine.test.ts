@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Vector3 } from "three";
 import { ENEMIES, EnemyType } from "../ai/EnemyRegistry";
 import type { EnemyInstance } from "../ai/EnemySystem";
 import { EnemyStatus } from "../combat/CombatTypes";
@@ -26,6 +27,8 @@ function enemyWith(status?: EnemyStatus): EnemyInstance {
     attackDamage: 1,
     attackInterval: 1,
     attackCooldown: 0,
+    knockbackVelocity: new Vector3(),
+    stagger: 0,
     abilityCooldown: 0,
     alive: true,
   };

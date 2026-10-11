@@ -1,3 +1,5 @@
+import { stackIcon } from "../ui/ArtIcons";
+import type { Input } from "../core/Input";
 import {
   HOTBAR_SIZE,
   type InventoryStack,
@@ -19,6 +21,7 @@ export class Hotbar {
   constructor(
     private readonly element: HTMLDivElement,
     private readonly inventory: RunInventory,
+    private readonly active: () => boolean = () => Boolean(document.pointerLockElement),
   ) {
     this.inventory.subscribe(() => this.refresh());
     this.bindScroll();
@@ -29,6 +32,9 @@ export class Hotbar {
     if (index < 0 || index >= HOTBAR_SIZE) return;
     this.selectedIndex = index;
     this.refresh();
+  }
+  handleInput(input: Input): void {
+    for (let i = 0; i < HOTBAR_SIZE; i++) if (input.consumePressed(`Digit${i + 1}`)) this.select(i);
   }
 
   cycle(direction: number): void {
@@ -70,7 +76,7 @@ export class Hotbar {
     window.addEventListener(
       "wheel",
       (event) => {
-        if (!document.pointerLockElement) return;
+        if (!this.active()) return;
         if (Math.abs(event.deltaY) < 0.01) return;
         event.preventDefault();
         this.cycle(event.deltaY > 0 ? 1 : -1);
@@ -104,10 +110,7 @@ export class Hotbar {
       return `
         <div class="hotbar-slot ${selected ? "selected" : ""}">
           <span class="hotbar-key">${index + 1}</span>
-          <span
-            class="hotbar-swatch"
-            style="--swatch:${definition.swatch}"
-          ></span>
+          <img class="hotbar-swatch art-icon" src="${stackIcon(stack)}" alt="" />
           <span class="hotbar-name">${definition.name}</span>
           <strong class="hotbar-count">${stack.quantity}</strong>
         </div>
@@ -118,10 +121,7 @@ export class Hotbar {
     return `
       <div class="hotbar-slot rarity-${definition.rarity} ${selected ? "selected" : ""}">
         <span class="hotbar-key">${index + 1}</span>
-        <span
-          class="hotbar-swatch"
-          style="--swatch:${definition.swatch}"
-        ></span>
+        <img class="hotbar-swatch art-icon" src="${stackIcon(stack)}" alt="" />
         <span class="hotbar-name">${definition.name}</span>
         ${stack.quantity > 1
           ? `<strong class="hotbar-count">${stack.quantity}</strong>`

@@ -1,3 +1,5 @@
+import type { Hotbar } from "../player/Hotbar";
+import { itemDefinition } from "../items/ItemRegistry";
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { Input } from "../core/Input";
@@ -7,7 +9,7 @@ import type { PlayerController } from "../player/PlayerController";
 import type { Inventory } from "../survival/Inventory";
 import type { PlayerStatus } from "../player/PlayerStatus";
 import { Health } from "../survival/Health";
-import { formatCost, type ResourceCost } from "../survival/Resources";
+import type { ResourceCost } from "../survival/Resources";
 import { VOXEL_INTERACTION_DISTANCE } from "../voxel/constants";
 import type { WorldBounds } from "../voxel/generation/WorldMetadata";
 import { raycastVoxels } from "../voxel/VoxelRaycast";
@@ -85,14 +87,14 @@ export class StructureSystem {
     private readonly mode: InteractionMode,
     private readonly core: Core,
     private readonly bounds: WorldBounds,
-    private readonly buildBar: HTMLDivElement,
+    private readonly hotbar: Hotbar,
     private readonly buildInfo: HTMLDivElement,
+    private readonly onBuild: () => void = () => {},
   ) {
     this.ghost = createStructureVisual(this.selectedType, true);
     this.ghost.visible = false;
     this.scene.add(this.ghost);
-    this.buildBar.classList.add("hidden");
-    this.renderBuildBar();
+
   }
 
   fixedUpdate(dt: number): void {
@@ -100,26 +102,14 @@ export class StructureSystem {
       this.feedbackTime = Math.max(0, this.feedbackTime - dt);
     }
 
-    if (this.input.consumePressed("KeyB")) {
-      this.mode.toggleBuild();
-      this.buildBar.classList.toggle("hidden", !this.mode.buildMode);
-      this.ghost.visible = this.mode.buildMode;
-      this.feedback = this.mode.buildMode ? "BUILD MODE ON" : "BUILD MODE OFF";
-      this.feedbackTime = 1.2;
-    }
-
-    if (!this.mode.buildMode) {
-      this.ghost.visible = false;
-      if (this.input.consumePressed("KeyE")) this.toggleNearestGate();
-      if (this.input.consumePressed("KeyR")) this.repairNearest();
-      return;
-    }
-
-    for (let i = 0; i < STRUCTURE_ORDER.length; i++) {
-      if (this.input.consumePressed(`Digit${i + 1}`)) {
-        this.select(i);
-      }
-    }
+    const stack = this.hotbar.selectedStack;
+    const structure = stack?.kind === "item" ? itemDefinition(stack.definitionId).structure : undefined;
+    this.mode.buildMode = Boolean(structure);
+    if (this.input.consumePressed("KeyE")) this.toggleNearestGate();
+    if (this.input.consumePressed("KeyR")) this.repairNearest();
+    if (!structure) { this.ghost.visible = false; return; }
+    const index = STRUCTURE_ORDER.indexOf(structure);
+    if (index !== this.selectedIndex) this.select(index);
 
     this.refreshPlacement();
 
@@ -127,9 +117,6 @@ export class StructureSystem {
       this.placeSelected();
     }
 
-    if (this.input.consumePressed("KeyR")) {
-      this.repairNearest();
-    }
   }
 
   renderUpdate(): void {
@@ -146,14 +133,10 @@ export class StructureSystem {
       }
     }
 
-    const definition = STRUCTURES[this.selectedType];
-    const cost = formatCost(definition.cost);
-    const modeText = this.mode.buildMode
-      ? `BUILD · ${definition.name} · ${cost}`
-      : "B · BUILD MODE";
-
-    this.buildInfo.textContent =
-      this.feedbackTime > 0 ? this.feedback : modeText;
+    const stack = this.hotbar.selectedStack;
+    const name = stack?.kind === "item" ? itemDefinition(stack.definitionId).name : "";
+    this.buildInfo.textContent = this.feedbackTime > 0 ? this.feedback : this.mode.buildMode ? name + " · BOTÃO DIREITO: COLOCAR · R: REPARAR" : "";
+    this.buildInfo.classList.toggle("hidden", !this.mode.buildMode && this.feedbackTime <= 0);
   }
 
   getDebugLines(): string[] {
@@ -235,25 +218,6 @@ export class StructureSystem {
     disposeGroup(this.ghost);
     this.ghost = createStructureVisual(this.selectedType, true);
     this.scene.add(this.ghost);
-    this.renderBuildBar();
-  }
-
-  private renderBuildBar(): void {
-    this.buildBar.replaceChildren();
-
-    STRUCTURE_ORDER.forEach((type, index) => {
-      const definition = STRUCTURES[type];
-      const slot = document.createElement("div");
-      slot.className = "build-slot";
-      slot.classList.toggle("selected", index === this.selectedIndex);
-      slot.innerHTML = `
-        <span class="build-key">${index + 1}</span>
-        <span class="build-swatch" style="--swatch:${definition.swatch}"></span>
-        <span class="build-name">${definition.name}</span>
-        <span class="build-cost">${formatCost(definition.cost)}</span>
-      `;
-      this.buildBar.append(slot);
-    });
   }
 
   private refreshPlacement(): void {
@@ -340,7 +304,7 @@ export class StructureSystem {
           return false;
         }
 
-        if (this.world.highestSolidY(gridX, gridZ) >= y) {
+        if (this.world.highestSolidY(gridX, gridZ) !== y - 1) {
           return false;
         }
       }
@@ -374,20 +338,21 @@ export class StructureSystem {
       }
     }
 
-    return this.inventory.canAfford(definition.cost);
+    const stack = this.hotbar.selectedStack;
+    return stack?.kind === "item" && stack.quantity > 0 && itemDefinition(stack.definitionId).structure === this.selectedType;
   }
 
   private placeSelected(): void {
     const placement = this.placement;
     if (!placement || !placement.valid) {
-      this.feedback = "INVALID PLACEMENT / MISSING RESOURCES";
+      this.feedback = "ESCOLHA TERRENO LIVRE E NIVELADO · MANTENHA A ROTA ABERTA";
       this.feedbackTime = 1.2;
       return;
     }
 
     const definition = STRUCTURES[this.selectedType];
-    if (!this.inventory.spend(definition.cost)) {
-      this.feedback = "NOT ENOUGH RESOURCES";
+    if (!this.inventory.storage.consumeItemAt(this.hotbar.selectedSlot, 1)) {
+      this.feedback = "SELECIONE UMA DEFESA FABRICADA NA HOTBAR";
       this.feedbackTime = 1.2;
       return;
     }
@@ -425,6 +390,7 @@ export class StructureSystem {
       z: placement.z,
     };
     this.instances.push(instance);
+    this.onBuild();
     this.emitNavigationChanged(instance);
 
     this.feedback = `${definition.name.toUpperCase()} BUILT`;

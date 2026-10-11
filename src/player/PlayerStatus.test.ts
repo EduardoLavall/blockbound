@@ -80,13 +80,13 @@ describe("PlayerStatus", () => {
     const snapshot = status.snapshot();
 
     expect(snapshot.mobility.walkSpeed).toBeCloseTo(5.94);
-    expect(snapshot.melee.damage).toBeCloseTo(51);
-    expect(snapshot.melee.cooldown).toBeCloseTo(0.35424);
+    expect(snapshot.melee.damage).toBeCloseTo(BASE_PLAYER_STATS.meleeDamage * 1.25 * 1.2);
+    expect(snapshot.melee.cooldown).toBeCloseTo(BASE_PLAYER_STATS.meleeCooldown * 0.82 * 0.9);
     expect(snapshot.melee.range).toBeCloseTo(3.1);
 
     expect(snapshot.ranged.damage).toBeCloseTo(33.12);
-    expect(snapshot.ranged.cooldown).toBeCloseTo(0.2601);
-    expect(snapshot.ranged.projectileSpeed).toBeCloseTo(37.125);
+    expect(snapshot.ranged.cooldown).toBeCloseTo(BASE_PLAYER_STATS.rangedCooldown * 0.9 * 0.85);
+    expect(snapshot.ranged.projectileSpeed).toBeCloseTo(BASE_PLAYER_STATS.projectileSpeed * 1.35 * 1.1);
     expect(snapshot.ranged.pierce).toBe(2);
 
     expect(snapshot.crit.chance).toBeCloseTo(0.2);
@@ -143,9 +143,9 @@ describe("PlayerStatus", () => {
     );
 
     expect(damage).toBeDefined();
-    expect(damage?.base).toBe("34");
+    expect(damage?.base).toBe(String(BASE_PLAYER_STATS.meleeDamage));
     expect(damage?.run).toBe("×1.25");
     expect(damage?.equipment).toBe("×1");
-    expect(damage?.final).toBe("42.5");
+    expect(damage?.final).toBe(String(BASE_PLAYER_STATS.meleeDamage * 1.25));
   });
 });

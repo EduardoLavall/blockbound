@@ -1,9 +1,10 @@
 import * as THREE from "three";
-import type { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import type { PlayControls } from "./PlayControls";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { Input } from "../core/Input";
 import type { PlayerStatus } from "./PlayerStatus";
 import type { PhysicsWorld } from "../engine/physics/PhysicsWorld";
+import { JumpBuffer } from "./JumpBuffer";
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -22,10 +23,11 @@ export class PlayerController {
   private readonly wish = new THREE.Vector3();
   private verticalVelocity = 0;
   private grounded = false;
+  private readonly jump = new JumpBuffer();
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
-    private readonly controls: PointerLockControls,
+    private readonly controls: PlayControls,
     private readonly input: Input,
     private readonly status: PlayerStatus,
     physics: PhysicsWorld,
@@ -45,7 +47,7 @@ export class PlayerController {
     );
 
     this.characterController = physics.world.createCharacterController(0.02);
-    this.characterController.enableAutostep(0.42, 0.18, true);
+    this.characterController.enableAutostep(1.05, 0.18, true);
     this.characterController.enableSnapToGround(0.32);
     this.characterController.setMaxSlopeClimbAngle(50 * Math.PI / 180);
     this.characterController.setMinSlopeSlideAngle(55 * Math.PI / 180);
@@ -80,7 +82,7 @@ export class PlayerController {
 
     if (this.wish.lengthSq() > 1) this.wish.normalize();
 
-    if (this.input.consumePressed("Space") && this.grounded) {
+    if (this.jump.update(dt, this.grounded, this.input.consumePressed("Space"))) {
       this.verticalVelocity = stats.mobility.jumpSpeed;
       this.grounded = false;
     }
@@ -97,6 +99,9 @@ export class PlayerController {
     this.characterController.computeColliderMovement(this.collider, desired);
     const corrected = this.characterController.computedMovement();
     this.grounded = this.characterController.computedGrounded();
+    if (this.verticalVelocity > 0 && corrected.y < desired.y - 0.001) {
+      this.verticalVelocity = 0;
+    }
 
     if (this.grounded && this.verticalVelocity < 0) {
       this.verticalVelocity = 0;

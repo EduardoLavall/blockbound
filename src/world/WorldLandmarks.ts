@@ -22,7 +22,7 @@ export function createWorldLandmarks(
   });
 
   for (const spawn of metadata.spawnZones) {
-    const y = world.highestSolidY(spawn.x, spawn.z) + 0.15;
+    const y = world.highestSolidY(spawn.x, spawn.z) + 1.15;
     const marker = new THREE.Mesh(
       new THREE.CylinderGeometry(2.3, 2.3, 0.18, 24),
       spawnMaterial,
@@ -78,7 +78,7 @@ function createLaneSurface(
   lane.name = "primary-lane-texture";
   lane.position.set(
     metadata.lane.entry.x + 0.5,
-    world.highestSolidY(metadata.lane.entry.x, minZ) + 0.035,
+    world.highestSolidY(metadata.lane.entry.x, minZ) + 1.035,
     minZ + laneLength / 2,
   );
   lane.renderOrder = 1;

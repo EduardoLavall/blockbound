@@ -10,8 +10,13 @@ import { SeededRandom } from "../voxel/generation/SeededRandom";
 import type { CombatHUD } from "../ui/CombatHUD";
 import type { ProjectileSystem } from "./ProjectileSystem";
 import { PICKAXE } from "../survival/MiningTool";
-import { raycastVoxels } from "../voxel/VoxelRaycast";
+import { coverDistance } from "./CombatTrace";
+import type { StructureSystem } from "../building/StructureSystem";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
+import type { RunInventory } from "../inventory/RunInventory";
+import type { Hotbar } from "../player/Hotbar";
+import { itemDefinition } from "../items/ItemRegistry";
+import { WEAPON_KNOCKBACK } from "./Knockback";
 
 export class PlayerCombatSystem {
   private readonly direction = new THREE.Vector3();
@@ -19,6 +24,7 @@ export class PlayerCombatSystem {
   private modeValue = PlayerActionMode.Tool;
   private cooldown = 0;
   private toolTargetingEnemy = false;
+  private selectedToken = "";
 
   constructor(
     seed: number,
@@ -32,6 +38,11 @@ export class PlayerCombatSystem {
     private readonly vitals: PlayerVitals,
     private readonly hand: FirstPersonHand,
     private readonly hud: CombatHUD,
+    private readonly structures: StructureSystem,
+    private readonly onAttack: (mode: PlayerActionMode) => void = () => {},
+    private readonly onEquip: () => void = () => {},
+    private readonly inventory: RunInventory,
+    private readonly hotbar: Hotbar,
   ) {
     this.random = new SeededRandom(seed ^ 0x6d93ac41);
     this.hand.setActionMode(this.modeValue);
@@ -44,18 +55,25 @@ export class PlayerCombatSystem {
   get canMine(): boolean {
     return (
       this.modeValue === PlayerActionMode.Tool &&
+      this.hasAction(PlayerActionMode.Tool) &&
       !this.toolTargetingEnemy
     );
   }
 
   fixedUpdate(dt: number): void {
     this.cooldown = Math.max(0, this.cooldown - dt);
-
-    if (this.interactionMode.buildMode || this.vitals.dead) return;
+    const stack = this.hotbar.selectedStack;
+    const token = `${this.hotbar.selectedSlot}:${stack?.kind === "item" ? stack.uid : stack?.resource ?? "empty"}`;
+    if (token !== this.selectedToken) {
+      this.selectedToken = token;
+      this.setMode(stack?.kind === "item" ? itemDefinition(stack.definitionId).action ?? PlayerActionMode.Tool : PlayerActionMode.Tool);
+    }
+    if (!this.hasAction(this.modeValue)) this.setMode(PlayerActionMode.Tool);
 
     if (this.input.consumePressed("KeyQ")) {
       this.cycleMode();
     }
+    if (this.interactionMode.buildMode || this.vitals.dead || !this.hasAction(this.modeValue)) return;
 
     this.toolTargetingEnemy = false;
 
@@ -69,7 +87,7 @@ export class PlayerCombatSystem {
         }
       }
     } else if (this.modeValue === PlayerActionMode.Blade) {
-      if (this.input.consumePressed("Mouse0") && this.cooldown <= 0) {
+      if (this.input.isDown("Mouse0") && this.cooldown <= 0) {
         this.swingBlade();
       }
     } else if (this.modeValue === PlayerActionMode.Repeater) {
@@ -80,6 +98,7 @@ export class PlayerCombatSystem {
   }
 
   renderUpdate(frameMs: number): void {
+    this.hand.setHeldVisible(!this.interactionMode.buildMode && this.hasAction(this.modeValue));
     this.hud.update(
       Math.min(frameMs / 1000, 0.05),
       this.modeValue,
@@ -97,15 +116,24 @@ export class PlayerCombatSystem {
   }
 
   private cycleMode(): void {
-    this.modeValue =
-      this.modeValue === PlayerActionMode.Tool
-        ? PlayerActionMode.Blade
-        : this.modeValue === PlayerActionMode.Blade
-          ? PlayerActionMode.Repeater
-          : PlayerActionMode.Tool;
-
-    this.cooldown = Math.min(this.cooldown, 0.1);
-    this.hand.setActionMode(this.modeValue);
+    const available = [PlayerActionMode.Tool, PlayerActionMode.Blade, PlayerActionMode.Repeater].filter(action => this.hasAction(action));
+    if (available.length < 2) return;
+    const next = available[(available.indexOf(this.modeValue) + 1) % available.length]!;
+    const source = this.inventory.slots.findIndex(stack => stack?.kind === "item" && itemDefinition(stack.definitionId).action === next);
+    const target = source < 9 ? source : this.hotbar.selectedSlot;
+    if (source >= 9 && !this.inventory.moveToHotbar(source, target)) return;
+    this.hotbar.select(target);
+    this.selectedToken = "";
+    this.setMode(next);
+  }
+  private hasAction(action: PlayerActionMode): boolean {
+    return this.inventory.itemStacks().some(stack => itemDefinition(stack.definitionId).action === action);
+  }
+  private setMode(mode: PlayerActionMode): void {
+    if (this.modeValue === mode) return;
+    this.modeValue = mode;
+    this.onEquip();
+    this.hand.setActionMode(mode);
   }
 
   private swingPickaxe(target: EnemyInstance): void {
@@ -114,6 +142,7 @@ export class PlayerCombatSystem {
       this.status.outgoingDamageMultiplier();
 
     this.hand.triggerAttack(0.9);
+    this.onAttack(PlayerActionMode.Tool);
     this.cooldown = PICKAXE.combatCooldown;
 
     const killed = this.enemies.damage(
@@ -121,6 +150,7 @@ export class PlayerCombatSystem {
       damage,
       "player-tool",
     );
+    this.enemies.knockback(target, this.direction, WEAPON_KNOCKBACK.pickaxe);
     this.hud.showHit(killed, false);
   }
 
@@ -131,6 +161,7 @@ export class PlayerCombatSystem {
     const target = this.bestMeleeTarget(range);
 
     this.hand.triggerAttack(1);
+    this.onAttack(PlayerActionMode.Blade);
     this.cooldown = stats.melee.cooldown;
 
     if (!target) return;
@@ -146,6 +177,7 @@ export class PlayerCombatSystem {
       damage,
       "player-melee",
     );
+    this.enemies.knockback(target, this.direction, WEAPON_KNOCKBACK.blade);
     this.applyPlayerStatuses(target, false);
     this.hud.showHit(killed, critical);
   }
@@ -159,9 +191,7 @@ export class PlayerCombatSystem {
       this.status.outgoingDamageMultiplier();
     const damage = critical ? base * stats.crit.multiplier : base;
 
-    const origin = this.camera.position
-      .clone()
-      .addScaledVector(this.direction, 0.5);
+    const origin = this.camera.position.clone();
 
     this.projectiles.spawn({
       origin,
@@ -176,6 +206,7 @@ export class PlayerCombatSystem {
     });
 
     this.hand.triggerAttack(0.45);
+    this.onAttack(PlayerActionMode.Repeater);
     this.cooldown = stats.ranged.cooldown;
   }
 
@@ -186,7 +217,7 @@ export class PlayerCombatSystem {
 
     for (const enemy of this.enemies.aliveEnemies) {
       const center = enemy.group.position.clone();
-      center.y += 0.9;
+      center.y += 0.95 * enemy.definition.scale;
 
       const offset = center.sub(origin);
       const distance = offset.length();
@@ -194,6 +225,7 @@ export class PlayerCombatSystem {
 
       const dot = offset.normalize().dot(this.direction);
       if (dot < 0.62) continue;
+      if (this.voxelOccludesTarget(enemy)) continue;
 
       const score = dot * 2 - distance / range;
       if (score > bestScore) {
@@ -207,20 +239,12 @@ export class PlayerCombatSystem {
 
   private voxelOccludesTarget(target: EnemyInstance): boolean {
     const center = target.group.position.clone();
-    center.y += 0.9;
+    center.y += 0.95 * target.definition.scale;
     const enemyDistance = center.distanceTo(this.camera.position);
 
-    const hit = raycastVoxels(
-      this.world,
-      this.camera.position,
-      this.direction,
-      PICKAXE.combatRange,
-    );
-
-    return Boolean(
-      hit &&
-      hit.distance + 0.12 < enemyDistance,
-    );
+    center.sub(this.camera.position).normalize();
+    return coverDistance(this.world, this.camera.position, center,
+      enemyDistance, this.structures.all) + 0.12 < enemyDistance;
   }
 
   private applyPlayerStatuses(

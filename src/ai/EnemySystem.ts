@@ -1,4 +1,8 @@
 import * as THREE from "three";
+import { materialTexture } from "../engine/render/MaterialTextures";
+import { coverDistance } from "../combat/CombatTrace";
+import type { VoxelWorld } from "../voxel/VoxelWorld";
+import { KNOCKBACK_DECAY, MAX_KNOCKBACK_SPEED } from "../combat/Knockback";
 import type { Core } from "../building/Core";
 import type {
   StructureInstance,
@@ -39,6 +43,8 @@ export interface EnemyInstance {
   attackCooldown: number;
   abilityCooldown: number;
   alive: boolean;
+  knockbackVelocity: THREE.Vector3;
+  stagger: number;
 }
 
 export interface EnemyDamageEvent {
@@ -54,6 +60,8 @@ interface EnemyBolt {
   to: THREE.Vector3;
   age: number;
   duration: number;
+  damage: number;
+  target: "player" | "core";
 }
 
 export class EnemySystem {
@@ -68,6 +76,10 @@ export class EnemySystem {
   private readonly headGeometry = new THREE.BoxGeometry(0.52, 0.5, 0.5);
   private readonly legGeometry = new THREE.BoxGeometry(0.18, 0.55, 0.2);
   private readonly detailGeometry = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+  private readonly armorMaterial = new THREE.MeshStandardMaterial({ color: 0x668797,
+    metalness: 0.3, roughness: 0.72, map: materialTexture("steel") });
+  private readonly maskMaterial = new THREE.MeshStandardMaterial({ color: 0xc9c4b6,
+    roughness: 0.88, map: materialTexture("bone") });
   private readonly auraGeometry = new THREE.RingGeometry(0.75, 0.88, 20);
   private readonly boltGeometry = new THREE.BoxGeometry(0.06, 0.06, 0.34);
   private readonly boltMaterial = new THREE.MeshBasicMaterial({
@@ -102,6 +114,7 @@ export class EnemySystem {
     private readonly playerVitals: PlayerVitals,
     private readonly playerStatus: PlayerStatus,
     private readonly rules: RuleEngine,
+    private readonly world: VoxelWorld,
   ) {}
 
   spawn(
@@ -137,6 +150,8 @@ export class EnemySystem {
       abilityCooldown:
         definition.bossPulseInterval ?? 0,
       alive: true,
+      knockbackVelocity: new THREE.Vector3(),
+      stagger: 0,
     };
 
     group.userData.enemyId = enemy.id;
@@ -149,10 +164,21 @@ export class EnemySystem {
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
 
+      const movingPhase = performance.now() * 0.009 * enemy.speed + enemy.id;
+      const leftLeg = enemy.group.getObjectByName("leg-left");
+      const rightLeg = enemy.group.getObjectByName("leg-right");
+      if (leftLeg) leftLeg.rotation.x = Math.sin(movingPhase) * 0.38;
+      if (rightLeg) rightLeg.rotation.x = -Math.sin(movingPhase) * 0.38;
+      const warning = enemy.group.getObjectByName("pulse-warning");
+      if (warning) warning.visible = enemy.abilityCooldown < 1.2;
+
       enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
       enemy.abilityCooldown = Math.max(0, enemy.abilityCooldown - dt);
       this.updateStatuses(enemy, dt);
       if (!enemy.alive) continue;
+      this.updateKnockback(enemy, dt);
+      enemy.stagger = Math.max(0, enemy.stagger - dt);
+      if (enemy.stagger > 0) continue;
 
       if (enemy.type === EnemyType.Boss && enemy.abilityCooldown <= 0) {
         this.bossPulse(enemy);
@@ -170,7 +196,8 @@ export class EnemySystem {
       if (
         enemy.type === EnemyType.Archer &&
         !this.playerVitals.dead &&
-        playerDistance <= enemy.definition.rangedRange
+        playerDistance <= enemy.definition.rangedRange &&
+        this.canSee(enemy, new THREE.Vector3(player.x, player.y + 0.3, player.z))
       ) {
         if (playerDistance < 3.2) {
           this.moveAwayFrom(enemy, player.x, player.z, dt);
@@ -183,7 +210,8 @@ export class EnemySystem {
       if (
         !this.playerVitals.dead &&
         playerDistance <= enemy.definition.playerAggroRange &&
-        Math.abs(position.y - player.y) < 2.8
+        Math.abs(position.y - player.y) < 2.8 &&
+        this.canSee(enemy, new THREE.Vector3(player.x, player.y, player.z))
       ) {
         this.attackPlayer(enemy);
         continue;
@@ -198,13 +226,15 @@ export class EnemySystem {
       if (
         enemy.type === EnemyType.Archer &&
         coreDistance <= enemy.definition.rangedRange &&
-        coreDistance > 3
+        coreDistance > 3 &&
+        this.canSee(enemy, corePosition.clone().add(new THREE.Vector3(0, 1, 0)))
       ) {
         this.attackCoreRanged(enemy);
         continue;
       }
 
-      if (coreDistance <= 2.2 * enemy.definition.scale) {
+      if (coreDistance <= 2.2 * enemy.definition.scale &&
+        this.canSee(enemy, corePosition.clone().add(new THREE.Vector3(0, 1, 0)))) {
         this.attackCore(enemy);
         continue;
       }
@@ -427,6 +457,35 @@ export class EnemySystem {
     });
   }
 
+  knockback(enemy: EnemyInstance, direction: THREE.Vector3, strength: number): void {
+    if (!enemy.alive || strength <= 0) return;
+    const length = Math.hypot(direction.x, direction.z);
+    if (length < 1e-6) return;
+    const resistance = Math.max(0.35, 1 / (enemy.definition.scale * enemy.definition.scale));
+    enemy.knockbackVelocity.x += direction.x / length * strength * resistance;
+    enemy.knockbackVelocity.z += direction.z / length * strength * resistance;
+    enemy.knockbackVelocity.clampLength(0, MAX_KNOCKBACK_SPEED);
+    enemy.stagger = Math.max(enemy.stagger, strength >= 3 ? 0.12 : 0.035);
+  }
+  private updateKnockback(enemy: EnemyInstance, dt: number): void {
+    const velocity = enemy.knockbackVelocity;
+    if (velocity.lengthSq() < 0.001) { velocity.setScalar(0); return; }
+    const position = enemy.group.position;
+    const dx = velocity.x * dt, dz = velocity.z * dt;
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / 0.2));
+    for (let i = 0; i < steps; i++) {
+      const current = this.grid.getCell(Math.floor(position.x), Math.floor(position.z));
+      const next = this.grid.getCell(Math.floor(position.x + dx / steps), Math.floor(position.z + dz / steps));
+      if (!current || !next?.walkable || !this.grid.canTraverse(current, next) ||
+        (next.blockerId !== null && !enemy.definition.ignoresBlockers)) {
+        velocity.setScalar(0); break;
+      }
+      position.x += dx / steps; position.z += dz / steps;
+      position.y = THREE.MathUtils.lerp(position.y, next.groundY + 1, Math.min(1, dt * 8));
+    }
+    velocity.multiplyScalar(Math.exp(-dt * KNOCKBACK_DECAY));
+  }
+
   private updateStatuses(enemy: EnemyInstance, dt: number): void {
     const scale = enemy.definition.scale;
     const alpha = Math.min(1, dt * 16);
@@ -522,14 +581,11 @@ export class EnemySystem {
 
     const target = this.player.getPosition();
     const support = this.supportModifiers(enemy);
-    this.playerVitals.damage(
-      this.playerStatus.modifyIncomingDamage(
-        enemy.attackDamage * support.damage,
-      ),
-    );
     this.spawnBolt(
       enemy.group.position,
       new THREE.Vector3(target.x, target.y + 0.3, target.z),
+      enemy.attackDamage * support.damage,
+      "player",
     );
     enemy.attackCooldown = enemy.attackInterval;
   }
@@ -550,16 +606,11 @@ export class EnemySystem {
   private attackCoreRanged(enemy: EnemyInstance): void {
     if (enemy.attackCooldown > 0) return;
     const support = this.supportModifiers(enemy);
-    this.core.damage(
-      this.rules.modifyCoreIncomingDamage(
-        enemy.attackDamage *
-          enemy.definition.coreDamageMultiplier *
-          support.damage,
-      ),
-    );
     this.spawnBolt(
       enemy.group.position,
       this.core.group.position.clone().add(new THREE.Vector3(0, 1, 0)),
+      enemy.attackDamage * enemy.definition.coreDamageMultiplier * support.damage,
+      "core",
     );
     enemy.attackCooldown = enemy.attackInterval;
   }
@@ -776,7 +827,17 @@ export class EnemySystem {
     return { x, z };
   }
 
-  private spawnBolt(fromPosition: THREE.Vector3, to: THREE.Vector3): void {
+  private canSee(enemy: EnemyInstance, target: THREE.Vector3): boolean {
+    const from = enemy.group.position.clone();
+    from.y += 0.9 * enemy.definition.scale;
+    const direction = target.clone().sub(from);
+    const distance = direction.length();
+    return coverDistance(this.world, from, direction.normalize(), distance,
+      this.structures.all) >= distance - 0.15;
+  }
+
+  private spawnBolt(fromPosition: THREE.Vector3, to: THREE.Vector3,
+    damage: number, target: "player" | "core"): void {
     const from = fromPosition.clone();
     from.y += 0.9;
 
@@ -793,7 +854,9 @@ export class EnemySystem {
       from,
       to,
       age: 0,
-      duration: 0.18,
+      duration: Math.max(0.2, from.distanceTo(to) / 15),
+      damage,
+      target,
     });
   }
 
@@ -801,10 +864,25 @@ export class EnemySystem {
     for (let index = this.bolts.length - 1; index >= 0; index--) {
       const bolt = this.bolts[index]!;
       bolt.age += dt;
+      const previous = bolt.mesh.position.clone();
       const t = Math.min(1, bolt.age / bolt.duration);
       bolt.mesh.position.lerpVectors(bolt.from, bolt.to, t);
 
-      if (t >= 1) {
+      const travel = bolt.mesh.position.clone().sub(previous);
+      const distance = travel.length();
+      const blocked = coverDistance(this.world, previous, travel.normalize(), distance,
+        this.structures.all) <= distance;
+
+      if (t >= 1 || blocked) {
+        if (!blocked) {
+          if (bolt.target === "player") {
+            const player = this.player.getPosition();
+            if (Math.hypot(player.x - bolt.to.x, player.y + 0.3 - bolt.to.y,
+              player.z - bolt.to.z) < 0.85) {
+              this.playerVitals.damage(this.playerStatus.modifyIncomingDamage(bolt.damage));
+            }
+          } else this.core.damage(this.rules.modifyCoreIncomingDamage(bolt.damage));
+        }
         this.scene.remove(bolt.mesh);
         this.bolts.splice(index, 1);
       }
@@ -814,28 +892,56 @@ export class EnemySystem {
   private createVisual(definition: EnemyDefinition): THREE.Group {
     const group = new THREE.Group();
     const material = this.materialFor(definition);
+    const bodyY = definition.type === EnemyType.Burrower ? 0.65 : 0.92;
+    const headY = definition.type === EnemyType.Burrower ? 1.08 : 1.57;
 
     const body = new THREE.Mesh(this.bodyGeometry, material);
-    body.position.y = 0.92;
+    body.position.y = bodyY;
     body.castShadow = true;
     group.add(body);
 
     const head = new THREE.Mesh(this.headGeometry, material);
-    head.position.y = 1.57;
+    head.position.y = headY;
     head.castShadow = true;
     group.add(head);
 
     for (const x of [-0.17, 0.17]) {
       const leg = new THREE.Mesh(this.legGeometry, material);
+      leg.name = x < 0 ? "leg-left" : "leg-right";
       leg.position.set(x, 0.3, 0);
       leg.castShadow = true;
       group.add(leg);
     }
 
+    for (const x of [-0.43, 0.43]) {
+      const arm = new THREE.Mesh(this.legGeometry, material);
+      arm.position.set(x, bodyY, 0);
+      arm.rotation.z = x < 0 ? 0.15 : -0.15;
+      arm.castShadow = true;
+      group.add(arm);
+    }
+    const chest = new THREE.Mesh(this.detailGeometry, this.eyeMaterial);
+    chest.position.set(0, bodyY + 0.11, 0.26);
+    chest.scale.set(0.6, 0.85, 0.15);
+    group.add(chest);
+    const belt = new THREE.Mesh(this.bodyGeometry, this.armorMaterial);
+    belt.scale.set(1.1, 0.1, 1.1); belt.position.y = bodyY - 0.3; group.add(belt);
+    const brow = new THREE.Mesh(this.headGeometry, this.armorMaterial);
+    brow.scale.set(1.1, 0.17, 1.08); brow.position.y = headY + 0.24; group.add(brow);
+    const mask = new THREE.Mesh(this.headGeometry, this.maskMaterial);
+    mask.scale.set(0.9, 0.5, 0.08); mask.position.set(0, headY + 0.01, 0.255); group.add(mask);
+    if (definition.type === EnemyType.Runner) { body.scale.set(0.82, 1.05, 0.85); head.scale.setScalar(0.9); }
+    if (definition.type === EnemyType.Archer || definition.type === EnemyType.Support) {
+      const staff = new THREE.Mesh(this.legGeometry, this.armorMaterial);
+      staff.scale.set(0.25, 2.2, 0.3); staff.position.set(-0.52, 0.85, 0.08); group.add(staff);
+      const beacon = new THREE.Mesh(this.detailGeometry, this.eyeMaterial);
+      beacon.position.set(-0.52, 1.6, 0.08); group.add(beacon);
+    }
+
     for (const x of [-0.13, 0.13]) {
       const eye = new THREE.Mesh(this.detailGeometry, this.eyeMaterial);
       eye.scale.set(0.38, 0.38, 0.2);
-      eye.position.set(x, 1.62, 0.27);
+      eye.position.set(x, headY + 0.05, 0.29);
       group.add(eye);
     }
 
@@ -877,6 +983,13 @@ export class EnemySystem {
     }
 
     if (definition.type === EnemyType.Boss) {
+      const warning = new THREE.Mesh(new THREE.RingGeometry(2.7, 3.02, 40),
+        this.bossAuraMaterial);
+      warning.name = "pulse-warning";
+      warning.rotation.x = -Math.PI / 2;
+      warning.position.y = 0.035;
+      warning.visible = false;
+      group.add(warning);
       for (const x of [-0.3, 0.3]) {
         const horn = new THREE.Mesh(this.detailGeometry, this.eyeMaterial);
         horn.scale.set(0.65, 2.2, 0.65);
@@ -896,7 +1009,9 @@ export class EnemySystem {
     let material = this.materials.get(definition.type);
     if (!material) {
       material = new THREE.MeshStandardMaterial({
-        color: definition.color,
+        color: new THREE.Color(definition.color).lerp(new THREE.Color(0xffffff), 0.35),
+        map: materialTexture(definition.type === EnemyType.Brute || definition.type === EnemyType.Boss ? "stone" :
+          definition.type === EnemyType.Archer || definition.type === EnemyType.Support ? "cloth" : "leather"),
         emissive: definition.emissive,
         emissiveIntensity: 0.45,
         roughness: 0.82,

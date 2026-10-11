@@ -6,6 +6,7 @@ import {
 } from "../survival/Resources";
 
 export class SurvivalHUD {
+  private previousMarkup = "";
   constructor(
     inventory: Inventory,
     private readonly core: Core,
@@ -34,14 +35,18 @@ export class SurvivalHUD {
   update(): void {
     const health = this.core.health;
     const percent = Math.round(health.ratio * 100);
-    this.coreElement.innerHTML = `
+    const markup = `
       <div class="core-label">
-        <span>CORE</span>
+        <span>CRISTAL</span>
         <strong>${Math.round(health.current)} / ${health.max}</strong>
       </div>
       <div class="core-health-track">
         <div class="core-health-fill" style="width:${percent}%"></div>
       </div>
     `;
+    if (markup !== this.previousMarkup) {
+      this.coreElement.innerHTML = markup;
+      this.previousMarkup = markup;
+    }
   }
 }

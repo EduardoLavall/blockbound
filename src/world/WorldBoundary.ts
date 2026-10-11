@@ -18,12 +18,22 @@ export function createWorldBoundary(
   const thickness = 0.45;
 
   const material = new THREE.MeshBasicMaterial({
-    color: 0x70548c,
+    color: 0x76b1c1,
     transparent: true,
-    opacity: 0.16,
+    opacity: 0.12,
     depthWrite: false,
     side: THREE.DoubleSide,
   });
+  // Fade the force field before its top edge: no opaque horizon rectangle.
+  material.onBeforeCompile = shader => {
+    shader.vertexShader = shader.vertexShader.replace("#include <common>",
+      "#include <common>\nvarying float boundaryHeight;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nboundaryHeight = position.y + 12.0;");
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>",
+      "#include <common>\nvarying float boundaryHeight;")
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.a *= 1.0 - smoothstep(6.0, 13.0, boundaryHeight);");
+  };
+  material.customProgramCacheKey = () => "boundary-haze-v1";
 
   const walls = [
     { x: bounds.minX - thickness / 2, z: centerZ, sx: thickness, sz: depth + 1 },

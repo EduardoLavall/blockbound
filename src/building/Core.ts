@@ -1,10 +1,12 @@
 import * as THREE from "three";
+import { materialTexture } from "../engine/render/MaterialTextures";
 import type { PhysicsWorld } from "../engine/physics/PhysicsWorld";
 import { Health } from "../survival/Health";
 
 export class Core {
   readonly health = new Health(500);
   readonly group = new THREE.Group();
+  private time = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -17,7 +19,10 @@ export class Core {
     this.group.position.set(x + 0.5, y, z + 0.5);
 
     const baseMaterial = new THREE.MeshStandardMaterial({
-      color: 0x3d4845,
+      color: 0x819d9e,
+      map: materialTexture("stone"),
+      emissive: 0x152b33,
+      emissiveIntensity: 0.7,
       roughness: 0.78,
       metalness: 0.24,
     });
@@ -64,6 +69,15 @@ export class Core {
     this.group.add(ring);
 
     scene.add(this.group);
+    const light = new THREE.PointLight(0x65ffe8, 16, 13, 2);
+    light.position.set(0, 2.6, 0);
+    this.group.add(light);
+    for (let i = 0; i < 4; i++) {
+      const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.17), crystalMaterial);
+      const angle = i * Math.PI / 2;
+      crystal.position.set(Math.cos(angle) * 1.3, 1.15, Math.sin(angle) * 1.3);
+      this.group.add(crystal);
+    }
 
     const body = physics.createStaticBody(
       this.group.position.x,
@@ -75,8 +89,12 @@ export class Core {
   }
 
   update(dt: number): void {
+    this.time += dt;
     const crystal = this.group.children[2];
-    if (crystal) crystal.rotation.y += dt * 0.65;
+    if (crystal) {
+      crystal.rotation.y += dt * 0.65;
+      crystal.position.y = 2.25 + Math.sin(this.time * 1.8) * 0.1;
+    }
     const ring = this.group.children[3];
     if (ring) ring.rotation.z += dt * 0.42;
   }

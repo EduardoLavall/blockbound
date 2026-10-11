@@ -1,10 +1,34 @@
-# Blockfall
+# Blockbound
 
-Blockfall é um **FPS 3D voxel + Tower Defense + Roguelite** para navegador, usando **HTML, CSS, TypeScript, Vite, Three.js e Rapier**.
+Blockbound é um **FPS 3D voxel + Tower Defense + Roguelite** para navegador, usando **HTML, CSS, TypeScript, Vite, Three.js e Rapier**.
 
 O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`.
 
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
+
+
+## Overhaul 0.3.0 — O Último Cristal
+
+Revisão e implementação: [análise crítica](docs/CRITICAL_REVIEW.md) · [verificação](docs/VERIFICATION.md).
+
+- Pausa real no menu, Esc, inventário, escolha de upgrade e perda de foco.
+- Preparação de 75 segundos e **N** para chamar a onda. A partida começa apenas com uma picareta, sem materiais ou outras armas.
+- **I** abre fabricação e inventário: lâmina, Repeater e as cinco defesas viram itens normais. Selecione uma defesa na hotbar e use botão direito para colocar uma unidade; não há mais menu de build.
+- Knockback fraco nos tiros e médio na lâmina/picareta, com resistência maior de inimigos grandes e colisão contra terreno e defesas.
+- Todas as noites só terminam quando a horda inteira é eliminada; amanhecer entrega recuperação e suprimentos.
+- Colisão de ataques respeita terreno/defesas; tiros rápidos não atravessam blocos, piercing respeita ordem, corpo do chefe acompanha sua escala, arqueiros podem ser desviados.
+- Movimento sobe degraus de um bloco e perdoa pequenas diferenças no timing do pulo.
+- HUD novo com radar, objetivos, vitalidade segmentada, rastro de dano e vida do alvo. Escala automática em alta resolução e ajuste de tamanho no menu. Recursos ficam apenas na hotbar; drops usam somente sprites.
+- Céu, luzes, bloom leve, efeitos de impacto, recuo visual, rachaduras e áudio de mineração/tiro.
+- Faces e variação de textura por voxel; árvores não crescem em cima de copas e respeitam espaçamento/POIs.
+- Arte original nova: 8 texturas 64×64, 4 materiais de modelos e 16 sprites para recursos, armas, equipamento, defesas e loot. [Fontes e prompts](docs/ART_ASSETS.md).
+- Mão e equipamentos remodelados com ângulos próprios e uma passagem de render com luz independente.
+- 40 efeitos gravados: passos por superfície, tiros, lâmina, mineração por material, dano, coleta, construção e interface. Mix com variação, pan estéreo e controle de sobreposição. [Fontes e licenças dos sons](docs/AUDIO_ASSETS.md).
+- Se o navegador bloquear Pointer Lock, aparece **Jogar com mouse livre**. Segure o botão do meio e arraste para olhar; Esc continua pausando.
+
+Para rodar localmente: Node 22.12+, **npm ci**, **npm run dev**. Validação: **npm run check**.
+O restante do README documenta os sistemas herdados do protótipo; esta seção e a análise crítica registram as mudanças da versão atual.
+
 
 ## Estado atual — Vertical Slice de 5 noites
 
@@ -144,7 +168,7 @@ A run termina em vitória somente quando:
 - Siege Warden foi eliminado;
 - nenhum inimigo permanece vivo.
 
-O timer da quinta noite é **segurado em zero** até a wave ser realmente limpa.
+Todas as noites são seguradas até a wave ser realmente limpa; limpar a wave antecipa o amanhecer.
 
 ## Combate FPS
 
@@ -293,7 +317,7 @@ Metal   -> não-placeable
 
 Selecionar um equipamento ou Metal na hotbar não tenta colocar voxel.
 
-O Build Mode continua com seus próprios atalhos de estrutura.
+Defesas são fabricadas em I e selecionadas na mesma hotbar dos recursos e armas. O botão direito coloca uma unidade do item selecionado.
 
 ### Equipment
 
@@ -602,7 +626,7 @@ O overlay de entrada/pausa possui:
 
 As configurações são persistidas em `localStorage`.
 
-## Áudio / FX
+## Áudio / FX (histórico 0.2.2)
 
 O vertical slice usa áudio procedural via Web Audio API:
 
@@ -648,14 +672,12 @@ Passes já presentes:
 | WASD | mover |
 | Space | pular |
 | Shift | correr |
-| Q | Tool / Blade / Repeater |
+| Q | alternar entre armas/ferramentas que você possui |
 | Hold Tab | Player Status / Live Build Sheet |
-| I | Inventory + Equipment |
+| I | inventário, equipamento e fabricação |
 | LMB | minerar / atacar |
 | RMB | colocar bloco / construir |
-| 1–5 | escolher material |
-| B | Build Mode |
-| 1–5 no Build Mode | escolher estrutura |
+| 1–9 / scroll | selecionar item da hotbar |
 | E | abrir/fechar Gate |
 | R | reparar estrutura |
 | Esc | menu / liberar Pointer Lock |

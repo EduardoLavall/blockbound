@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { coverDistance } from "../combat/CombatTrace";
+import type { VoxelWorld } from "../voxel/VoxelWorld";
 import type {
   EnemyInstance,
   EnemySystem,
@@ -41,6 +43,7 @@ export class DefenseCombatSystem {
     private readonly structures: StructureSystem,
     private readonly enemies: EnemySystem,
     private readonly rules: RuleEngine,
+    private readonly world: VoxelWorld,
   ) {
     this.random = new SeededRandom(seed ^ 0x39af1d2c);
   }
@@ -100,6 +103,7 @@ export class DefenseCombatSystem {
       );
 
       for (const enemy of victims) {
+        if (Math.abs(enemy.group.position.y - structure.y) > 1.2 * enemy.definition.scale) continue;
         const key = `${structure.id}:${enemy.id}`;
         if ((this.spikeCooldowns.get(key) ?? 0) > 0) continue;
 
@@ -126,6 +130,11 @@ export class DefenseCombatSystem {
         enemy.group.position.z - turret.z,
       );
       if (distance > definition.range) continue;
+      const from = new THREE.Vector3(turret.x, turret.y + (turret.type === StructureType.RapidTurret ? 1.12 : 1.55), turret.z);
+      const to = enemy.group.position.clone(); to.y += 0.95 * enemy.definition.scale;
+      const direction = to.sub(from); const rayLength = direction.length();
+      if (coverDistance(this.world, from, direction.normalize(), rayLength,
+        this.structures.all.filter(s => s.id !== turret.id)) < rayLength - 0.1) continue;
 
       const score =
         turretTargetPriority(turret.type, enemy.type) * 4 -
@@ -175,7 +184,7 @@ export class DefenseCombatSystem {
       turret.z,
     );
     const to = target.group.position.clone();
-    to.y += 0.9;
+    to.y += 0.95 * target.definition.scale;
 
     const mesh = new THREE.Mesh(
       this.boltGeometry,
