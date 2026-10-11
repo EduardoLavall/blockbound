@@ -33,6 +33,14 @@ describe("generateWorld", () => {
       }
     }
     expect(roots.length).toBeGreaterThan(5);
+    expect(world.trees.all.length).toBe(roots.length);
+    for (const tree of world.trees.all) {
+      expect(tree.blocks.some(b => b.block === BlockId.Leaves)).toBe(true);
+      for (const b of tree.blocks) {
+        expect(world.getBlock(b.x, b.y, b.z)).toBe(b.block);
+        if (b.block === BlockId.Wood) expect(world.trees.atTrunk(b.x, b.y, b.z)).toBe(tree);
+      }
+    }
   });
   it("reproduces the same world for the same seed", () => {
     expect(checksum("same-seed")).toBe(checksum("same-seed"));

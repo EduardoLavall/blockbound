@@ -71,6 +71,8 @@ export class AudioSystem {
   hurt(): void { this.play("hurt", 0.52, 1, 0, 0.15); }
   build(): void { this.play("build", 0.4); }
   pickup(): void { this.play("pickup", 0.18, 1.15, 0, 0.12); }
+  treeFall(volume = 1, pan = 0): void { this.play("treeFall", 0.65 * volume, 1, pan, 0.08, 2); }
+  treeImpact(volume = 1, pan = 0): void { this.play("treeImpact", 0.8 * volume, 1, pan, 0.08, 2); }
   hit(killed = false, pan = 0): void {
     this.play(killed ? "kill" : "hit", killed ? 0.56 : 0.36, 1, pan, 0.055);
   }

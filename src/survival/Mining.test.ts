@@ -8,6 +8,13 @@ import { PICKAXE } from "./MiningTool";
 import { blockDrop, ResourceId } from "./Resources";
 
 describe("survival mining rules", () => {
+  it("requires triple hardness only for natural trunks, retaining pickaxe upgrades", () => {
+    expect(miningDuration(BlockId.Wood, PICKAXE, true)).toBeCloseTo(2.16);
+    expect(miningDuration(BlockId.Wood)).toBeCloseTo(0.72);
+    expect(miningDuration(BlockId.Leaves, PICKAXE, true)).toBeCloseTo(0.2);
+    const stronger = { ...PICKAXE, miningPower: PICKAXE.miningPower * 2 };
+    expect(miningDuration(BlockId.Wood, stronger, true)).toBeCloseTo(1.08);
+  });
   it("makes harder resources slower to mine", () => {
     expect(miningDuration(BlockId.Wood)).toBeGreaterThan(
       miningDuration(BlockId.Dirt),

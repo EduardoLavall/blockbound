@@ -1,6 +1,6 @@
-# Sons — Blockbound 0.3.0
+# Sons — Blockbound 0.4.0
 
-O banco ativo tem 40 gravações Ogg, cerca de 374 KB no total. Originais selecionados dos packs da Kenney:
+O banco ativo tem 42 gravações Ogg. Originais selecionados dos packs da Kenney:
 
 - [Impact Sounds](https://kenney.nl/assets/impact-sounds): impactos, mineração e passos por superfície.
 - [RPG Audio](https://kenney.nl/assets/rpg-audio): lâmina, empunhadura, tecido e madeira.
@@ -11,6 +11,8 @@ O banco ativo tem 40 gravações Ogg, cerca de 374 KB no total. Originais seleci
 Esses packs estão publicados sob CC0. As licenças originais estão em `public/audio/LICENSE-*.txt`. Os arquivos selecionados estão em `public/audio/*.ogg`, e o mapa de eventos em `src/engine/audio/SoundBank.ts`.
 
 ## Mix e comportamento
+
+`treeFall.ogg` combina `creak2.ogg` (RPG Audio), desacelerado para acompanhar o tombamento, com `cloth2.ogg` em crescendo para a copa. `treeImpact.ogg` mistura `impactWood_heavy_000.ogg`, `impactSoft_heavy_000.ogg` (Impact Sounds, filtrado para reforçar o grave) e uma cauda de `cloth3.ogg` (RPG Audio). Ambos foram mixados com limitação de pico e codificados em Ogg Vorbis; mantêm a licença CC0 dos originais.
 
 - Buffer decodificado uma vez e reutilizado.
 - Madeira, pedra, terra, metal e cristal têm impactos próprios.

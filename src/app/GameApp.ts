@@ -48,6 +48,7 @@ import { UpgradeDraft } from "../roguelite/UpgradeDraft";
 import type { UpgradeDefinition } from "../roguelite/UpgradeRegistry";
 import { Inventory } from "../survival/Inventory";
 import { ResourceDropSystem } from "../survival/ResourceDropSystem";
+import { TreeFellingSystem } from "../voxel/TreeFellingSystem";
 import { CombatHUD } from "../ui/CombatHUD";
 import { DebugOverlay } from "../ui/DebugOverlay";
 import { HordeHUD } from "../ui/HordeHUD";
@@ -137,6 +138,7 @@ export class GameApp {
   private chunks!: ChunkManager;
   private interaction!: VoxelInteractionController;
   private drops!: ResourceDropSystem;
+  private trees!: TreeFellingSystem;
   private itemLoot!: ItemLootSystem;
   private structures!: StructureSystem;
   private core!: Core;
@@ -273,6 +275,22 @@ export class GameApp {
       this.inventory,
       this.player,
       () => this.audio.pickup(),
+    );
+
+    this.trees = new TreeFellingSystem(
+      this.renderer.scene, this.world, this.chunks, this.drops,
+      () => this.player.getPosition(),
+      () => this.playerStatus.snapshot().utility.resourceYieldBonus,
+      position => {
+        const distance = position.distanceTo(this.player.getPosition());
+        this.audio.treeFall(Math.max(0.15, 1 - distance / 30));
+      },
+      position => {
+        const distance = position.distanceTo(this.player.getPosition());
+        const strength = Math.max(0.15, 1 - distance / 30);
+        this.audio.treeImpact(strength);
+        this.feel.kick(strength * 0.32);
+      },
     );
 
     this.structures = new StructureSystem(
@@ -516,6 +534,8 @@ export class GameApp {
         this.structures.fixedUpdate(dt);
         this.playerCombat.fixedUpdate(dt);
         this.interaction.fixedUpdate(dt);
+        this.trees.effects = this.settings.state.effects;
+        this.trees.fixedUpdate(dt);
         this.projectiles.fixedUpdate(dt);
         this.drops.update(dt);
         this.itemLoot.update(dt);
@@ -653,6 +673,7 @@ export class GameApp {
               " F" + this.metadata.biomeCounts[BiomeId.Forest] +
               " R" + this.metadata.biomeCounts[BiomeId.Rocky],
             "DROPS     " + this.drops.count,
+            "TREES     " + this.trees.fallingCount + " falling / " + this.trees.leafCount + " leaves",
             "SLOTS     " +
               this.runInventory.slots.filter(Boolean).length +
               "/36",

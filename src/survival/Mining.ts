@@ -1,4 +1,5 @@
 import { BlockId } from "../voxel/blocks";
+import { TREE_TRUNK_HARDNESS_MULTIPLIER } from "../voxel/Trees";
 import {
   PICKAXE,
   type MiningToolDefinition,
@@ -22,6 +23,8 @@ export function blockHardness(block: BlockId): number {
 export function miningDuration(
   block: BlockId,
   tool: MiningToolDefinition = PICKAXE,
+  naturalTrunk = false,
 ): number {
-  return toolAdjustedMiningDuration(blockHardness(block), tool);
+  const hardness = blockHardness(block) * (naturalTrunk && block === BlockId.Wood ? TREE_TRUNK_HARDNESS_MULTIPLIER : 1);
+  return toolAdjustedMiningDuration(hardness, tool);
 }

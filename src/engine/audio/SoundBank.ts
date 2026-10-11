@@ -11,6 +11,8 @@ export const SOUND_GROUPS = {
   mineCrystal: ["impactGlass_light_000", "impactGlass_light_001"],
   breakCrystal: ["impactGlass_heavy_000"],
   breakWood: ["chop"],
+  treeFall: ["treeFall"],
+  treeImpact: ["treeImpact"],
   stepGrass: ["footstep_grass_000", "footstep_grass_001", "footstep_grass_002"],
   stepStone: ["footstep_concrete_000", "footstep_concrete_001"],
   stepWood: ["footstep_wood_000", "footstep_wood_001"],
