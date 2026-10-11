@@ -51,6 +51,7 @@ import { Inventory } from "../survival/Inventory";
 import { ResourceDropSystem } from "../survival/ResourceDropSystem";
 import { TreeFellingSystem } from "../voxel/TreeFellingSystem";
 import { CombatHUD } from "../ui/CombatHUD";
+import { TowerAmmoLabels } from "../ui/TowerAmmoLabels";
 import { DebugOverlay } from "../ui/DebugOverlay";
 import { HordeHUD } from "../ui/HordeHUD";
 import { ItemInventoryPanel } from "../ui/ItemInventoryPanel";
@@ -155,6 +156,7 @@ export class GameApp {
   private hordeHud!: HordeHUD;
 
   private combatHud!: CombatHUD;
+  private towerAmmoLabels!: TowerAmmoLabels;
   private playerStatusPanel!: PlayerStatusPanel;
   private itemInventoryPanel!: ItemInventoryPanel;
   private projectiles!: ProjectileSystem;
@@ -312,6 +314,8 @@ export class GameApp {
       this.options.buildInfo,
       () => this.audio.build(),
     );
+
+    this.towerAmmoLabels = new TowerAmmoLabels(document.getElementById("game-hud")!, this.renderer.camera, this.structures, this.world);
 
     this.navigation = new NavigationGrid(
       this.world,
@@ -621,6 +625,7 @@ export class GameApp {
 
         this.renderer.setNightFactor(this.dayNight.nightFactor);
         this.structures.renderUpdate();
+        this.towerAmmoLabels.update();
         this.interaction.renderUpdate();
         this.survivalHud.update();
         this.hordeHud.update();

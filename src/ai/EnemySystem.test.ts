@@ -11,6 +11,7 @@ import type { Core } from "../building/Core";
 import type { StructureSystem, StructureInstance } from "../building/StructureSystem";
 import { STRUCTURES, StructureType } from "../building/StructureRegistry";
 import { DefenseCombatSystem } from "../defense/DefenseCombatSystem";
+import { turretDefinition } from "../defense/TurretRegistry";
 import type { PlayerController } from "../player/PlayerController";
 import { PlayerStatus } from "../player/PlayerStatus";
 import { PlayerVitals } from "../combat/PlayerVitals";
@@ -113,11 +114,13 @@ describe("enemy combat and complete siege", () => {
       const y = f.world.highestSolidY(Math.floor(x), Math.floor(z)) + 1;
       group.position.set(x, y, z);
       defenseInstances.push({ id: i + 1, type, definition: STRUCTURES[type], group, x, y, z,
-        health: new Health(STRUCTURES[type].maxHealth), yaw: 0, open: false } as StructureInstance);
+        health: new Health(STRUCTURES[type].maxHealth), yaw: 0, open: false, ammo: turretDefinition(type)?.ammoCapacity ?? 0 } as StructureInstance);
     });
     const defense = new DefenseCombatSystem(f.metadata.seed.value, new THREE.Scene(), f.structures, f.enemies, f.rules, f.world);
     let sawBoss = false;
     for (let night = 1; night <= 5; night++) {
+      // This navigation/AI scenario models a player resupplying defenses between waves.
+      defenseInstances.forEach(tower => { tower.ammo = turretDefinition(tower.type)?.ammoCapacity ?? 0; });
       cycle.startNightEarly(); cycle.holdTransition(true); waves.startNight(night);
       let elapsed = 0;
       while (!waves.complete && elapsed < 180) {

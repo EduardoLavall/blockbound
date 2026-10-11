@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AMMO_ITEM_ID } from "../combat/Ammunition";
 import {
   BACKPACK_SIZE,
   HOTBAR_SIZE,
@@ -9,6 +10,12 @@ import {
 import { ResourceId } from "../survival/Resources";
 
 describe("RunInventory", () => {
+  it("consumes ammunition across stacks atomically, preserving other items", () => {
+    const bag = new RunInventory();bag.addItem(AMMO_ITEM_ID,150,"hotbar");bag.addItem("blade");
+    expect(bag.consumeItem(AMMO_ITEM_ID,151)).toBe(false);expect(bag.itemCount(AMMO_ITEM_ID)).toBe(150);
+    expect(bag.consumeItem(AMMO_ITEM_ID,140)).toBe(true);expect(bag.itemCount(AMMO_ITEM_ID)).toBe(10);
+    expect(bag.consumeItem(AMMO_ITEM_ID,0.5)).toBe(false);expect(bag.itemCount("blade")).toBe(1);
+  });
   it("provides 9 hotbar and 27 backpack slots", () => {
     const inventory = new RunInventory();
 

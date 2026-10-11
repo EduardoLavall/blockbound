@@ -14,7 +14,8 @@ import { VOXEL_INTERACTION_DISTANCE } from "../voxel/constants";
 import type { WorldBounds } from "../voxel/generation/WorldMetadata";
 import { raycastVoxels } from "../voxel/VoxelRaycast";
 import type { VoxelWorld } from "../voxel/VoxelWorld";
-import { isTurretStructure } from "../defense/TurretRegistry";
+import { isTurretStructure, turretDefinition } from "../defense/TurretRegistry";
+import { AMMO_ITEM_ID } from "../combat/Ammunition";
 import type { Core } from "./Core";
 import {
   STRUCTURES,
@@ -53,6 +54,7 @@ export interface StructureInstance {
   x: number;
   y: number;
   z: number;
+  ammo: number;
 }
 
 interface Placement {
@@ -105,7 +107,10 @@ export class StructureSystem {
     const stack = this.hotbar.selectedStack;
     const structure = stack?.kind === "item" ? itemDefinition(stack.definitionId).structure : undefined;
     this.mode.buildMode = Boolean(structure);
-    if (this.input.consumePressed("KeyE")) this.toggleNearestGate();
+    if (this.input.consumePressed("KeyE")) {
+      const tower = this.targetedTurret();
+      if (tower) this.refillTurret(tower.id); else this.toggleNearestGate();
+    }
     if (this.input.consumePressed("KeyR")) this.repairNearest();
     if (!structure) { this.ghost.visible = false; return; }
     const index = STRUCTURE_ORDER.indexOf(structure);
@@ -152,6 +157,37 @@ export class StructureSystem {
 
   getById(id: number): StructureInstance | undefined {
     return this.instances.find((instance) => instance.id === id);
+  }
+
+  targetedTurret(): StructureInstance | null {
+    this.camera.getWorldDirection(this.direction);
+    const raycaster = new THREE.Raycaster(this.camera.position, this.direction, 0, 4.5);
+    let nearest: StructureInstance | null = null, best = 4.5;
+    for (const instance of this.instances) {
+      instance.group.updateMatrixWorld(true);
+      const hit = raycaster.intersectObject(instance.group, true)[0];
+      if (!hit || hit.distance >= best) continue;
+      best = hit.distance; nearest = instance;
+    }
+    if (!nearest || !isTurretStructure(nearest.type)) return null;
+    const cover = raycastVoxels(this.world, this.camera.position, this.direction, best);
+    if (cover && cover.distance < best - 0.02) return null;
+    const player = this.player.getPosition();
+    return Math.hypot(nearest.x - player.x, nearest.z - player.z) <= 4.5 ? nearest : null;
+  }
+
+  refillTurret(id: number): number {
+    const instance = this.getById(id);
+    if (!instance || this.targetedTurret()?.id !== id) return 0;
+    const capacity = turretDefinition(instance.type)?.ammoCapacity ?? 0;
+    const amount = Math.min(Math.max(0, capacity - instance.ammo), this.inventory.storage.itemCount(AMMO_ITEM_ID));
+    if (amount > 0 && this.inventory.storage.consumeItem(AMMO_ITEM_ID, amount)) {
+      instance.ammo += amount;
+      this.feedback = `ABASTECIDA · +${amount} CÉLULAS · ${instance.ammo}/${capacity}`;
+      this.onBuild();
+    } else this.feedback = instance.ammo >= capacity ? "DEPÓSITO CHEIO" : "SEM CÉLULAS · FABRIQUE COM I";
+    this.feedbackTime = 1.5;
+    return amount;
   }
 
   subscribeNavigationChanges(
@@ -388,6 +424,7 @@ export class StructureSystem {
       x: placement.x,
       y: placement.y,
       z: placement.z,
+      ammo: 0,
     };
     this.instances.push(instance);
     this.onBuild();

@@ -1,9 +1,9 @@
 import type { InventoryStack } from "../inventory/RunInventory";
 import { itemDefinition } from "../items/ItemRegistry";
 
-const files = import.meta.glob<string>("../assets/icons/*.png", { eager: true, query: "?url", import: "default" });
+const files = import.meta.glob<string>("../assets/icons/*.{png,svg}", { eager: true, query: "?url", import: "default" });
 export function iconUrl(name: string): string {
-  return files[`../assets/icons/${name}.png`] ?? files["../assets/icons/chest.png"]!;
+  return files[`../assets/icons/${name}.png`] ?? files[`../assets/icons/${name}.svg`] ?? files["../assets/icons/chest.png"]!;
 }
 export function stackIcon(stack: InventoryStack): string {
   if (stack.kind === "resource") return iconUrl(stack.resource);

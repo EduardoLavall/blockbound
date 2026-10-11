@@ -58,6 +58,7 @@ export class DefenseCombatSystem {
   private updateTurrets(): void {
     for (const structure of this.structures.all) {
       if (!isTurretStructure(structure.type)) continue;
+      if (!(structure.ammo > 0)) continue;
 
       const cooldown = this.turretCooldowns.get(structure.id) ?? 0;
       if (cooldown > 0) continue;
@@ -80,6 +81,7 @@ export class DefenseCombatSystem {
       const impactPoint = target.group.position.clone().add(new THREE.Vector3(0, 0.95 * target.definition.scale, 0));
       const muzzle = new THREE.Vector3(structure.x, structure.y + (structure.type === StructureType.RapidTurret ? 1.12 : 1.55), structure.z);
       const incoming = impactPoint.clone().sub(muzzle).normalize();
+      structure.ammo--;
       this.enemies.damage(target, damage, "turret", {
         point: impactPoint.addScaledVector(incoming, -0.35 * target.definition.scale), direction: incoming,
       });

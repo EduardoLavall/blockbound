@@ -1,6 +1,7 @@
 import type { EquipmentStatModifiers } from "../player/PlayerStats";
 import { PlayerActionMode } from "../combat/CombatTypes";
 import { StructureType } from "../building/StructureRegistry";
+import { AMMO_ITEM_ID } from "../combat/Ammunition";
 
 export type ItemRarity = "common" | "rare" | "epic";
 export type ItemKind = "equipment" | "consumable" | "tool" | "weapon" | "structure";
@@ -181,13 +182,14 @@ export const ITEMS: readonly ItemDefinition[] = [
 ];
 
 export const CRAFTED_ITEMS: readonly ItemDefinition[] = [
+  { id: AMMO_ITEM_ID, name: "Células de energia", description: "Munição do Repeater e das torres. Cada disparo consome uma célula. Mire numa torre próxima e pressione E para abastecer.", kind: "consumable", rarity: "common", stackLimit: 128, swatch: "#79dfef", tags: ["ammunition"], modifiers: {}, icon: "energy-cells" },
   { id: "pickaxe", name: "Picareta", description: "Sua ferramenta de mineração. Também serve para se defender.", kind: "tool", rarity: "common", stackLimit: 1, swatch: "#a7b9be", tags: ["mining"], modifiers: {}, action: PlayerActionMode.Tool, icon: "pickaxe" },
   { id: "blade", name: "Lâmina", description: "Arma corpo a corpo com empurrão médio. Selecione na hotbar para atacar.", kind: "weapon", rarity: "common", stackLimit: 1, swatch: "#83dccc", tags: ["melee"], modifiers: {}, action: PlayerActionMode.Blade, icon: "blade" },
-  { id: "repeater", name: "Repeater", description: "Arma de energia de longo alcance com empurrão leve. Selecione na hotbar para disparar.", kind: "weapon", rarity: "common", stackLimit: 1, swatch: "#7aadc7", tags: ["projectile"], modifiers: {}, action: PlayerActionMode.Repeater, icon: "repeater" },
+  { id: "repeater", name: "Repeater", description: "Arma de energia com empurrão leve. Cada tiro usa uma célula de energia do inventário; fabrique munição com I.", kind: "weapon", rarity: "common", stackLimit: 1, swatch: "#7aadc7", tags: ["projectile"], modifiers: {}, action: PlayerActionMode.Repeater, icon: "repeater" },
   ...([
     [StructureType.Wall, "Muro", "Bloqueia e desvia a horda."],
-    [StructureType.Turret, "Torre", "Defesa de alcance. Coloque ao lado da rota."],
-    [StructureType.RapidTurret, "Torre rápida", "Cadência alta contra inimigos leves."],
+    [StructureType.Turret, "Torre", "Defesa de alcance. Começa vazia; abasteça com E usando células do inventário."],
+    [StructureType.RapidTurret, "Torre rápida", "Cadência alta. Começa vazia; abasteça com E usando células do inventário."],
     [StructureType.Spike, "Espinhos", "Armadilha que pode ocupar a rota."],
     [StructureType.Gate, "Portão", "Passagem que pode ser aberta com E."],
   ] as const).map(([structure, name, description]): ItemDefinition => ({

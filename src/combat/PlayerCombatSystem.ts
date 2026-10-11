@@ -17,6 +17,7 @@ import type { RunInventory } from "../inventory/RunInventory";
 import type { Hotbar } from "../player/Hotbar";
 import { itemDefinition } from "../items/ItemRegistry";
 import { WEAPON_KNOCKBACK } from "./Knockback";
+import { AMMO_ITEM_ID } from "./Ammunition";
 
 export class PlayerCombatSystem {
   private readonly direction = new THREE.Vector3();
@@ -103,6 +104,7 @@ export class PlayerCombatSystem {
       Math.min(frameMs / 1000, 0.05),
       this.modeValue,
       this.cooldown,
+      this.inventory.itemCount(AMMO_ITEM_ID),
     );
   }
 
@@ -191,6 +193,10 @@ export class PlayerCombatSystem {
   }
 
   private fireRepeater(): void {
+    if (!this.inventory.consumeItem(AMMO_ITEM_ID)) {
+      this.cooldown = 0.25;
+      return;
+    }
     this.camera.getWorldDirection(this.direction);
     const stats = this.status.snapshot();
     const critical = this.rollCrit();

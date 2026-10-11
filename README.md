@@ -7,6 +7,14 @@ O protótipo top-down anterior continua preservado em `legacy/topdown-prototype`
 Plano completo: [docs/3D_FPS_REWRITE_PLAN.md](docs/3D_FPS_REWRITE_PLAN.md)
 
 
+## Munição 0.6.0
+
+- Repeater e todas as torres usam células de energia; cada disparo consome uma célula.
+- Fabrique **48 células com 1 metal + 1 cristal** no inventário (`I`). As células são itens empilháveis, até 128 por slot.
+- Torres começam vazias. Mire numa torre a até 4,5 m e pressione **E** para transferir munição do inventário, sem precisar selecioná-la na hotbar.
+- A torre normal comporta 96 células e a rápida, 128. O contador aparece sobre cada torre próxima e visível; o Repeater mostra a reserva na HUD.
+- Armas e torres param de atirar quando vazias. [Regras e verificação](docs/AMMUNITION.md).
+
 ## Blood and gore 0.5.0
 
 Inimigos soltam sangue vermelho no ponto do impacto, com direção do tiro ou golpe. Mortes geram um efeito maior, fragmentos de carne, roupa e ossos, além de manchas no chão e nas paredes. O gore segue o estilo voxel, respeita pausa/efeitos reduzidos e usa pools fixos para manter a horda leve. [Comportamento e verificação](docs/BLOOD_GORE.md).

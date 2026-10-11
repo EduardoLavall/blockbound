@@ -14,6 +14,7 @@ import type { PlayerController } from "../player/PlayerController";
 import type { PlayerStatus } from "../player/PlayerStatus";
 import type { Hotbar } from "../player/Hotbar";
 import type { Core } from "./Core";
+import { AMMO_ITEM_ID } from "../combat/Ammunition";
 
 async function fixture() {
   const physics = await PhysicsWorld.create();
@@ -42,10 +43,31 @@ async function fixture() {
     expect(new CraftingSystem(inventory.storage).craft("defense-wall")).toBe(true);
   };
   const place = () => { pressed.add("Mouse2"); system.fixedUpdate(1 / 60); };
-  return { system, inventory, physics, craft, place, position, mode };
+  return { system, inventory, physics, craft, place, position, mode, pressed, camera, world };
 }
 
 describe("crafted defense placement", () => {
+  it.each([StructureType.Turret,StructureType.RapidTurret])("places %s empty and manually fills only from the bag while aimed nearby", async type => {
+    const f=await fixture();try {
+      f.inventory.storage.addItem(`defense-${type}`,1,"hotbar");f.place();
+      const tower=f.system.all[0]!;expect(tower.ammo).toBe(0);
+      f.inventory.storage.addItem(AMMO_ITEM_ID,200);
+      f.pressed.add("KeyE");f.system.fixedUpdate(1/60);expect(tower.ammo).toBe(0);
+      f.position.set(f.camera.position.x,2,f.camera.position.z);
+      f.camera.lookAt(tower.x,tower.y+.8,tower.z);f.camera.updateMatrixWorld();
+      expect(f.system.targetedTurret()?.id).toBe(tower.id);
+      f.pressed.add("KeyE");f.system.fixedUpdate(1/60);
+      const capacity=type===StructureType.Turret?96:128;
+      expect(tower.ammo).toBe(capacity);expect(f.inventory.storage.itemCount(AMMO_ITEM_ID)).toBe(200-capacity);
+      expect(f.system.refillTurret(tower.id)).toBe(0);
+      tower.ammo=capacity-10;f.inventory.storage.consumeItem(AMMO_ITEM_ID,200-capacity-3);
+      f.pressed.add("KeyE");f.system.fixedUpdate(1/60);
+      expect(tower.ammo).toBe(capacity-7);expect(f.inventory.storage.itemCount(AMMO_ITEM_ID)).toBe(0);
+      f.inventory.storage.addItem(AMMO_ITEM_ID,10);
+      for(let x=2;x<8;x++)for(let y=1;y<6;y++)f.world.setBlock(x,y,Math.floor(f.camera.position.z)-1,BlockId.Stone);
+      expect(f.system.refillTurret(tower.id)).toBe(0);expect(f.inventory.storage.itemCount(AMMO_ITEM_ID)).toBe(10);
+    } finally {f.physics.world.free()}
+  });
   it("places a crafted wall without raw materials, consumes one item and cannot build again for free", async () => {
     const f = await fixture();
     try {

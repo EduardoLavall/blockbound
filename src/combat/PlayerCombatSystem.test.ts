@@ -14,6 +14,7 @@ import type { Hotbar } from "../player/Hotbar";
 import type { EnemySystem } from "../ai/EnemySystem";
 import type { EnemyInstance } from "../ai/EnemySystem";
 import { ENEMIES, EnemyType } from "../ai/EnemyRegistry";
+import { AMMO_ITEM_ID } from "./Ammunition";
 import type { ProjectileSystem } from "./ProjectileSystem";
 import type { FirstPersonHand } from "../player/FirstPersonHand";
 import type { CombatHUD } from "../ui/CombatHUD";
@@ -33,6 +34,15 @@ function fixture() {
   return {bag,pressed,held,hotbar,combat,spawn,damage,targets};
 }
 describe("weapon inventory ownership", () => {
+  it("requires physical ammunition, spends exactly one per shot and stops at zero", () => {
+    const f=fixture(); f.bag.addItem("repeater",1,"hotbar"); f.hotbar.select(1); f.held.add("Mouse0");
+    f.combat.fixedUpdate(1/60); expect(f.spawn).not.toHaveBeenCalled();
+    f.bag.addItem(AMMO_ITEM_ID,2); f.combat.fixedUpdate(1);
+    expect(f.spawn).toHaveBeenCalledTimes(1);expect(f.bag.itemCount(AMMO_ITEM_ID)).toBe(1);
+    f.combat.fixedUpdate(1/60);expect(f.spawn).toHaveBeenCalledTimes(1);
+    f.combat.fixedUpdate(1);expect(f.spawn).toHaveBeenCalledTimes(2);expect(f.bag.itemCount(AMMO_ITEM_ID)).toBe(0);
+    f.combat.fixedUpdate(1);expect(f.spawn).toHaveBeenCalledTimes(2);
+  });
   it.each(["pickaxe", "blade"])("passes a contact point and strike direction for %s blood feedback", weapon => {
     const f=fixture();
     const group=new THREE.Group();group.position.set(0,0,-1.5);
@@ -49,7 +59,7 @@ describe("weapon inventory ownership", () => {
     expect(f.combat.mode).toBe(PlayerActionMode.Tool); expect(f.spawn).not.toHaveBeenCalled();
   });
   it("uses a crafted weapon selected from the hotbar and revokes it when removed",()=>{
-    const f=fixture(); f.bag.addItem("repeater",1,"hotbar"); f.hotbar.select(1); f.held.add("Mouse0"); f.combat.fixedUpdate(1/60);
+    const f=fixture(); f.bag.addItem("repeater",1,"hotbar"); f.bag.addItem(AMMO_ITEM_ID,2); f.hotbar.select(1); f.held.add("Mouse0"); f.combat.fixedUpdate(1/60);
     expect(f.combat.mode).toBe(PlayerActionMode.Repeater); expect(f.spawn).toHaveBeenCalledOnce();
     f.bag.consumeItemAt(1); f.combat.fixedUpdate(1);
     expect(f.combat.mode).toBe(PlayerActionMode.Tool); expect(f.spawn).toHaveBeenCalledOnce();
