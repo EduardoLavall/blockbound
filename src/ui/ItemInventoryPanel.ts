@@ -80,7 +80,9 @@ export class ItemInventoryPanel {
       if (recipe) {
         if (this.held) this.craftMessage = "Guarde o item do cursor antes de fabricar.";
         else if (this.crafting.craft(recipe)) {
-          this.craftMessage = `Fabricado: ${itemDefinition(recipe).name}. Selecione na hotbar para usar.`;
+          const quantity = this.crafting.recipe(recipe)?.quantity ?? 1;
+          const ammunition = itemDefinition(recipe).tags.includes("ammunition");
+          this.craftMessage = `Fabricado: ${quantity}× ${itemDefinition(recipe).name}. ${ammunition ? "Repeater usa do inventário. Mire na torre e pressione E para abastecer." : "Selecione na hotbar para usar."}`;
           this.onCrafted(recipe);
         } else this.craftMessage = this.crafting.status(recipe) === "space" ? "Mochila cheia." : "Faltam materiais.";
         this.render(true);
@@ -373,7 +375,7 @@ export class ItemInventoryPanel {
         const definition = itemDefinition(recipe.output);
         const state = this.crafting.status(recipe.id);
         return `<div class="craft-recipe ${state}">
-          <div class="craft-title">${iconMarkup(definition.icon ?? "chest")}<strong>${definition.name}</strong></div>
+          <div class="craft-title">${iconMarkup(definition.icon ?? "chest")}<strong>${definition.name}${(recipe.quantity ?? 1) > 1 ? ` ×${recipe.quantity}` : ""}</strong></div>
           <div class="craft-cost">${Object.entries(recipe.cost).map(([resource, amount]) => {
             const owned = this.storage.resourceCount(resource as ResourceId);
             return `<span class="${owned >= (amount ?? 0) ? "enough" : "missing"}" title="${RESOURCES[resource as ResourceId].name}">${iconMarkup(resource)} ${owned}/${amount}</span>`;

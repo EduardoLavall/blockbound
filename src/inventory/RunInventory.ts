@@ -107,11 +107,26 @@ export class RunInventory {
     return total;
   }
 
-  canCraftItem(definitionId: string, cost: ResourceCost): boolean {
-    return this.craftPreview(definitionId, cost) !== null;
+  itemCount(definitionId: string): number {
+    return this.itemStacks().reduce((total, stack) => total + (stack.definitionId === definitionId ? stack.quantity : 0), 0);
   }
-  craftItem(definitionId: string, cost: ResourceCost): boolean {
-    const preview = this.craftPreview(definitionId, cost);
+  consumeItem(definitionId: string, quantity = 1): boolean {
+    if (!Number.isInteger(quantity) || quantity <= 0 || this.itemCount(definitionId) < quantity) return false;
+    let remaining = quantity;
+    for (let i = RUN_INVENTORY_SIZE - 1; i >= 0 && remaining > 0; i--) {
+      const stack = this.slotValues[i];
+      if (stack?.kind !== "item" || stack.definitionId !== definitionId) continue;
+      const take = Math.min(remaining, stack.quantity);
+      stack.quantity -= take; remaining -= take;
+      if (stack.quantity === 0) this.slotValues[i] = null;
+    }
+    this.emit(); return true;
+  }
+  canCraftItem(definitionId: string, cost: ResourceCost, quantity = 1): boolean {
+    return this.craftPreview(definitionId, cost, quantity) !== null;
+  }
+  craftItem(definitionId: string, cost: ResourceCost, quantity = 1): boolean {
+    const preview = this.craftPreview(definitionId, cost, quantity);
     if (!preview) return false;
     for (let i = 0; i < RUN_INVENTORY_SIZE; i++) {
       const stack = preview[i] ?? null;
@@ -129,7 +144,8 @@ export class RunInventory {
     this.emit();
     return true;
   }
-  private craftPreview(definitionId: string, cost: ResourceCost): Array<InventoryStack | null> | null {
+  private craftPreview(definitionId: string, cost: ResourceCost, quantity: number): Array<InventoryStack | null> | null {
+    if (!Number.isInteger(quantity) || quantity <= 0) return null;
     const definition = itemDefinition(definitionId);
     const preview = this.slotValues.map(stack => stack ? { ...stack } : null);
     for (const [resource, amount] of Object.entries(cost)) {
@@ -143,13 +159,20 @@ export class RunInventory {
         if (stack.quantity === 0) preview[i] = null;
       }
     }
-    const incoming: ItemStack = { kind: "item", uid: "$crafted", definitionId, quantity: 1 };
-    const existing = preview.find(stack => stack && sameStackType(stack, incoming) && stack.quantity < definition.stackLimit);
-    if (existing) { existing.quantity++; return preview; }
-    const empty = preview.findIndex(stack => stack === null);
-    if (empty < 0) return null;
-    preview[empty] = incoming;
-    return preview;
+    const incoming: ItemStack = { kind: "item", uid: "$crafted", definitionId, quantity };
+    let remaining = quantity;
+    for (const stack of preview) {
+      if (!stack || !sameStackType(stack, incoming)) continue;
+      const take = Math.min(remaining, definition.stackLimit - stack.quantity);
+      stack.quantity += take; remaining -= take;
+      if (remaining === 0) return preview;
+    }
+    for (let i = 0; i < preview.length && remaining > 0; i++) {
+      if (preview[i] !== null) continue;
+      const take = Math.min(remaining, definition.stackLimit);
+      preview[i] = { ...incoming, quantity: take }; remaining -= take;
+    }
+    return remaining === 0 ? preview : null;
   }
 
   consumeResource(resource: ResourceId, quantity: number): boolean {

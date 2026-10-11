@@ -7,6 +7,7 @@ export interface TurretCombatDefinition {
   cooldown: number;
   range: number;
   boltColor: number;
+  ammoCapacity: number;
   targetPriority: Readonly<Partial<Record<EnemyType, number>>>;
   damageMultiplier: Readonly<Partial<Record<EnemyType, number>>>;
 }
@@ -20,6 +21,7 @@ export const TURRETS: Readonly<
     cooldown: 0.72,
     range: 12,
     boltColor: 0x77eee5,
+    ammoCapacity: 96,
     targetPriority: {},
     damageMultiplier: {},
   },
@@ -29,6 +31,7 @@ export const TURRETS: Readonly<
     cooldown: 0.22,
     range: 9.5,
     boltColor: 0xffc45e,
+    ammoCapacity: 128,
     targetPriority: {
       [EnemyType.Runner]: 5,
       [EnemyType.Grunt]: 3,

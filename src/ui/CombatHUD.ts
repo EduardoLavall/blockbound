@@ -34,6 +34,7 @@ export class CombatHUD {
     dt: number,
     mode: PlayerActionMode,
     cooldown: number,
+    ammunition = 0,
   ): void {
     this.hitTimer = Math.max(0, this.hitTimer - dt);
     this.damageTimer = Math.max(0, this.damageTimer - dt);
@@ -72,8 +73,9 @@ export class CombatHUD {
       <div class="weapon-line">
         <b>${modeLabel}</b>
         <span>Q · TROCAR</span>
-        <span>${cooldown > 0 ? "RECUPERANDO" : "PRONTA"}</span>
+        <span>${mode === PlayerActionMode.Repeater && ammunition === 0 ? "SEM MUNIÇÃO" : cooldown > 0 ? "RECUPERANDO" : "PRONTA"}</span>
       </div>
+      ${mode === PlayerActionMode.Repeater ? `<div class="weapon-ammunition ${ammunition === 0 ? "empty" : ""}">CÉLULAS <strong>${ammunition}</strong>${ammunition === 0 ? " · I: FABRICAR" : ""}</div>` : ""}
     `;
     if (markup !== this.previousMarkup) {
       this.element.innerHTML = markup;

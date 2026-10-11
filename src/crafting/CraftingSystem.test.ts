@@ -2,8 +2,21 @@ import { describe, expect, it } from "vitest";
 import { RunInventory } from "../inventory/RunInventory";
 import { ResourceId } from "../survival/Resources";
 import { CraftingSystem, RECIPES } from "./CraftingSystem";
+import { AMMO_ITEM_ID } from "../combat/Ammunition";
 
 describe("crafting into the physical inventory", () => {
+  it("requires room for the whole ammunition batch and splits it across stacks without loss", () => {
+    const bag = new RunInventory(), craft = new CraftingSystem(bag);
+    bag.addItem(AMMO_ITEM_ID,125,"hotbar");bag.addResource(ResourceId.Metal,10);bag.addResource(ResourceId.Crystal,10);
+    bag.addResource(ResourceId.Soil,33*64);
+    const before = JSON.stringify(bag.slots);
+    expect(craft.status(AMMO_ITEM_ID)).toBe("space");expect(craft.craft(AMMO_ITEM_ID)).toBe(false);
+    expect(JSON.stringify(bag.slots)).toBe(before);
+    bag.takeAll(bag.slots.findIndex(stack=>stack?.kind==="resource"&&stack.resource===ResourceId.Soil));
+    expect(craft.craft(AMMO_ITEM_ID)).toBe(true);expect(bag.itemCount(AMMO_ITEM_ID)).toBe(173);
+    expect(bag.itemStacks().map(stack=>stack.quantity).sort((a,b)=>a-b)).toEqual([45,128]);
+    expect(bag.resourceCount(ResourceId.Metal)).toBe(9);expect(bag.resourceCount(ResourceId.Crystal)).toBe(9);
+  });
   it("requires ingredients and does not grant weapons to an empty bag", () => {
     const bag = new RunInventory(); const crafting = new CraftingSystem(bag);
     expect(crafting.craft("blade")).toBe(false);
@@ -15,7 +28,7 @@ describe("crafting into the physical inventory", () => {
     expect(crafting.status(id)).toBe("ready");
     expect(crafting.craft(id)).toBe(true);
     expect(Object.values(ResourceId).every(resource => bag.resourceCount(resource) === 0)).toBe(true);
-    expect(bag.itemStacks().map(item => [item.definitionId, item.quantity])).toEqual([[recipe.output, 1]]);
+    expect(bag.itemStacks().map(item => [item.definitionId, item.quantity])).toEqual([[recipe.output, recipe.quantity ?? 1]]);
   });
   it("crafts in a full bag when consuming ingredients frees the required slot", () => {
     const bag = new RunInventory(); const crafting = new CraftingSystem(bag);
